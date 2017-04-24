@@ -18,6 +18,9 @@
     telemetryConsent: 'no'
   'keyboard-scroll':
     animate: false
+  'platformio-ide-terminal':
+    core:
+      workingDirectory: 'Active File'
   welcome:
     showOnStartup: false
   whitespace:
