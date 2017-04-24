@@ -20,6 +20,7 @@ apm install advanced-open-file@0.16.6
 apm install atom-latex@0.7.2
 apm install keyboard-scroll@0.7.0
 apm install latextools@0.8.5
+apm install platformio-ide-terminal@2.5.0
 ln -fs "$PWD/config.cson" ~/.atom/config.cson
 ln -fs "$PWD/keymap.cson" ~/.atom/keymap.cson
 ln -fs "$PWD/snippets.cson" ~/.atom/snippets.cson
