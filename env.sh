@@ -49,6 +49,9 @@ echo BOOT_CLOJURE_VERSION=1.8.0 > ~/.boot/boot.properties
 ln -fs "$PWD/profile.boot" ~/.boot/profile.boot
 boot -u
 
+wget https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
+
 curl https://sh.rustup.rs -sSf | sh
 cargo install racer
 rustup component add rust-src
