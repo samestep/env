@@ -19,6 +19,7 @@ sudo dpkg -i atom-amd64.deb
 apm install advanced-open-file@0.16.6
 apm install atom-latex@0.7.2
 apm install git-plus@7.8.0
+apm install go-plus@5.5.2
 apm install keyboard-scroll@0.7.0
 apm install latextools@0.8.5
 apm install platformio-ide-terminal@2.5.0
