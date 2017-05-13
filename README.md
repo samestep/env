@@ -6,6 +6,7 @@ My Ubuntu environment. Initial setup:
 sudo apt install git
 git clone https://github.com/samestep/env.git
 cd env
+./once.sh
 ./env.sh
 ```
 
