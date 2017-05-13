@@ -15,6 +15,7 @@ mkdir ~/.emacs.d
 ln -fs "$PWD/init.el" ~/.emacs.d/init.el
 
 wget https://github.com/atom/atom/releases/download/v1.15.0/atom-amd64.deb
+sudo apt install gconf2 gconf-service
 sudo dpkg -i atom-amd64.deb
 apm install advanced-open-file@0.16.6
 apm install atom-latex@0.7.2
