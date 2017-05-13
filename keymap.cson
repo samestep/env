@@ -1,3 +1,5 @@
+'.advanced-open-file atom-text-editor':
+  'ctrl-j': 'application:add-project-folder'
 'atom-text-editor[data-grammar~="latex"]':
   '$': 'latextools:dollar-sign'
   '`': 'latextools:backquote'
