@@ -52,7 +52,7 @@ boot -u
 wget -N https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
 
-cargo install racer
+cargo install --force racer
 rustup component add rust-src
 
 sudo apt install nautilus-dropbox
