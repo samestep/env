@@ -34,9 +34,6 @@ sudo apt install texlive texlive-xetex latexmk
 
 sudo apt install clang
 
-sudo rm /etc/apt/sources.list.d/webupd8team-ubuntu-java-*
-sudo add-apt-repository ppa:webupd8team/java
-sudo apt update
 sudo apt install oracle-java8-installer
 
 sudo curl -o /usr/local/bin/lein https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
@@ -55,7 +52,6 @@ boot -u
 wget -N https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
 
-curl https://sh.rustup.rs -sSf | sh
 cargo install racer
 rustup component add rust-src
 
