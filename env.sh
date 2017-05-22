@@ -52,8 +52,7 @@ boot -u
 wget -N https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
 
-sudo apt install haskell-stack
-stack setup
+sudo apt install haskell-platform
 
 cargo install racer
 rustup component add rust-src
