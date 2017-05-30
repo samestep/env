@@ -64,7 +64,7 @@ sudo apt install keepassx
 wget -N https://downloads.slack-edge.com/linux_releases/slack-desktop-2.6.0-amd64.deb
 sudo dpkg -i slack-desktop-2.6.0-amd64.deb
 
-sudo apt install steam dnsmasq
+sudo apt install steam
 
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys BBEBDCB318AD50EC6865090613B00F1FD2C19886
 echo deb http://repository.spotify.com stable non-free | sudo tee /etc/apt/sources.list.d/spotify.list
