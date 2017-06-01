@@ -17,13 +17,18 @@ ln -fs "$PWD/init.el" ~/.emacs.d/init.el
 wget -N https://github.com/atom/atom/releases/download/v1.15.0/atom-amd64.deb
 sudo apt install gconf2 gconf-service
 sudo dpkg -i atom-amd64.deb
+apm install Parinfer@1.17.0
 apm install advanced-open-file@0.16.6
 apm install atom-latex@0.7.2
 apm install git-plus@7.8.0
 apm install go-plus@5.5.2
+apm install ink@0.6.5
 apm install keyboard-scroll@0.7.0
 apm install latextools@0.8.5
+apm install proto-repl@1.4.20
+apm install proto-repl-charts@0.4.1
 apm install platformio-ide-terminal@2.5.0
+apm install set-syntax@0.3.2
 ln -fs "$PWD/config.cson" ~/.atom/config.cson
 ln -fs "$PWD/keymap.cson" ~/.atom/keymap.cson
 ln -fs "$PWD/snippets.cson" ~/.atom/snippets.cson
