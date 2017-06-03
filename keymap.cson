@@ -3,13 +3,13 @@
 '.platform-darwin atom-workspace atom-text-editor:not([mini])':
   'alt-cmd-o': 'unset!'
 'atom-text-editor[data-grammar~="latex"]':
-  '$': 'latextools:dollar-sign'
+  $: 'latextools:dollar-sign'
   '`': 'latextools:backquote'
   "'": 'latextools:quote'
   '"': 'latextools:double-quote'
   '{': 'latextools:ref-cite-keypress'
   ',': 'latextools:ref-cite-keypress'
-'body':
+body:
   'ctrl-tab': 'pane:show-next-item'
   'ctrl-tab ^ctrl': 'unset!'
   'ctrl-shift-tab': 'pane:show-previous-item'

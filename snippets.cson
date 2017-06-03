@@ -1,8 +1,8 @@
 '.text.tex.latex':
-  'environment':
-    'prefix': 'env'
-    'body': '''
-    \\\\begin{$1}
-      $2
-    \\\\end{$1}
+  environment:
+    prefix: 'env'
+    body: '''
+      \\\\begin{$1}
+        $2
+      \\\\end{$1}
     '''
