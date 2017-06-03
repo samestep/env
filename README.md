@@ -14,4 +14,4 @@ cd env
 script is hard, so all the scripts in this repository assume that they will be
 run from the repository root.
 
-[parent directory question]: http://stackoverflow.com/q/59895/5044950
+[parent directory question]: https://stackoverflow.com/q/59895/5044950
