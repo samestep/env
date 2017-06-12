@@ -24,6 +24,7 @@ apm install git-plus@7.8.0
 apm install go-plus@5.5.2
 apm install ink@0.6.5
 apm install keyboard-scroll@0.7.0
+apm install language-rust@0.4.10
 apm install latextools@0.8.5
 apm install proto-repl@1.4.20
 apm install proto-repl-charts@0.4.1
