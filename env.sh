@@ -38,7 +38,7 @@ sudo apt install pandoc
 
 sudo apt install texlive texlive-xetex latexmk
 
-sudo apt install clang
+sudo apt install clang cmake
 
 sudo apt install oracle-java8-installer
 
