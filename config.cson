@@ -14,7 +14,7 @@
       'atom-latex'
       'latextools'
     ]
-    restorePreviousWindowsOnStart: false
+    restorePreviousWindowsOnStart: 'no'
     telemetryConsent: 'no'
   'keyboard-scroll':
     animate: false
