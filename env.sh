@@ -23,6 +23,7 @@ apm install atom-latex@0.7.2
 apm install go-plus@5.5.2
 apm install ink@0.6.5
 apm install keyboard-scroll@0.7.0
+apm install language-rust@0.4.10
 apm install latextools@0.8.5
 apm install lisp-paredit@0.5.5
 apm install platformio-ide-terminal@2.5.0
@@ -37,7 +38,7 @@ sudo apt install pandoc
 
 sudo apt install texlive texlive-xetex latexmk
 
-sudo apt install clang
+sudo apt install clang cmake
 
 sudo apt install oracle-java8-installer
 
