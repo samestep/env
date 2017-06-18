@@ -5,6 +5,17 @@
   'atom-latex':
     hide_log_if_success: true
     preview_after_build: 'Do nothing'
+  'bracket-matcher':
+    autocompleteCharacters: [
+      '()'
+      '[]'
+      '{}'
+      '""'
+      '“”'
+      '‘’'
+      '«»'
+      '‹›'
+    ]
   core:
     disabledPackages: [
       'exception-reporting'
@@ -13,15 +24,62 @@
     packagesWithKeymapsDisabled: [
       'atom-latex'
       'latextools'
+      'lisp-paredit'
     ]
     restorePreviousWindowsOnStart: 'no'
     telemetryConsent: 'no'
+  editor:
+    autoIndentOnPaste: false
+    scrollPastEnd: true
   'keyboard-scroll':
     animate: false
+  'lisp-paredit':
+    indentationForms: [
+      'try'
+      'catch'
+      'finally'
+      '/^let/'
+      'are'
+      '/^def/'
+      'fn'
+      'cond'
+      'condp'
+      '/^if.*/'
+      '/.*\\/for/'
+      'for'
+      'for-all'
+      '/^when.*/'
+      'testing'
+      'doseq'
+      'dotimes'
+      'ns'
+      'routes'
+      'GET'
+      'POST'
+      'PUT'
+      'DELETE'
+      'extend-protocol'
+      'loop'
+      'do'
+      'case'
+      'with-bindings'
+      'checking'
+      'with-open'
+    ]
+    strict: false
   'platformio-ide-terminal':
     core:
       workingDirectory: 'Active File'
+  'proto-repl':
+    displayHelpText: false
   welcome:
     showOnStartup: false
   whitespace:
     ignoreWhitespaceOnCurrentLine: false
+'.clojure.source':
+  editor:
+    autoIndent: false
+    autoIndentOnPaste: false
+    nonWordCharacters: '()"\':,;~@#$%^&{}[]`'
+    scrollPastEnd: true
+    tabLength: 1
