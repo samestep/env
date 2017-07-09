@@ -67,9 +67,6 @@
       'with-open'
     ]
     strict: false
-  'platformio-ide-terminal':
-    core:
-      workingDirectory: 'Active File'
   'proto-repl':
     displayHelpText: false
   welcome:
