@@ -1,24 +1,3 @@
-'.advanced-open-file atom-text-editor':
-  'ctrl-j': 'application:add-project-folder'
-'.platform-darwin atom-text-editor[data-grammar~="clojure"]':
-  'cmd-i': 'lisp-paredit:indent'
-  'ctrl-shift-m': 'lisp-paredit:expand-selection'
-  'enter': 'lisp-paredit:newline'
-  'cmd-shift-x': 'jason:cut-sexp'
-  'cmd-shift-c': 'jason:copy-sexp'
-  'cmd-shift-v': 'jason:paste-sexp'
-  'cmd-shift-delete': 'jason:delete-sexp'
-  'cmd-shift-d': 'jason:delete-sexp'
-  'cmd-shift-i': 'jason:indent-top-sexp'
-'.platform-darwin atom-workspace atom-text-editor:not([mini])':
-  'alt-cmd-o': 'unset!'
-'atom-text-editor[data-grammar~="latex"]':
-  $: 'latextools:dollar-sign'
-  '`': 'latextools:backquote'
-  "'": 'latextools:quote'
-  '"': 'latextools:double-quote'
-  '{': 'latextools:ref-cite-keypress'
-  ',': 'latextools:ref-cite-keypress'
 body:
   'ctrl-tab': 'pane:show-next-item'
   'ctrl-tab ^ctrl': 'unset!'
@@ -26,3 +5,29 @@ body:
   'ctrl-shift-tab ^ctrl': 'unset!'
   'alt-<': 'window:focus-pane-on-left'
   'alt->': 'window:focus-pane-on-right'
+
+'.advanced-open-file atom-text-editor':
+  'ctrl-j': 'application:add-project-folder'
+
+# don't let Proto REPL block Advanced Open File
+'.platform-darwin atom-workspace atom-text-editor:not([mini])':
+  'alt-cmd-o': 'unset!'
+
+'.platform-darwin atom-text-editor[data-grammar~="clojure"]':
+  'cmd-i': 'lisp-paredit:indent'
+  'ctrl-shift-m': 'lisp-paredit:expand-selection'
+  enter: 'lisp-paredit:newline'
+  'cmd-shift-x': 'jason:cut-sexp'
+  'cmd-shift-c': 'jason:copy-sexp'
+  'cmd-shift-v': 'jason:paste-sexp'
+  'cmd-shift-delete': 'jason:delete-sexp'
+  'cmd-shift-d': 'jason:delete-sexp'
+  'cmd-shift-i': 'jason:indent-top-sexp'
+
+'atom-text-editor[data-grammar~="latex"]':
+  $: 'latextools:dollar-sign'
+  '`': 'latextools:backquote'
+  "'": 'latextools:quote'
+  '"': 'latextools:double-quote'
+  '{': 'latextools:ref-cite-keypress'
+  ',': 'latextools:ref-cite-keypress'

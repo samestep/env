@@ -30,6 +30,7 @@ apm install proto-repl@1.4.20
 apm install proto-repl-charts@0.4.1
 apm install set-syntax@0.3.2
 ln -fs "$PWD/config.cson" ~/.atom/config.cson
+ln -fs "$PWD/init.coffee" ~/.atom/init.coffee
 ln -fs "$PWD/keymap.cson" ~/.atom/keymap.cson
 ln -fs "$PWD/snippets.cson" ~/.atom/snippets.cson
 
