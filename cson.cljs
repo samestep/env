@@ -1,7 +1,6 @@
 #!/usr/bin/env lumo
 
-(require '[cljs.pprint :as pprint]
-         '[lumo.core :as lumo])
+(require '[lumo.core :as lumo])
 
 (def cson (js/require "cson-parser"))
 (def fs (js/require "fs"))
