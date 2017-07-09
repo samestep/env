@@ -1,7 +1,6 @@
 #!/bin/sh
 
 sudo apt install git
-git config --global core.excludesfile "$PWD/gitignore"
 git config --global credential.helper "cache --timeout=3600"
 git config --global push.default simple
 git config --global user.email sam@samestep.com
