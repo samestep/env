@@ -9,6 +9,10 @@ body:
 '.advanced-open-file atom-text-editor':
   'ctrl-j': 'application:add-project-folder'
 
+'atom-workspace':
+  'alt-(': 'parinfer:toggle-mode'
+  'alt-)': 'parinfer:disable'
+
 # don't let Proto REPL block Advanced Open File
 '.platform-darwin atom-workspace atom-text-editor:not([mini])':
   'alt-cmd-o': 'unset!'
