@@ -19,9 +19,12 @@ sudo dpkg -i atom-amd64.deb
 apm install Parinfer@1.17.0
 apm install advanced-open-file@0.16.6
 apm install atom-latex@0.7.2
+apm install file-types@0.5.5
 apm install go-plus@5.5.2
+apm install hydrogen@1.19.0
 apm install ink@0.6.5
 apm install keyboard-scroll@0.7.0
+apm install language-matlab@0.2.1
 apm install language-rust@0.4.10
 apm install latextools@0.8.5
 apm install lisp-paredit@0.5.5
@@ -39,6 +42,8 @@ sudo apt install pandoc
 sudo apt install texlive texlive-xetex latexmk
 
 sudo apt install clang cmake
+
+sudo apt install python-pip
 
 sudo apt install oracle-java8-installer
 
@@ -62,6 +67,11 @@ sudo apt install haskell-platform
 
 cargo install racer
 rustup component add rust-src
+
+sudo apt install ipython
+pip install jupyter
+pip install octave_kernel
+python -m octave_kernel.install
 
 sudo apt install nautilus-dropbox
 

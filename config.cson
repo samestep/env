@@ -32,6 +32,8 @@
   editor:
     autoIndentOnPaste: false
     scrollPastEnd: true
+  'file-types':
+    m: 'source.octave'
   'keyboard-scroll':
     animate: false
   'lisp-paredit':
