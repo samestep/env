@@ -17,10 +17,12 @@ body:
 '.platform-darwin atom-workspace atom-text-editor:not([mini])':
   'alt-cmd-o': 'unset!'
 
+'atom-text-editor[data-grammar~="clojure"]':
+  enter: 'lisp-paredit:newline'
+
 '.platform-darwin atom-text-editor[data-grammar~="clojure"]':
   'cmd-i': 'lisp-paredit:indent'
   'ctrl-shift-m': 'lisp-paredit:expand-selection'
-  enter: 'lisp-paredit:newline'
   'cmd-shift-x': 'jason:cut-sexp'
   'cmd-shift-c': 'jason:copy-sexp'
   'cmd-shift-v': 'jason:paste-sexp'
