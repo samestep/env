@@ -19,6 +19,7 @@ sudo dpkg -i atom-amd64.deb
 apm install Parinfer@1.17.0
 apm install advanced-open-file@0.16.6
 apm install atom-latex@0.7.2
+apm install center-line@1.2.4
 apm install file-types@0.5.5
 apm install go-plus@5.5.2
 apm install hydrogen@1.19.0

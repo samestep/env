@@ -6,6 +6,9 @@ body:
   'alt-<': 'window:focus-pane-on-left'
   'alt->': 'window:focus-pane-on-right'
 
+'atom-workspace atom-text-editor:not(.mini)':
+  'ctrl-alt-z': 'center-line:toggle'
+
 '.advanced-open-file atom-text-editor':
   'ctrl-j': 'application:add-project-folder'
 

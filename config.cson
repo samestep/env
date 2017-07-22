@@ -26,6 +26,7 @@
       'atom-latex'
       'latextools'
       'lisp-paredit'
+      'center-line'
     ]
     restorePreviousWindowsOnStart: 'no'
     telemetryConsent: 'no'
