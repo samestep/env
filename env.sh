@@ -25,6 +25,7 @@ apm install go-plus@5.5.2
 apm install hydrogen@1.19.0
 apm install ink@0.6.5
 apm install keyboard-scroll@0.7.0
+apm install language-idris@0.4.9
 apm install language-matlab@0.2.1
 apm install language-rust@0.4.10
 apm install latextools@0.8.5
@@ -65,6 +66,9 @@ wget -N https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
 
 sudo apt install haskell-platform
+
+cabal update
+cabal install idris
 
 cargo install racer
 rustup component add rust-src
