@@ -5,17 +5,6 @@
   'atom-latex':
     hide_log_if_success: true
     preview_after_build: 'Do nothing'
-  'bracket-matcher':
-    autocompleteCharacters: [
-      '()'
-      '[]'
-      '{}'
-      '""'
-      '“”'
-      '‘’'
-      '«»'
-      '‹›'
-    ]
   core:
     disabledPackages: [
       'exception-reporting'
@@ -78,6 +67,17 @@
   whitespace:
     ignoreWhitespaceOnCurrentLine: false
 '.clojure.source':
+  'bracket-matcher':
+    autocompleteCharacters: [
+      '()'
+      '[]'
+      '{}'
+      '""'
+      '“”'
+      '‘’'
+      '«»'
+      '‹›'
+    ]
   editor:
     autoIndent: false
     autoIndentOnPaste: false
