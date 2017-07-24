@@ -40,3 +40,6 @@ body:
   '"': 'latextools:double-quote'
   '{': 'latextools:ref-cite-keypress'
   ',': 'latextools:ref-cite-keypress'
+
+'atom-text-editor[data-grammar~="idris"]':
+  'ctrl-alt-enter': 'language-idris:open-repl'
