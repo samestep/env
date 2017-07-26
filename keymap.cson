@@ -43,4 +43,5 @@ body:
 
 'atom-text-editor[data-grammar~="idris"]':
   'ctrl-alt-y': 'language-idris:type-of'
+  'ctrl-alt-p': 'language-idris:proof-search'
   'ctrl-alt-enter': 'language-idris:open-repl'
