@@ -38,6 +38,7 @@ ln -fs "$PWD/config.cson" ~/.atom/config.cson
 ln -fs "$PWD/init.coffee" ~/.atom/init.coffee
 ln -fs "$PWD/keymap.cson" ~/.atom/keymap.cson
 ln -fs "$PWD/snippets.cson" ~/.atom/snippets.cson
+ln -fs "$PWD/styles.less" ~/.atom/styles.less
 
 sudo apt install pandoc
 
