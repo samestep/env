@@ -42,4 +42,5 @@ body:
   ',': 'latextools:ref-cite-keypress'
 
 'atom-text-editor[data-grammar~="idris"]':
+  'ctrl-alt-y': 'language-idris:type-of'
   'ctrl-alt-enter': 'language-idris:open-repl'
