@@ -8,6 +8,7 @@ body:
 
 'atom-workspace atom-text-editor:not(.mini)':
   'ctrl-alt-z': 'center-line:toggle'
+  'shift-enter': 'proto-repl:execute-text-entered-in-repl'
 
 '.advanced-open-file atom-text-editor':
   'ctrl-j': 'application:add-project-folder'
