@@ -11,10 +11,10 @@
     ]
     openEmptyEditorOnStart: false
     packagesWithKeymapsDisabled: [
-      'Parinfer'
       'atom-latex'
       'latextools'
       'lisp-paredit'
+      'parinfer'
       'center-line'
     ]
     restorePreviousWindowsOnStart: 'no'
@@ -60,6 +60,8 @@
       'with-open'
     ]
     strict: false
+  parinfer:
+    'use-smart-mode?': true
   'proto-repl':
     displayHelpText: false
   welcome:

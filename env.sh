@@ -16,7 +16,6 @@ ln -fs "$PWD/init.el" ~/.emacs.d/init.el
 wget -N https://github.com/atom/atom/releases/download/v1.18.0/atom-amd64.deb
 sudo apt install gconf2 gconf-service
 sudo dpkg -i atom-amd64.deb
-apm install Parinfer@1.17.0
 apm install advanced-open-file@0.16.6
 apm install atom-latex@0.7.2
 apm install center-line@1.2.4
@@ -30,6 +29,7 @@ apm install language-matlab@0.2.1
 apm install language-rust@0.4.10
 apm install latextools@0.8.5
 apm install lisp-paredit@0.5.5
+apm install parinfer@1.20.0
 apm install platformio-ide-terminal@2.5.0
 apm install proto-repl@1.4.20
 apm install proto-repl-charts@0.4.1
