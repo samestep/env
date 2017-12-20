@@ -68,6 +68,8 @@
     showOnStartup: false
   whitespace:
     ignoreWhitespaceOnCurrentLine: false
+  wordcount:
+    alwaysOn: true
 '.clojure.source':
   'bracket-matcher':
     autocompleteCharacters: [
