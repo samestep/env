@@ -19,6 +19,10 @@
     ]
     restorePreviousWindowsOnStart: 'no'
     telemetryConsent: 'no'
+    themes: [
+      'one-light-ui'
+      'one-light-syntax'
+    ]
   editor:
     autoIndentOnPaste: false
     scrollPastEnd: true
