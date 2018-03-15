@@ -92,3 +92,14 @@
     nonWordCharacters: '()"\':,;~@#$%^&[]{}`'
     scrollPastEnd: true
     tabLength: 1
+'.latex.tex.text':
+  'bracket-matcher':
+    autocompleteCharacters: [
+      '$$'
+      '``'
+      '{}'
+      '()'
+      '[]'
+      '""'
+      "''"
+    ]
