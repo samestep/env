@@ -2,6 +2,9 @@
   'advanced-open-file':
     fuzzyMatch: true
     helmDirSwitch: true
+  'atom-ide-ui':
+    use:
+      'atom-ide-diagnostics-ui': false
   'atom-latex':
     hide_log_if_success: true
     preview_after_build: 'Do nothing'
@@ -30,6 +33,7 @@
     m: 'source.octave'
   'keyboard-scroll':
     animate: false
+  'linter-ui-default': {}
   'lisp-paredit':
     indentationForms: [
       'try'
