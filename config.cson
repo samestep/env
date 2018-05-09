@@ -33,6 +33,8 @@
     m: 'source.octave'
   'keyboard-scroll':
     animate: false
+  lilycompile:
+    openConfig: 'not at all'
   'linter-ui-default': {}
   'lisp-paredit':
     indentationForms: [

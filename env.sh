@@ -17,6 +17,7 @@ wget -N https://github.com/atom/atom/releases/download/v1.24.0/atom-amd64.deb
 sudo apt install gconf2 gconf-service
 sudo dpkg -i atom-amd64.deb
 apm install advanced-open-file@0.16.6
+apm install atlilypond@1.2.2
 apm install atom-latex@0.8.4
 apm install atom-typescript@12.3.5
 apm install center-line@1.2.4
@@ -29,6 +30,7 @@ apm install language-idris@0.4.9
 apm install language-matlab@0.2.1
 apm install language-rust@0.4.10
 apm install latextools@0.8.5
+apm install lilycompile@0.6.0
 apm install linter-eslint@8.4.1
 apm install lisp-paredit@0.5.5
 apm install parinfer@1.20.0
@@ -46,6 +48,8 @@ ln -fs "$PWD/styles.less" ~/.atom/styles.less
 sudo apt install pandoc
 
 sudo apt install texlive texlive-xetex latexmk
+
+sudo apt install lilypond
 
 sudo apt install clang cmake
 
