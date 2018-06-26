@@ -37,6 +37,7 @@ apm install parinfer@1.20.0
 apm install platformio-ide-terminal@2.8.0
 apm install proto-repl@1.4.20
 apm install proto-repl-charts@0.4.1
+apm install script@3.18.1
 apm install set-syntax@0.3.2
 apm install wordcount@2.10.4
 ln -fs "$PWD/config.cson" ~/.atom/config.cson
