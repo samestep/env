@@ -9,5 +9,8 @@ sudo apt update
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile
 echo 'export PATH=$PATH:$HOME/.cabal/bin' >> ~/.profile
 
+# needed for the next step
+sudo apt install curl
+
 # presents options
 curl https://sh.rustup.rs -sSf | sh
