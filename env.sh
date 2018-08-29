@@ -54,7 +54,8 @@ sudo apt install lilypond
 
 sudo apt install clang cmake
 
-# install npm, then
+sudo apt install npm
+
 npm install -g typescript
 
 sudo apt install python-pip
