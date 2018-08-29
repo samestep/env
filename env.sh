@@ -1,5 +1,7 @@
 #!/bin/sh
 
+sudo apt install net-tools
+
 git config --global credential.helper "cache --timeout=3600"
 git config --global push.default simple
 git config --global user.email sam@samestep.com
@@ -51,7 +53,7 @@ sudo apt install texlive texlive-xetex latexmk
 
 sudo apt install lilypond
 
-sudo apt install clang cmake
+sudo apt install clang make cmake
 
 sudo apt install npm
 
@@ -99,3 +101,13 @@ sudo snap install slack --classic
 sudo apt install steam
 
 sudo snap install spotify
+
+sudo apt install libqt5widgets5 libqt5network5 libqt5svg5
+# http://www.styluslabs.com/download/write-tgz
+
+sudo apt install gnome-shell-pomodoro
+
+wget -N https://apps.ankiweb.net/downloads/current/anki-2.1.2-linux-amd64.tar.bz2
+tar xjf anki-2.1.2-linux-amd64.tar.bz2
+cd anki-2.1.2-linux-amd64 # watch out for this I guess
+sudo make install
