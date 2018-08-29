@@ -1,79 +1,79 @@
-'*':
-  'advanced-open-file':
+"*":
+  "advanced-open-file":
     fuzzyMatch: true
     helmDirSwitch: true
-  'atom-ide-ui':
+  "atom-ide-ui":
     use:
-      'atom-ide-diagnostics-ui': false
-  'atom-latex':
+      "atom-ide-diagnostics-ui": false
+  "atom-latex":
     hide_log_if_success: true
-    latexmk_param: '-synctex=1 -interaction=nonstopmode -file-line-error -pdf -lualatex'
-    preview_after_build: 'Do nothing'
+    latexmk_param: "-synctex=1 -interaction=nonstopmode -file-line-error -pdf -lualatex"
+    preview_after_build: "Do nothing"
   core:
     disabledPackages: [
-      'exception-reporting'
+      "exception-reporting"
     ]
     openEmptyEditorOnStart: false
     packagesWithKeymapsDisabled: [
-      'atom-latex'
-      'latextools'
-      'lisp-paredit'
-      'parinfer'
-      'center-line'
+      "atom-latex"
+      "latextools"
+      "lisp-paredit"
+      "parinfer"
+      "center-line"
     ]
-    restorePreviousWindowsOnStart: 'no'
-    telemetryConsent: 'no'
+    restorePreviousWindowsOnStart: "no"
+    telemetryConsent: "no"
     themes: [
-      'one-light-ui'
-      'one-light-syntax'
+      "one-light-ui"
+      "one-light-syntax"
     ]
   editor:
     autoIndentOnPaste: false
     scrollPastEnd: true
-  'file-types':
-    m: 'source.octave'
-  'keyboard-scroll':
+  "file-types":
+    m: "source.octave"
+  "keyboard-scroll":
     animate: false
   lilycompile:
-    openConfig: 'not at all'
-  'linter-ui-default': {}
-  'lisp-paredit':
+    openConfig: "not at all"
+  "linter-ui-default": {}
+  "lisp-paredit":
     indentationForms: [
-      'try'
-      'catch'
-      'finally'
-      '/^let/'
-      'are'
-      '/^def/'
-      'fn'
-      'cond'
-      'condp'
-      '/^if.*/'
-      '/.*\\/for/'
-      'for'
-      'for-all'
-      '/^when.*/'
-      'testing'
-      'doseq'
-      'dotimes'
-      'ns'
-      'routes'
-      'GET'
-      'POST'
-      'PUT'
-      'DELETE'
-      'extend-protocol'
-      'loop'
-      'do'
-      'case'
-      'with-bindings'
-      'checking'
-      'with-open'
+      "try"
+      "catch"
+      "finally"
+      "/^let/"
+      "are"
+      "/^def/"
+      "fn"
+      "cond"
+      "condp"
+      "/^if.*/"
+      "/.*\\/for/"
+      "for"
+      "for-all"
+      "/^when.*/"
+      "testing"
+      "doseq"
+      "dotimes"
+      "ns"
+      "routes"
+      "GET"
+      "POST"
+      "PUT"
+      "DELETE"
+      "extend-protocol"
+      "loop"
+      "do"
+      "case"
+      "with-bindings"
+      "checking"
+      "with-open"
     ]
     strict: false
   parinfer:
-    'use-smart-mode?': true
-  'proto-repl':
+    "use-smart-mode?": true
+  "proto-repl":
     displayHelpText: false
   welcome:
     showOnStartup: false
@@ -81,32 +81,32 @@
     ignoreWhitespaceOnCurrentLine: false
   wordcount:
     alwaysOn: true
-'.clojure.source':
-  'bracket-matcher':
+".clojure.source":
+  "bracket-matcher":
     autocompleteCharacters: [
-      '()'
-      '[]'
-      '{}'
-      '""'
-      '“”'
-      '‘’'
-      '«»'
-      '‹›'
+      "()"
+      "[]"
+      "{}"
+      "\"\""
+      "“”"
+      "‘’"
+      "«»"
+      "‹›"
     ]
   editor:
     autoIndent: false
     autoIndentOnPaste: false
-    nonWordCharacters: '()"\':,;~@#$%^&[]{}`'
+    nonWordCharacters: "()\"':,;~@#$%^&[]{}`"
     scrollPastEnd: true
     tabLength: 1
-'.latex.tex.text':
-  'bracket-matcher':
+".latex.tex.text":
+  "bracket-matcher":
     autocompleteCharacters: [
-      '$$'
-      '``'
-      '{}'
-      '()'
-      '[]'
-      '""'
+      "$$"
+      "``"
+      "{}"
+      "()"
+      "[]"
+      "\"\""
       "''"
     ]
