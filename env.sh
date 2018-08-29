@@ -30,7 +30,7 @@ apm install language-idris@0.4.9
 apm install language-matlab@0.2.1
 apm install language-rust@0.4.10
 apm install latextools@0.8.5
-apm install lilycompile@0.7.0
+apm install lilycompile@0.9.1
 apm install linter-eslint@8.4.1
 apm install lisp-paredit@0.5.5
 apm install parinfer@1.20.0
@@ -94,12 +94,8 @@ sudo apt install nautilus-dropbox
 
 sudo apt install keepassx
 
-wget -N https://downloads.slack-edge.com/linux_releases/slack-desktop-2.6.0-amd64.deb
-sudo dpkg -i slack-desktop-2.6.0-amd64.deb
+sudo snap install slack --classic
 
 sudo apt install steam
 
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys BBEBDCB318AD50EC6865090613B00F1FD2C19886
-echo deb http://repository.spotify.com stable non-free | sudo tee /etc/apt/sources.list.d/spotify.list
-sudo apt update
-sudo apt install spotify-client
+sudo snap install spotify
