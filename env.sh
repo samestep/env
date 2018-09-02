@@ -49,7 +49,7 @@ ln -fs "$PWD/styles.less" ~/.atom/styles.less
 
 sudo apt install pandoc
 
-sudo apt install texlive texlive-xetex latexmk
+sudo apt install texlive-full latexmk
 
 sudo apt install lilypond
 
