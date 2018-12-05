@@ -59,7 +59,7 @@ sudo apt install npm
 
 npm install -g typescript
 
-sudo apt install python-pip
+sudo apt install python-pip python3-pip
 
 sudo apt install oracle-java8-installer
 
