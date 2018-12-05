@@ -111,3 +111,7 @@ wget -N https://apps.ankiweb.net/downloads/current/anki-2.1.2-linux-amd64.tar.bz
 tar xjf anki-2.1.2-linux-amd64.tar.bz2
 cd anki-2.1.2-linux-amd64 # watch out for this I guess
 sudo make install
+
+sudo add-apt-repository ppa:kritalime/ppa
+sudo apt-get update
+sudo apt-get install krita
