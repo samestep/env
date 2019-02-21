@@ -33,7 +33,9 @@ apm install language-matlab@0.2.1
 apm install language-rust@0.4.10
 apm install latextools@0.8.5
 apm install lilycompile@0.9.1
+apm install linter-htmlhint@1.6.0
 apm install linter-eslint@8.4.1
+apm install linter-stylelint@4.4.3
 apm install lisp-paredit@0.5.5
 apm install parinfer@1.20.0
 apm install platformio-ide-terminal@2.8.0
