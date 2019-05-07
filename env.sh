@@ -39,7 +39,6 @@ apm install linter-htmlhint@1.6.0
 apm install linter-stylelint@4.4.3
 apm install linter-ui-default@1.7.1
 apm install lisp-paredit@0.5.5
-apm install markdown-pdf@2.2.0
 apm install parinfer@1.20.0
 apm install platformio-ide-terminal@2.8.0
 apm install proto-repl@1.4.20
