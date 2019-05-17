@@ -8,6 +8,11 @@ git config --global user.email sam@samestep.com
 git config --global user.name "Sam Estep"
 git config --global user.signingkey 2B42037F
 
+echo 'deb http://http.debian.net/debian wheezy-backports main' | sudo tee /etc/apt/sources.list.d/wheezy-backports-main.list
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt install git-lfs
+git lfs install
+
 sudo apt install vim
 
 sudo apt install emacs
