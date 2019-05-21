@@ -77,6 +77,10 @@ sudo apt install python-pip python3-pip
 
 sudo apt install oracle-java8-installer
 
+sudo apt install ruby-dev
+sudo gem install travis -v 1.8.10 --no-rdoc --no-ri
+travis version
+
 sudo curl -o /usr/local/bin/lein https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
 sudo chmod +x /usr/local/bin/lein
 mkdir ~/.lein
