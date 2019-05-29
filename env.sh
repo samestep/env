@@ -77,6 +77,9 @@ sudo apt install python-pip python3-pip
 
 sudo apt install oracle-java8-installer
 
+curl -s "https://get.sdkman.io" | bash
+sdk install gradle 5.4.1
+
 sudo apt install ruby-dev
 sudo gem install travis -v 1.8.10 --no-rdoc --no-ri
 travis version
