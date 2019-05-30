@@ -33,6 +33,7 @@ apm install hydrogen@2.3.0
 apm install ink@0.6.5
 apm install keyboard-scroll@0.7.0
 apm install language-gitignore@0.3.0
+apm install language-gradle@0.1.0
 apm install language-idris@0.4.9
 apm install language-matlab@0.2.1
 apm install language-rust@0.4.10
