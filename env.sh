@@ -103,6 +103,7 @@ sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
 
 sudo apt install ocaml opam
 opam init
+opam switch 4.07.0
 
 sudo apt install haskell-platform
 
