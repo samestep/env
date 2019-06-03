@@ -101,7 +101,8 @@ boot -u
 wget -N https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
 sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
 
-sudo apt install ocaml opam
+sudo apt install ocaml
+sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
 opam init
 opam switch 4.07.0
 opam install core utop
