@@ -104,6 +104,9 @@ sudo tar -C /usr/local -xzf go1.8.1.linux-amd64.tar.gz
 sudo apt install ocaml opam
 opam init
 opam switch 4.07.0
+opam install core utop
+opam install async yojson core_extended core_bench cohttp async_graphics cryptokit menhir
+ln -fs "$PWD/.ocamlinit" ~/.ocamlinit
 
 sudo apt install haskell-platform
 
