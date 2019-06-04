@@ -64,7 +64,7 @@ sudo apt install texlive-full latexmk
 
 sudo apt install lilypond
 
-sudo apt install clang make cmake
+sudo apt install clang make cmake pkg-config
 
 sudo apt install npm
 
