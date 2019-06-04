@@ -36,6 +36,7 @@ apm install language-gitignore@0.3.0
 apm install language-gradle@0.1.0
 apm install language-idris@0.4.9
 apm install language-matlab@0.2.1
+apm install language-ocaml@1.9.5
 apm install language-rust@0.4.10
 apm install latextools@0.8.5
 apm install lilycompile@0.9.1
