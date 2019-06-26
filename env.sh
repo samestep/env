@@ -84,6 +84,12 @@ npm install -g typescript
 
 sudo apt install python-pip python3-pip
 
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.7
+
 sudo apt install oracle-java8-installer
 
 curl -s "https://get.sdkman.io" | bash
