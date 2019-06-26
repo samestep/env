@@ -9,6 +9,7 @@ git config --global push.default simple
 git config --global user.email sam@samestep.com
 git config --global user.name "Sam Estep"
 git config --global user.signingkey 2B42037F
+git config --global alias.adog "log --all --date-order --decorate --graph --oneline"
 
 echo 'deb http://http.debian.net/debian wheezy-backports main' | sudo tee /etc/apt/sources.list.d/wheezy-backports-main.list
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
