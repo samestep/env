@@ -26,6 +26,7 @@ wget -N https://github.com/atom/atom/releases/download/v1.39.1/atom-amd64.deb
 sudo apt install gconf2 gconf-service
 sudo dpkg -i atom-amd64.deb
 apm install advanced-open-file@0.16.6
+apm install agda-mode@0.9.7
 apm install atlilypond@1.2.2
 apm install atom-latex@0.8.4
 apm install atom-typescript@12.6.2
@@ -35,6 +36,7 @@ apm install go-plus@5.5.2
 apm install hydrogen@2.3.0
 apm install ink@0.6.5
 apm install keyboard-scroll@0.7.0
+apm install language-agda@1.0.9
 apm install language-gitignore@0.3.0
 apm install language-gradle@0.1.0
 apm install language-idris@0.4.9

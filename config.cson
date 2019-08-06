@@ -2,6 +2,8 @@
   "advanced-open-file":
     fuzzyMatch: true
     helmDirSwitch: true
+  "agda-mode":
+    agdaPath: "/home/sam/.cabal/bin/agda "
   "atom-ide-ui":
     use:
       "atom-ide-diagnostics-ui": false
@@ -26,6 +28,7 @@
       "one-light-ui"
       "one-light-syntax"
     ]
+    useTreeSitterParsers: true
   editor:
     autoIndentOnPaste: false
     scrollPastEnd: true
