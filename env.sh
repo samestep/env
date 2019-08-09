@@ -53,7 +53,7 @@ apm install linter-ui-default@1.7.1
 apm install lisp-paredit@0.5.5
 apm install ocaml-merlin@0.14.7
 apm install parinfer@1.20.0
-apm install platformio-ide-terminal@2.8.0
+apm install platformio-ide-terminal@2.9.3
 apm install proto-repl@1.4.20
 apm install proto-repl-charts@0.4.1
 apm install script@3.18.1
