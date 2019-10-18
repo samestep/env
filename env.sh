@@ -22,7 +22,7 @@ sudo apt install emacs
 mkdir ~/.emacs.d
 ln -fs "$PWD/init.el" ~/.emacs.d/init.el
 
-wget -N https://github.com/atom/atom/releases/download/v1.39.1/atom-amd64.deb
+wget -N https://github.com/atom/atom/releases/download/v1.40.1/atom-amd64.deb
 sudo apt install gconf2 gconf-service
 sudo dpkg -i atom-amd64.deb
 apm install advanced-open-file@0.16.6
