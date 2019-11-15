@@ -34,7 +34,7 @@ apm install center-line@1.2.4
 apm install file-types@0.5.5
 apm install go-plus@5.5.2
 apm install hydrogen@2.3.0
-apm install ink@0.11.6
+apm install ink@0.10.2
 apm install keyboard-scroll@0.7.0
 apm install language-agda@1.0.9
 apm install language-gitignore@0.3.0
