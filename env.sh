@@ -34,7 +34,7 @@ apm install center-line@1.2.4
 apm install file-types@0.5.5
 apm install go-plus@5.5.2
 apm install hydrogen@2.3.0
-apm install ink@0.6.5
+apm install ink@0.11.6
 apm install keyboard-scroll@0.7.0
 apm install language-agda@1.0.9
 apm install language-gitignore@0.3.0
@@ -54,7 +54,7 @@ apm install lisp-paredit@0.5.5
 apm install ocaml-merlin@0.14.7
 apm install parinfer@1.20.0
 apm install platformio-ide-terminal@2.9.3
-apm install proto-repl@1.4.20
+apm install proto-repl@1.4.24
 apm install proto-repl-charts@0.4.1
 apm install script@3.18.1
 apm install set-syntax@0.3.2
