@@ -9,7 +9,6 @@
       "atom-ide-diagnostics-ui": false
   "atom-latex":
     hide_log_if_success: true
-    latexmk_param: "-synctex=1 -interaction=nonstopmode -file-line-error -pdflatex=lualatex -pdf"
     preview_after_build: "Do nothing"
   core:
     disabledPackages: [
