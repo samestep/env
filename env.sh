@@ -171,3 +171,5 @@ sudo apt-get update
 sudo apt-get install krita
 
 sudo snap install pdftk
+
+snap install --channel=edge shellcheck
