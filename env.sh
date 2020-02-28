@@ -169,3 +169,5 @@ sudo make install
 sudo add-apt-repository ppa:kritalime/ppa
 sudo apt-get update
 sudo apt-get install krita
+
+sudo snap install pdftk
