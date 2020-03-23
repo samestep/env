@@ -70,6 +70,10 @@ ln -fs "$PWD/styles.less" ~/.atom/styles.less
 sudo apt install pandoc
 
 sudo apt install texlive-full latexmk
+cat >~/indentconfig.yaml << EOF
+paths:
+- $PWD/latexindent.yaml
+EOF
 
 sudo add-apt-repository ppa:mscore-ubuntu/mscore3-stable
 sudo aptitude install musescore3
