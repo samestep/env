@@ -1,0 +1,7 @@
+[user]
+	email = sam@samestep.com
+	name = Sam Estep
+	signingkey = 2B42037F
+[alias]
+# https://stackoverflow.com/questions/1057564/pretty-git-branch-graphs#comment71462831_35075021
+	adog = log --all --date-order --decorate --graph --oneline
