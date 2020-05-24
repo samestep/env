@@ -1,26 +1,21 @@
 # env
 
-My Ubuntu environment. Initial setup:
+My Ubuntu environment. To use from scratch (after setting up an [SSH key][]):
 
 ```sh
-sudo apt install git
-git clone https://github.com/samestep/env.git
-cd env
-./once.sh
-./env.sh
+$ sudo apt install git
+$ git clone git@github.com:samestep/env.git
+$ cd env
+$ ./env.py
 ```
 
-[Apparently][parent directory question], getting the parent directory of a shell
-script is hard, so all the scripts in this repository assume that they will be
-run from the repository root.
+That Python script synchronizes all things APT and Snap. Then there are a few
+other scripts that you might want to use:
 
-You can also use `./env.py` to generate the following files:
+```sh
+$ ./gitconfig.sh # links ~/.gitconfig to the .gitconfig in this repo
+$ ./gradle.sh # installs Gradle
+$ ./yarn.sh # installs Yarn
+```
 
-- `ppas.json`, a list of installed PPA's
-- `apt_packages.json`, a list of manually-installed APT packages
-- `snaps.json`, a list of installed snaps
-
-Then you can act on any differences between generated versions and the ones
-already present in this repository, to synchronize in either direction.
-
-[parent directory question]: https://stackoverflow.com/q/59895/5044950
+[ssh key]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
