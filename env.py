@@ -246,24 +246,86 @@ def process_list(things, preface, instructions, query, action, failure):
 
 
 ppas_file = 'ppas.json'
-ppas_saved = set(json.loads(slurp(ppas_file)))
-ppas_here = ppas()
-process_list(
-    ppas_saved - ppas_here,
-    f'Repositories in {ppas_file} but not on this system',
-    ['Choose which repositories to add to the system',
-     f'and which ones to remove from the {ppas_file} file.'],
-    'Add this PPA',
-    add_apt_repository,
-    'Failed to add APT repository')
-process_list(
-    ppas_here - ppas_saved,
-    f'PPA repositories on this system but not in the {ppas_file} file',
-    ['Choose which repositories to remove from the system',
-     f'and which ones to add to the {ppas_file} file.'],
-    'Remove this PPA',
-    remove_apt_repository,
-    'Failed to remove APT repository')
+
+
+def sync_ppas(ppas_here, ppas_saved):
+    """Interactively sync ppas_here with ppas_saved."""
+    process_list(
+        ppas_saved - ppas_here,
+        f'Repositories in {ppas_file} but not on this system',
+        ['Choose which repositories to add to the system',
+         f'and which ones to remove from the {ppas_file} file.'],
+        'Add this PPA',
+        add_apt_repository,
+        'Failed to add APT repository')
+    process_list(
+        ppas_here - ppas_saved,
+        f'PPA repositories on this system but not in the {ppas_file} file',
+        ['Choose which repositories to remove from the system',
+         f'and which ones to add to the {ppas_file} file.'],
+        'Remove this PPA',
+        remove_apt_repository,
+        'Failed to remove APT repository')
+
+
+apt_file = 'apt_packages.json'
+
+
+def sync_apt_packages(apt_here, apt_saved):
+    """Interactively sync apt_here with apt_saved."""
+    process_list(
+        apt_saved - apt_here,
+        f'APT packages in {apt_file} but not manually installed here',
+        ['Choose which packages to manually install in the system',
+         f'and which ones to remove from the {apt_file} file.'],
+        'Install this package',
+        apt_install,
+        'Failed to install APT package')
+    process_list(
+        apt_here - apt_saved,
+        f'APT packages manually installed here but not in {apt_file}',
+        ['Choose which packages to unmark as manual in the system',
+         f'and which ones to add to the {apt_file} file.'],
+        'Unmark this package',
+        apt_unmark,
+        'Failed to unmark APT package')
+
+
+snaps_file = 'snaps.json'
+
+
+def sync_snaps(snaps_here, snaps_saved):
+    """Interactively sync snaps_here with snaps_saved."""
+    process_list(
+        snap_dict_to_list(remove_keys(snaps_saved, snaps_here.keys())),
+        f'Snaps in {snaps_file} but not installed on this system',
+        ['Choose which snaps to install in the system',
+         f'and which ones to remove from the {snaps_file} file.'],
+        'Install this snap',
+        snap_install,
+        'Failed to install snap')
+    process_list(
+        snap_dict_to_list(select_mismatched(snaps_here, snaps_saved)),
+        f'Snaps installed on this system differing from {snaps_file}',
+        ['Choose which snaps to switch in the system',
+         f'and which ones to change in the {snaps_file} file.'],
+        'Switch this snap',
+        snap_switch,
+        'Failed to switch snap')
+    process_list(
+        snap_dict_to_list(remove_keys(snaps_here, snaps_saved.keys())),
+        f'Snaps installed on this system but not in {snaps_file}',
+        ['Choose which snaps to remove from the system',
+         f'and which ones to add to the {snaps_file} file.'],
+        'Remove this snap',
+        snap_remove,
+        'Failed to remove snap')
+
+
+if os.path.isfile(ppas_file):
+    ppas_saved = set(json.loads(slurp(ppas_file)))
+    ppas_here = ppas()
+    sync_ppas(ppas_here, ppas_saved)
 ppas_after = ppas()
 spit(ppas_file, json.dumps(sorted(ppas_after), indent=2) + '\n')
 
@@ -271,55 +333,16 @@ spit(ppas_file, json.dumps(sorted(ppas_after), indent=2) + '\n')
 if ppas_after - ppas_here:
     print('Updating APT package index...')
     apt_update()
-    print('Done.')
     print()
 
-apt_file = 'apt_packages.json'
-apt_saved = set(json.loads(slurp(apt_file)))
-apt_here = apt_packages()
-process_list(
-    apt_saved - apt_here,
-    f'APT packages in {apt_file} but not manually installed on this system',
-    ['Choose which packages to manually install in the system',
-     f'and which ones to remove from the {apt_file} file.'],
-    'Install this package',
-    apt_install,
-    'Failed to install APT package')
-process_list(
-    apt_here - apt_saved,
-    f'APT packages manually installed on this system but not in {apt_file}',
-    ['Choose which packages to unmark as manual in the system',
-     f'and which ones to add to the {apt_file} file.'],
-    'Unmark this package',
-    apt_unmark,
-    'Failed to unmark APT package')
+if os.path.isfile(apt_file):
+    apt_saved = set(json.loads(slurp(apt_file)))
+    apt_here = apt_packages()
+    sync_apt_packages(apt_here, apt_saved)
 spit(apt_file, json.dumps(sorted(apt_packages()), indent=2) + '\n')
 
-snaps_file = 'snaps.json'
-snaps_saved = json.loads(slurp(snaps_file))
-snaps_here = snaps()
-process_list(
-    snap_dict_to_list(remove_keys(snaps_saved, snaps_here.keys())),
-    f'Snaps in {snaps_file} but not installed on this system',
-    ['Choose which snaps to install in the system',
-     f'and which ones to remove from the {snaps_file} file.'],
-    'Install this snap',
-    snap_install,
-    'Failed to install snap')
-process_list(
-    snap_dict_to_list(select_mismatched(snaps_here, snaps_saved)),
-    f'Snaps installed on this system differing from {snaps_file}',
-    ['Choose which snaps to switch in the system',
-     f'and which ones to change in the {snaps_file} file.'],
-    'Switch this snap',
-    snap_switch,
-    'Failed to switch snap')
-process_list(
-    snap_dict_to_list(remove_keys(snaps_here, snaps_saved.keys())),
-    f'Snaps installed on this system but not in {snaps_file}',
-    ['Choose which snaps to remove from the system',
-     f'and which ones to add to the {snaps_file} file.'],
-    'Remove this snap',
-    snap_remove,
-    'Failed to remove snap')
+if os.path.isfile(snaps_file):
+    snaps_saved = json.loads(slurp(snaps_file))
+    snaps_here = snaps()
+    sync_snaps(snaps_here, snaps_saved)
 spit(snaps_file, json.dumps(snaps(), indent=2, sort_keys=True) + '\n')
