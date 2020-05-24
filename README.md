@@ -40,6 +40,32 @@ To synchronize your PPA's, APT packages, and snaps with the JSON files here:
 $ ./env.py
 ```
 
+## VS Code
+
+To sync your settings with [the Gist][gist], open VS Code and follow the
+["Download your Settings" instructions from the Settings Sync page][settings
+sync].
+
+## TeX Live
+
+To install TeX Live, first download the [`.tar.gz` file from the TeX Users
+Group][tug]:
+```
+$ wget http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz
+```
+Then follow the [Quick install][quick] instructions to unpack:
+```
+$ tar xf install-tl-unx.tar.gz
+```
+Move into the unpacked folder:
+```
+$ cd install-tl-20*
+```
+And run the install script:
+```
+$ ./install.tl
+```
+
 ## Gradle
 
 To install Gradle, first [install SDKMAN!][sdkman]:
@@ -52,7 +78,11 @@ $ sdk install gradle 6.4.1
 ```
 
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
+[gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 [gradle]: https://gradle.org/install/#with-a-package-manager
+[quick]: https://www.tug.org/texlive/quickinstall.html
 [sdkman]: https://sdkman.io/
+[settings sync]: https://marketplace.visualstudio.com/items?itemName=Shan.code-settings-sync
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
+[tug]: https://www.tug.org/texlive/acquire-netinstall.html

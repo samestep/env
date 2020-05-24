@@ -9,6 +9,9 @@
   "core18": {
     "confinement": "base"
   },
+  "discord": {
+    "confinement": "classic"
+  },
   "gnome-3-26-1604": {},
   "gnome-3-28-1804": {},
   "gnome-3-34-1804": {},
