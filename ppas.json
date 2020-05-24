@@ -1,6 +1,6 @@
 [
-  "git-core/ppa",
-  "jonathonf/texlive",
-  "jonathonf/texlive-2019",
-  "otto-kesselgulasch/gimp"
+  "ppa:git-core/ppa",
+  "ppa:jonathonf/texlive",
+  "ppa:jonathonf/texlive-2019",
+  "ppa:otto-kesselgulasch/gimp"
 ]
