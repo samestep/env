@@ -336,14 +336,18 @@ if ppas_after - ppas_here:
     apt_update()
     print()
 
+apt_here = apt_packages()
+apt_after = apt_here
 if os.path.isfile(apt_file):
     apt_saved = set(json.loads(slurp(apt_file)))
-    apt_here = apt_packages()
     sync_apt_packages(apt_here, apt_saved)
-spit(apt_file, json.dumps(sorted(apt_packages()), indent=2) + '\n')
+    apt_after = apt_packages()
+spit(apt_file, json.dumps(sorted(apt_after), indent=2) + '\n')
 
+snaps_here = snaps()
+snaps_after = snaps_here
 if os.path.isfile(snaps_file):
     snaps_saved = json.loads(slurp(snaps_file))
-    snaps_here = snaps()
     sync_snaps(snaps_here, snaps_saved)
-spit(snaps_file, json.dumps(snaps(), indent=2, sort_keys=True) + '\n')
+    snaps_after = snaps()
+spit(snaps_file, json.dumps(snaps_after, indent=2, sort_keys=True) + '\n')
