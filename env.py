@@ -71,21 +71,6 @@ def fresh_install_packages():
     return packages
 
 
-def apt_packages():
-    """Return the set of manually-installed APT packages."""
-    return set(manual_packages()) - set(fresh_install_packages())
-
-
-def apt_install(package):
-    """Install an APT package to the system."""
-    subprocess.run(['sudo', 'apt-get', 'install', package])
-
-
-def apt_unmark(package):
-    """Unmark an APT package as being manually installed."""
-    subprocess.run(['sudo', 'apt-mark', 'auto', package])
-
-
 def in_repository(package):
     """Return truthy iff package is in an installed APT repository."""
     command = ['apt-cache', 'policy', package]
@@ -96,6 +81,22 @@ def in_repository(package):
     # the only line in that entry is just saying it's installed
     no_repository = lines[i + 1].startswith('        100 /var/lib/dpkg/status')
     return not no_repository
+
+
+def apt_packages():
+    """Return the set of manually-installed APT packages."""
+    candidates = set(manual_packages()) - set(fresh_install_packages())
+    return {package for package in candidates if in_repository(package)}
+
+
+def apt_install(package):
+    """Install an APT package to the system."""
+    subprocess.run(['sudo', 'apt-get', 'install', package])
+
+
+def apt_unmark(package):
+    """Unmark an APT package as being manually installed."""
+    subprocess.run(['sudo', 'apt-mark', 'auto', package])
 
 
 def snaps():
