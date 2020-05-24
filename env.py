@@ -322,11 +322,12 @@ def sync_snaps(snaps_here, snaps_saved):
         'Failed to remove snap')
 
 
+ppas_here = ppas()
+ppas_after = ppas_here
 if os.path.isfile(ppas_file):
     ppas_saved = set(json.loads(slurp(ppas_file)))
-    ppas_here = ppas()
     sync_ppas(ppas_here, ppas_saved)
-ppas_after = ppas()
+    ppas_after = ppas()
 spit(ppas_file, json.dumps(sorted(ppas_after), indent=2) + '\n')
 
 # run apt-get update if we've added any repositories
