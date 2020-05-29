@@ -26,13 +26,6 @@ clone of this repository:
 $ cd env
 ```
 
-## Git config
-
-To make your `~/.gitconfig` a symbolic link to the `.gitconfig` in this repo:
-```
-$ ln -fs "$PWD/.gitconfig" ~/.gitconfig
-```
-
 ## APT and Snap
 
 To synchronize your PPA's, APT packages, and snaps with the JSON files here:
@@ -40,13 +33,30 @@ To synchronize your PPA's, APT packages, and snaps with the JSON files here:
 $ ./env.py
 ```
 
-## VS Code
+## Other
 
-To sync your settings with [the Gist][gist], open VS Code and follow the
-["Download your Settings" instructions from the Settings Sync page][settings
-sync].
+The things above need to be done more or less in the order they're given in
+order to work; the things below can be done in any order.
 
-## TeX Live
+### Git config
+
+To make your `~/.gitconfig` a symbolic link to the `.gitconfig` in this repo:
+```
+$ ln -fs "$PWD/.gitconfig" ~/.gitconfig
+```
+
+### Gradle
+
+To install Gradle, first [install SDKMAN!][sdkman]:
+```
+$ curl -s "https://get.sdkman.io" | bash
+```
+Then follow the [package manager instructions on the Gradle website][gradle]:
+```
+$ sdk install gradle 6.4.1
+```
+
+### TeX Live
 
 To install TeX Live, first download the [`.tar.gz` file from the TeX Users
 Group][tug]:
@@ -66,16 +76,11 @@ And run the install script:
 $ ./install.tl
 ```
 
-## Gradle
+### VS Code
 
-To install Gradle, first [install SDKMAN!][sdkman]:
-```
-$ curl -s "https://get.sdkman.io" | bash
-```
-Then follow the [package manager instructions on the Gradle website][gradle]:
-```
-$ sdk install gradle 6.4.1
-```
+To sync your settings with [the Gist][gist], open VS Code and follow the
+["Download your Settings" instructions from the Settings Sync page][settings
+sync].
 
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
 [gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
