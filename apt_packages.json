@@ -1,5 +1,6 @@
 [
   "backport-iwlwifi-dkms",
+  "build-essential",
   "code",
   "curl",
   "dell-service-meta",
@@ -30,10 +31,12 @@
   "python-pip",
   "python3-pip",
   "python3-smbc",
+  "ruby-full",
   "smbclient",
   "steam:i386",
   "vlc",
   "vlc-plugin-fluidsynth",
   "xclip",
-  "xterm"
+  "xterm",
+  "zlib1g-dev"
 ]

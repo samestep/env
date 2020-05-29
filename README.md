@@ -56,6 +56,22 @@ Then follow the [package manager instructions on the Gradle website][gradle]:
 $ sdk install gradle 6.4.1
 ```
 
+### Ruby Gems
+
+It's [not recommended][jekyll] to install Ruby Gems as root, so change the gem
+installation path to `~/gems`:
+```
+$ echo 'export GEM_HOME="$HOME/gems"' >> ~/.bashrc
+```
+Then add these gems to the `PATH`:
+```
+$ echo 'export PATH="$HOME/gems/bin:$PATH"' >> ~/.bashrc
+```
+Then, to load those new settings into the current terminal:
+```
+$ source ~/.bashrc
+```
+
 ### TeX Live
 
 To install TeX Live, first download the [`.tar.gz` file from the TeX Users
@@ -86,6 +102,7 @@ sync].
 [gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 [gradle]: https://gradle.org/install/#with-a-package-manager
+[jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
 [quick]: https://www.tug.org/texlive/quickinstall.html
 [sdkman]: https://sdkman.io/
 [settings sync]: https://marketplace.visualstudio.com/items?itemName=Shan.code-settings-sync
