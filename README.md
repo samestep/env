@@ -56,6 +56,19 @@ Then follow the [package manager instructions on the Gradle website][gradle]:
 $ sdk install gradle 6.4.1
 ```
 
+### Lean
+
+Follow the [Debian/Ubuntu instructions][lean]. The `apt` packages are already
+covered, so first install `elan`:
+```
+$ curl https://raw.githubusercontent.com/Kha/elan/master/elan-init.sh -sSf | sh
+```
+The VS Code extension is covered in the VS Code section of this README. Lastly,
+don't use `sudo` to install `mathlibtools` from pip:
+```
+$ pip3 install mathlibtools
+```
+
 ### Ruby Gems
 
 It's [not recommended][jekyll] to install Ruby Gems as root, so change the gem
@@ -103,6 +116,7 @@ sync].
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 [gradle]: https://gradle.org/install/#with-a-package-manager
 [jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
+[lean]: https://leanprover-community.github.io/install/debian_details.html
 [quick]: https://www.tug.org/texlive/quickinstall.html
 [sdkman]: https://sdkman.io/
 [settings sync]: https://marketplace.visualstudio.com/items?itemName=Shan.code-settings-sync
