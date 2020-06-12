@@ -38,5 +38,6 @@
   "vlc-plugin-fluidsynth",
   "xclip",
   "xterm",
-  "zlib1g-dev"
+  "zlib1g-dev",
+  "zotero"
 ]

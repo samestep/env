@@ -111,6 +111,21 @@ To sync your settings with [the Gist][gist], open VS Code and follow the
 ["Download your Settings" instructions from the Settings Sync page][settings
 sync].
 
+### Zotero
+
+This [comes from APT][zotero], but it requires some special setup:
+```
+$ wget -qO- https://github.com/retorquere/zotero-deb/releases/download/apt-get/install.sh | sudo bash
+```
+Then update the local package list:
+```
+$ sudo apt update
+```
+And install:
+```
+$ sudo apt install zotero
+```
+
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
 [gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
@@ -122,3 +137,4 @@ sync].
 [settings sync]: https://marketplace.visualstudio.com/items?itemName=Shan.code-settings-sync
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
+[zotero]: https://askubuntu.com/a/1160369/423065
