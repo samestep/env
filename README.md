@@ -126,6 +126,26 @@ And install:
 $ sudo apt install zotero
 ```
 
+### Zulip
+
+This [also comes from APT][zulip], but it also requires some special setup;
+first add the keyserver:
+```
+$ sudo apt-key adv --keyserver pool.sks-keyservers.net --recv 69AD12704E71A4803DCA3A682424BE5AE9BD10D9
+```
+Then add to the list of sources:
+```
+$ echo "deb https://dl.bintray.com/zulip/debian/ stable main" | sudo tee -a /etc/apt/sources.list.d/zulip.list
+```
+Next, update the local package list:
+```
+$ sudo apt update
+```
+And install:
+```
+$ sudo apt install zulip
+```
+
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
 [gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
@@ -138,3 +158,4 @@ $ sudo apt install zotero
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
 [zotero]: https://askubuntu.com/a/1160369/423065
+[zulip]: https://zulipchat.com/help/desktop-app-install-guide
