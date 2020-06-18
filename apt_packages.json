@@ -1,7 +1,6 @@
 [
   "backport-iwlwifi-dkms",
   "build-essential",
-  "code",
   "curl",
   "dell-service-meta",
   "dmtx-utils",
@@ -39,5 +38,6 @@
   "xclip",
   "xterm",
   "zlib1g-dev",
-  "zotero"
+  "zotero",
+  "zulip"
 ]
