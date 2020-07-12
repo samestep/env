@@ -29,5 +29,8 @@
   "slack": {
     "confinement": "classic"
   },
-  "spotify": {}
+  "spotify": {},
+  "springlobby-nsg": {
+    "channel": "latest/edge"
+  }
 }
