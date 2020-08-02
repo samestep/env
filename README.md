@@ -111,6 +111,11 @@ To sync your settings with [the Gist][gist], open VS Code and follow the
 ["Download your Settings" instructions from the Settings Sync page][settings
 sync].
 
+To prevent misbehavior of [Ctrl+Shift+E][], add the following to `~/.profile`:
+```sh
+export GTK_IM_MODULE="xim"
+```
+
 ### Zotero
 
 This [comes from APT][zotero], but it requires some special setup:
@@ -146,6 +151,7 @@ And install:
 $ sudo apt install zulip
 ```
 
+[ctrl+shift+e]: https://github.com/microsoft/vscode/issues/99508#issuecomment-661852920
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
 [gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
