@@ -9,13 +9,13 @@
   "core18": {
     "confinement": "base"
   },
+  "core20": {
+    "confinement": "base"
+  },
   "discord": {},
   "gnome-3-26-1604": {},
   "gnome-3-28-1804": {},
   "gnome-3-34-1804": {},
-  "gnome-calculator": {},
-  "gnome-characters": {},
-  "gnome-logs": {},
   "gnome-system-monitor": {},
   "gtk-common-themes": {},
   "node": {
@@ -29,6 +29,7 @@
   "slack": {
     "confinement": "classic"
   },
+  "snap-store": {},
   "spotify": {},
   "springlobby-nsg": {
     "channel": "latest/edge"
