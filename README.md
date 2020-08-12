@@ -1,6 +1,6 @@
 # env
 
-My Ubuntu 18.04 environment.
+My Ubuntu 20.04 environment.
 
 ## Installing Git
 
