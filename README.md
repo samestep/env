@@ -85,6 +85,14 @@ Then, to load those new settings into the current terminal:
 $ source ~/.bashrc
 ```
 
+### Rust
+
+Run the [installation script][rust]:
+```
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+Accept all the default settings.
+
 ### TeX Live
 
 To install TeX Live, first download the [`.tar.gz` file from the TeX Users
@@ -153,6 +161,7 @@ $ sudo apt install zulip
 [jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
 [lean]: https://leanprover-community.github.io/install/debian_details.html
 [quick]: https://www.tug.org/texlive/quickinstall.html
+[rust]: https://www.rust-lang.org/learn/get-started
 [sdkman]: https://sdkman.io/
 [settings sync]: https://marketplace.visualstudio.com/items?itemName=Shan.code-settings-sync
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
