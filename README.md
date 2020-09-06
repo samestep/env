@@ -38,6 +38,22 @@ $ ./env.py
 The things above need to be done more or less in the order they're given in
 order to work; the things below can be done in any order.
 
+### Clojure
+
+Use the [installation instructions from the website][clojure]. First download
+the installation script:
+```
+$ curl -O https://download.clojure.org/install/linux-install-1.10.1.561.sh
+```
+Then give it the right permissions:
+```
+$ chmod +x linux-install-1.10.1.561.sh
+```
+And run it:
+```
+$ sudo ./linux-install-1.10.1.561.sh
+```
+
 ### Git config
 
 To make your `~/.gitconfig` a symbolic link to the `.gitconfig` in this repo:
@@ -154,6 +170,7 @@ And install:
 $ sudo apt install zulip
 ```
 
+[clojure]: https://www.clojure.org/guides/getting_started#_installation_on_linux
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
 [gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
