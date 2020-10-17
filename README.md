@@ -131,9 +131,8 @@ $ ./install.tl
 
 ### VS Code
 
-To sync your settings with [the Gist][gist], open VS Code and follow the
-["Download your Settings" instructions from the Settings Sync page][settings
-sync].
+To sync your settings, open VS Code and follow the ["Turn on Settings Sync"
+instructions from the VS Code docs][settings sync].
 
 ### Zotero
 
@@ -172,7 +171,6 @@ $ sudo apt install zulip
 
 [clojure]: https://www.clojure.org/guides/getting_started#_installation_on_linux
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
-[gist]: https://gist.github.com/samestep/98f356493a7ffd14722bdea9ae4a3adf
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 [gradle]: https://gradle.org/install/#with-a-package-manager
 [jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
@@ -180,7 +178,7 @@ $ sudo apt install zulip
 [quick]: https://www.tug.org/texlive/quickinstall.html
 [rust]: https://www.rust-lang.org/learn/get-started
 [sdkman]: https://sdkman.io/
-[settings sync]: https://marketplace.visualstudio.com/items?itemName=Shan.code-settings-sync
+[settings sync]: https://code.visualstudio.com/docs/editor/settings-sync#_turning-on-settings-sync
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
 [zotero]: https://askubuntu.com/a/1160369/423065
