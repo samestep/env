@@ -126,8 +126,9 @@ $ cd install-tl-20*
 ```
 And run the install script:
 ```
-$ ./install.tl
+$ sudo ./install.tl
 ```
+Enter `I` when prompted.
 
 ### VS Code
 
