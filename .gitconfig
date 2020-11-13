@@ -3,8 +3,8 @@
 	name = Sam Estep
 	signingkey = 2B42037F
 [alias]
-# https://stackoverflow.com/questions/1057564/pretty-git-branch-graphs#comment71462831_35075021
-	adog = log --all --date-order --decorate --graph --oneline
-	dog = log --date-order --decorate --graph --oneline
+	adog = log --all --date-order --oneline --graph
+	bdog = log --branches --date-order --oneline --graph
+	dog = log --date-order --oneline --graph
 [pull]
 	ff = only
