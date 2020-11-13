@@ -85,6 +85,22 @@ don't use `sudo` to install `mathlibtools` from pip:
 $ pip3 install mathlibtools
 ```
 
+### Leininegn
+
+Basically follow the [instructions from purelyfunctional.tv][leiningen]. First
+download:
+```
+$ wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
+```
+Then make it executable:
+```
+$ sudo chmod +x lein
+```
+Then move it into `PATH`:
+```
+$ sudo mv lein /usr/local/bin/lein
+```
+
 ### Ruby Gems
 
 It's [not recommended][jekyll] to install Ruby Gems as root, so change the gem
@@ -176,6 +192,7 @@ $ sudo apt install zulip
 [gradle]: https://gradle.org/install/#with-a-package-manager
 [jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
 [lean]: https://leanprover-community.github.io/install/debian_details.html
+[leiningen]: https://purelyfunctional.tv/guide/how-to-install-clojure/#mac-leiningen
 [quick]: https://www.tug.org/texlive/quickinstall.html
 [rust]: https://www.rust-lang.org/learn/get-started
 [sdkman]: https://sdkman.io/
