@@ -144,7 +144,11 @@ And run the install script:
 ```
 $ sudo ./install-tl
 ```
-Enter `I` when prompted.
+Enter `I` when prompted. After the installation finishes, put the new binaries
+on PATH:
+```
+$ echo 'export PATH="/usr/local/texlive/2020/bin/x86_64-linux:$PATH"' >> ~/.bashrc
+```
 
 ### VS Code
 
