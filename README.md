@@ -170,6 +170,12 @@ And install:
 ```
 $ sudo apt update && sudo apt install yarn
 ```
+Finally, to be able to easily run binaries installed via [`yarn link`][yarn
+link]:
+```
+$ echo 'export PATH="$HOME/.yarn/bin:$PATH"' >> ~/.bashrc
+```
+
 
 ### Zotero
 
@@ -220,5 +226,6 @@ $ sudo apt install zulip
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
 [yarn]: https://classic.yarnpkg.com/en/docs/install#debian-stable
+[yarn link]: https://classic.yarnpkg.com/en/docs/cli/link/
 [zotero]: https://askubuntu.com/a/1160369/423065
 [zulip]: https://zulipchat.com/help/desktop-app-install-guide
