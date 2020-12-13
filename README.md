@@ -54,6 +54,17 @@ And run it:
 $ sudo ./linux-install-1.10.1.561.sh
 ```
 
+### Flit
+
+Install [from conda-forge][flit]:
+```
+$ conda install -c conda-forge flit
+```
+And add its output folder to the PATH:
+```
+$ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+```
+
 ### Git config
 
 To make your `~/.gitconfig` a symbolic link to the `.gitconfig` in this repo:
@@ -213,6 +224,7 @@ $ sudo apt install zulip
 ```
 
 [clojure]: https://www.clojure.org/guides/getting_started#_installation_on_linux
+[flit]: https://anaconda.org/conda-forge/flit
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 [gradle]: https://gradle.org/install/#with-a-package-manager
