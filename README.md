@@ -155,6 +155,22 @@ $ echo 'export PATH="/usr/local/texlive/2020/bin/x86_64-linux:$PATH"' >> ~/.bash
 To sync your settings, open VS Code and follow the ["Turn on Settings Sync"
 instructions from the VS Code docs][settings sync].
 
+### Yarn 1
+
+Following the [instructions from the website][yarn], first add the key for the
+repo:
+```
+$ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+```
+Then add the repo URL to the APT config:
+```
+$ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+```
+And install:
+```
+$ sudo apt update && sudo apt install yarn
+```
+
 ### Zotero
 
 This [comes from APT][zotero], but it requires some special setup:
@@ -203,5 +219,6 @@ $ sudo apt install zulip
 [settings sync]: https://code.visualstudio.com/docs/editor/settings-sync#_turning-on-settings-sync
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
+[yarn]: https://classic.yarnpkg.com/en/docs/install#debian-stable
 [zotero]: https://askubuntu.com/a/1160369/423065
 [zulip]: https://zulipchat.com/help/desktop-app-install-guide
