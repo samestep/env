@@ -83,6 +83,13 @@ Then follow the [package manager instructions on the Gradle website][gradle]:
 $ sdk install gradle 6.4.1
 ```
 
+### Haskell Stack
+
+Follow the instructions from [the website][stack]:
+```
+$ wget -qO- https://get.haskellstack.org/ | sh
+```
+
 ### Lean
 
 Follow the [Debian/Ubuntu instructions][lean]. The `apt` packages are already
@@ -236,6 +243,7 @@ $ sudo apt install zulip
 [sdkman]: https://sdkman.io/
 [settings sync]: https://code.visualstudio.com/docs/editor/settings-sync#_turning-on-settings-sync
 [ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
+[stack]: https://docs.haskellstack.org/en/stable/README/
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
 [yarn]: https://classic.yarnpkg.com/en/docs/install#debian-stable
 [yarn link]: https://classic.yarnpkg.com/en/docs/cli/link/
