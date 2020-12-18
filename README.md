@@ -54,6 +54,51 @@ And run it:
 $ sudo ./linux-install-1.10.1.561.sh
 ```
 
+### Docker
+
+
+Follow the [official installation instructions][docker]. First update APT:
+```
+$ sudo apt update
+```
+Then install some prerequisites:
+```
+$ sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+```
+And add the Docker GPG key:
+```
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+```
+Check that it worked:
+```
+$ sudo apt-key fingerprint 0EBFCD88
+```
+Now add the stable repository:
+```
+$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+```
+Update APT again:
+```
+$ sudo apt update
+```
+And install Docker:
+```
+$ sudo apt install docker-ce docker-ce-cli containerd.io
+```
+Next follow the [official post-installation instructions][docker post] to make
+it work without `sudo`:
+```
+$ sudo usermod -aG docker $USER
+```
+Reboot:
+```
+$ reboot
+```
+And verify that it worked:
+```
+$ docker run hello-world
+```
+
 ### Flit
 
 Install [from conda-forge][flit]:
@@ -231,6 +276,8 @@ $ sudo apt install zulip
 ```
 
 [clojure]: https://www.clojure.org/guides/getting_started#_installation_on_linux
+[docker]: https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+[docker post]: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
 [flit]: https://anaconda.org/conda-forge/flit
 [generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
 [github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
