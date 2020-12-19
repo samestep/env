@@ -2,8 +2,8 @@
   "segments": [
     "time",
     "exit_code",
-    "virtual_env",
     "hostname",
+    "virtual_env",
     "cwd",
     "git"
   ],
