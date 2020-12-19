@@ -182,6 +182,15 @@ And sync with the file in this repo:
 ```
 $ ln -fs "$PWD/powerline-shell.json" ~/.config/powerline-shell/config.json
 ```
+To make it work with the Ubuntu terminal, download [more fonts][powerline
+fonts]:
+```
+$ git clone git@github.com:powerline/fonts.git ~/github/powerline/fonts
+```
+And install:
+```
+$ ~/github/powerline/fonts/install.sh
+```
 To [make it work with VS Code][powerline-shell vs code], download this font:
 ```
 $ wget -P ~/.fonts https://github.com/abertsch/Menlo-for-Powerline/raw/79b9e8d/Menlo%20for%20Powerline.ttf
@@ -313,6 +322,7 @@ $ sudo apt install zulip
 [lean]: https://leanprover-community.github.io/install/debian_details.html
 [leiningen]: https://purelyfunctional.tv/guide/how-to-install-clojure/#mac-leiningen
 [menlo powerline]: https://github.com/abertsch/Menlo-for-Powerline#linux
+[powerline fonts]: https://github.com/powerline/fonts#installation
 [powerline-shell bash]: https://github.com/b-ryan/powerline-shell#bash
 [powerline-shell setup]: https://github.com/b-ryan/powerline-shell#setup
 [powerline-shell vs code]: https://dev.to/mattstratton/making-powerline-work-in-visual-studio-code-terminal-1m7
