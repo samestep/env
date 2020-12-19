@@ -191,7 +191,9 @@ And install:
 ```
 $ ~/github/powerline/fonts/install.sh
 ```
-To [make it work with VS Code][powerline-shell vs code], download this font:
+You'll need to configure your terminal to use the "Meslo LG S for Powerline
+Regular" font. Lastly, to [make it work with VS Code][powerline-shell vs code],
+download yet another font:
 ```
 $ wget -P ~/.fonts https://github.com/abertsch/Menlo-for-Powerline/raw/79b9e8d/Menlo%20for%20Powerline.ttf
 ```
