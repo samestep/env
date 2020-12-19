@@ -164,6 +164,33 @@ Then move it into `PATH`:
 $ sudo mv lein /usr/local/bin/lein
 ```
 
+### Powerline shell prompt
+
+Follow the [general setup][powerline-shell setup]:
+```
+$ pip install powerline-shell
+```
+Then [reconfigure Bash][powerline-shell bash]:
+```
+$ cat powerline-shell.sh >> ~/.bashrc
+```
+Make a place for the config:
+```
+$ mkdir -p ~/.config/powerline-shell
+```
+And sync with the file in this repo:
+```
+$ ln -fs "$PWD/powerline-shell.json" ~/.config/powerline-shell/config.json
+```
+To [make it work with VS Code][powerline-shell vs code], download this font:
+```
+$ wget -P ~/.fonts https://github.com/abertsch/Menlo-for-Powerline/raw/79b9e8d/Menlo%20for%20Powerline.ttf
+```
+And [update the fonts cache][menlo powerline]:
+```
+$ fc-cache -vf ~/.fonts
+```
+
 ### Ruby Gems
 
 It's [not recommended][jekyll] to install Ruby Gems as root, so change the gem
@@ -285,6 +312,10 @@ $ sudo apt install zulip
 [jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
 [lean]: https://leanprover-community.github.io/install/debian_details.html
 [leiningen]: https://purelyfunctional.tv/guide/how-to-install-clojure/#mac-leiningen
+[menlo powerline]: https://github.com/abertsch/Menlo-for-Powerline#linux
+[powerline-shell bash]: https://github.com/b-ryan/powerline-shell#bash
+[powerline-shell setup]: https://github.com/b-ryan/powerline-shell#setup
+[powerline-shell vs code]: https://dev.to/mattstratton/making-powerline-work-in-visual-studio-code-terminal-1m7
 [quick]: https://www.tug.org/texlive/quickinstall.html
 [rust]: https://www.rust-lang.org/learn/get-started
 [sdkman]: https://sdkman.io/

@@ -1,0 +1,13 @@
+{
+  "segments": [
+    "time",
+    "exit_code",
+    "virtual_env",
+    "hostname",
+    "cwd",
+    "git"
+  ],
+  "cwd": {
+    "mode": "plain"
+  }
+}
