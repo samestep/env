@@ -148,7 +148,7 @@ don't use `sudo` to install `mathlibtools` from pip:
 $ pip3 install mathlibtools
 ```
 
-### Leininegn
+### Leiningen
 
 Basically follow the [instructions from purelyfunctional.tv][leiningen]. First
 download:
