@@ -11,12 +11,29 @@ $ sudo apt install git
 
 ## Cloning with SSH
 
-Follow the [instructions on GitHub Help][ssh]. Most likely, you just need to
-[generate a new key][generate]:
+Follow the [instructions on GitHub Help][ssh generate]. First, generate a new
+key:
 ```
-$ ssh-keygen -t rsa -b 4096 -C "sam@samestep.com"
+$ ssh-keygen -t ed25519 -C "sam@samestep.com"
 ```
-Then [add it to GitHub][github], and clone:
+Press enter once to use the default location, then choose a passphrase and enter
+it twice. After generating, you'll want to add it to the ssh-agent; first make
+sure the agent is started:
+```
+$ eval `ssh-agent -s`
+```
+Then add it to the agent:
+```
+$ ssh-add ~/.ssh/id_ed25519
+```
+Next, to [add it to GitHub][ssh github], first copy the public key to your
+clipboard:
+```
+$ cat ~/.ssh/id_ed25519.pub
+```
+Then [add a new SSH key in your GitHub settings][ssh new] by choosing a
+descriptive title, pasting the contents of that public key file, and clicking
+"Add SSH key". You can now clone this repo:
 ```
 $ git clone git@github.com:samestep/env.git
 ```
@@ -317,8 +334,6 @@ $ sudo apt install zulip
 [docker]: https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 [docker post]: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
 [flit]: https://anaconda.org/conda-forge/flit
-[generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key
-[github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 [gradle]: https://gradle.org/install/#with-a-package-manager
 [jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
 [lean]: https://leanprover-community.github.io/install/debian_details.html
@@ -332,7 +347,9 @@ $ sudo apt install zulip
 [rust]: https://www.rust-lang.org/learn/get-started
 [sdkman]: https://sdkman.io/
 [settings sync]: https://code.visualstudio.com/docs/editor/settings-sync#_turning-on-settings-sync
-[ssh]: https://help.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
+[ssh generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+[ssh github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
+[ssh new]: https://github.com/settings/ssh/new
 [stack]: https://docs.haskellstack.org/en/stable/README/
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
 [yarn]: https://classic.yarnpkg.com/en/docs/install#debian-stable
