@@ -50,6 +50,17 @@ To synchronize your PPA's, APT packages, and snaps with the JSON files here:
 $ ./env.py
 ```
 
+## Path
+
+Most of the below setup instructions don't require modification of the path, and
+for most of those that do, the modification is explicitly stated. However, a
+couple (specifically [Flit](#flit) and the [Powerline shell
+prompt](#powerline-shell-prompt)) share some common path configuration, so it is
+consolidated here rather than being presented for both separately:
+```
+$ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+```
+
 ## Other
 
 The things above need to be done more or less in the order they're given in
@@ -121,10 +132,6 @@ $ docker run hello-world
 Install [from conda-forge][flit]:
 ```
 $ conda install -c conda-forge flit
-```
-And add its output folder to the PATH:
-```
-$ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 ```
 
 ### Git config
