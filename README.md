@@ -193,6 +193,20 @@ Then move it into `PATH`:
 $ sudo mv lein /usr/local/bin/lein
 ```
 
+### Miniconda
+
+Follow the [instructions on the website][miniconda], so first download the
+installer:
+```
+$ wget -P /tmp https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+```
+Then run it:
+```
+$ bash /tmp/Miniconda3-latest-Linux-x86_64.sh
+```
+Follow the instructions, answering "yes" to all prompts that ask for a yes/no
+answer.
+
 ### Powerline shell prompt
 
 Follow the [general setup][powerline-shell setup]:
@@ -351,6 +365,7 @@ $ sudo apt install zulip
 [lean]: https://leanprover-community.github.io/install/debian_details.html
 [leiningen]: https://purelyfunctional.tv/guide/how-to-install-clojure/#mac-leiningen
 [menlo powerline]: https://github.com/abertsch/Menlo-for-Powerline#linux
+[miniconda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
 [powerline fonts]: https://github.com/powerline/fonts#installation
 [powerline-shell bash]: https://github.com/b-ryan/powerline-shell#bash
 [powerline-shell setup]: https://github.com/b-ryan/powerline-shell#setup
