@@ -33,7 +33,12 @@ $ cat ~/.ssh/id_ed25519.pub
 ```
 Then [add a new SSH key in your GitHub settings][ssh new] by choosing a
 descriptive title, pasting the contents of that public key file, and clicking
-"Add SSH key". You can now clone this repo:
+"Add SSH key". If you're using WSL 2, you'll also want to [make it not
+repeatedly prompt for your SSH passphrase][ssh wsl]:
+```
+$ echo 'eval `keychain --quiet --eval --agents ssh id_rsa`' >> ~/.bashrc
+```
+You can now clone this repo:
 ```
 $ git clone git@github.com:samestep/env.git
 ```
@@ -357,6 +362,7 @@ $ sudo apt install zulip
 [ssh generate]: https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 [ssh github]: https://help.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 [ssh new]: https://github.com/settings/ssh/new
+[ssh wsl]: https://stackoverflow.com/a/63803879/5044950
 [stack]: https://docs.haskellstack.org/en/stable/README/
 [tug]: https://www.tug.org/texlive/acquire-netinstall.html
 [yarn]: https://classic.yarnpkg.com/en/docs/install#debian-stable
