@@ -154,7 +154,7 @@ $ curl -s "https://get.sdkman.io" | bash
 ```
 Then follow the [package manager instructions on the Gradle website][gradle]:
 ```
-$ sdk install gradle 6.4.1
+$ sdk install gradle 6.8
 ```
 
 ### Haskell Stack
