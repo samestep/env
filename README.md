@@ -127,7 +127,8 @@ Reboot:
 ```
 $ reboot
 ```
-And verify that it worked:
+If you're using WSL, you'll also need to [install Docker on the Windows
+side][docker wsl]. Finally, verify that it worked:
 ```
 $ docker run hello-world
 ```
@@ -359,6 +360,7 @@ $ sudo apt install zulip
 [clojure]: https://www.clojure.org/guides/getting_started#_installation_on_linux
 [docker]: https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 [docker post]: https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
+[docker wsl]: https://docs.docker.com/docker-for-windows/wsl/
 [flit]: https://anaconda.org/conda-forge/flit
 [gradle]: https://gradle.org/install/#with-a-package-manager
 [jekyll]: https://jekyllrb.com/docs/installation/ubuntu/
