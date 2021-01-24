@@ -210,13 +210,13 @@ answer.
 
 ### Node.js
 
-Follow the [Nodesource][] instructions. First add the PPA:
+First [install nvm][nvm]:
 ```
-$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
 ```
 Then install Node:
 ```
-$ sudo apt install nodejs
+$ nvm install node
 ```
 
 ### Powerline shell prompt
@@ -379,7 +379,7 @@ $ sudo apt install zulip
 [leiningen]: https://purelyfunctional.tv/guide/how-to-install-clojure/#mac-leiningen
 [menlo powerline]: https://github.com/abertsch/Menlo-for-Powerline#linux
 [miniconda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
-[nodesource]: https://github.com/nodesource/distributions#installation-instructions
+[nvm]: https://github.com/nvm-sh/nvm#install--update-script
 [powerline fonts]: https://github.com/powerline/fonts#installation
 [powerline-shell bash]: https://github.com/b-ryan/powerline-shell#bash
 [powerline-shell setup]: https://github.com/b-ryan/powerline-shell#setup
