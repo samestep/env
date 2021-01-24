@@ -208,6 +208,17 @@ $ bash /tmp/Miniconda3-latest-Linux-x86_64.sh
 Follow the instructions, answering "yes" to all prompts that ask for a yes/no
 answer.
 
+### Node.js
+
+Follow the [Nodesource][] instructions. First add the PPA:
+```
+$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+```
+Then install Node:
+```
+$ sudo apt install nodejs
+```
+
 ### Powerline shell prompt
 
 Follow the [general setup][powerline-shell setup]:
@@ -368,6 +379,7 @@ $ sudo apt install zulip
 [leiningen]: https://purelyfunctional.tv/guide/how-to-install-clojure/#mac-leiningen
 [menlo powerline]: https://github.com/abertsch/Menlo-for-Powerline#linux
 [miniconda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
+[nodesource]: https://github.com/nodesource/distributions#installation-instructions
 [powerline fonts]: https://github.com/powerline/fonts#installation
 [powerline-shell bash]: https://github.com/b-ryan/powerline-shell#bash
 [powerline-shell setup]: https://github.com/b-ryan/powerline-shell#setup
