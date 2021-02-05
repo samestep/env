@@ -9,6 +9,6 @@
     "git"
   ],
   "cwd": {
-    "mode": "plain"
+    "mode": "dironly"
   }
 }
