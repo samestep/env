@@ -38,6 +38,16 @@ export PATH=~/.yarn/bin:$PATH
 export PATH=/usr/local/texlive/2020/bin/x86_64-linux:$PATH
 export PATH=~/gems/bin:$PATH
 
+function ghcode() {
+    repo=${1#https://github.com/}
+    folder=~/github/$repo
+    if [ ! -d "$folder" ]; then
+        rm -f "$folder"
+        gh repo clone "$repo" "$folder"
+    fi
+    code "$folder"
+}
+
 # https://superuser.com/a/1532421
 if [ "$PWD" = '/mnt/c/Users/sam' ]
 then
