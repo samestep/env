@@ -3,6 +3,7 @@
 # file-level ShellCheck directives
 # shellcheck disable=SC1090
 # shellcheck disable=SC1091
+# shellcheck disable=SC2164
 
 source /etc/skel/.bashrc
 
@@ -40,5 +41,5 @@ export PATH=~/gems/bin:$PATH
 # https://superuser.com/a/1532421
 if [ "$PWD" = '/mnt/c/Users/sam' ]
 then
-  cd || exit
+  cd
 fi
