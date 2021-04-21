@@ -39,8 +39,8 @@ export PATH=/usr/local/texlive/2020/bin/x86_64-linux:$PATH
 export PATH=~/gems/bin:$PATH
 
 function ghcode() {
-    repo=${1#https://github.com/}
-    folder=~/github/$repo
+    local repo=${1#https://github.com/}
+    local folder=~/github/$repo
     if [ ! -d "$folder" ]; then
         rm -f "$folder"
         gh repo clone "$repo" "$folder"
