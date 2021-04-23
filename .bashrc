@@ -7,7 +7,9 @@
 
 source /etc/skel/.bashrc
 
-eval "$(keychain --quiet --eval --agents ssh id_ed25519)"
+if which keychain; then
+    eval "$(keychain --quiet --eval --agents ssh id_ed25519)"
+fi
 
 if ! __conda_setup="$(~/miniconda3/bin/conda shell.bash hook 2> /dev/null)"; then
     eval "$__conda_setup"
@@ -20,7 +22,9 @@ else
 fi
 unset __conda_setup
 
-source ~/.cargo/env
+if [ -f ~/.cargo/env ]; then
+    source ~/.cargo/env
+fi
 
 export NVM_DIR=~/.nvm
 [ -s $NVM_DIR/nvm.sh ] && \. $NVM_DIR/nvm.sh # This loads nvm
