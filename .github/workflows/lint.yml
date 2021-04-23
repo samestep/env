@@ -13,5 +13,5 @@ jobs:
           shellcheck --version
       - name: Checkout
         uses: actions/checkout@v2
-      - name: ShellCheck .bashrc
-        run: shellcheck .bashrc
+      - name: ShellCheck
+        run: shellcheck .bashrc *.sh
