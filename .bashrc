@@ -28,7 +28,9 @@ export NVM_DIR=~/.nvm
 
 export GEM_HOME=~/gems
 
-source /usr/local/etc/bash_completion.d/deno.bash
+if [ -f /usr/local/etc/bash_completion.d/deno.bash ]; then
+    source /usr/local/etc/bash_completion.d/deno.bash
+fi
 
 export SDKMAN_DIR=~/.sdkman
 [[ -s ~/.sdkman/bin/sdkman-init.sh ]] && source ~/.sdkman/bin/sdkman-init.sh
