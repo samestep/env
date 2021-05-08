@@ -39,6 +39,10 @@ fi
 export SDKMAN_DIR=~/.sdkman
 [[ -s ~/.sdkman/bin/sdkman-init.sh ]] && source ~/.sdkman/bin/sdkman-init.sh
 
+if [ -f /home/linuxbrew/.linuxbrew/bin/brew ]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=/usr/local/texlive/2020/bin/x86_64-linux:$PATH
