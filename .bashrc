@@ -7,7 +7,7 @@
 
 source /etc/skel/.bashrc
 
-if which keychain; then
+if which keychain > /dev/null; then
     eval "$(keychain --quiet --eval --agents ssh id_ed25519)"
 fi
 
