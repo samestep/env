@@ -9,3 +9,5 @@
 	root = rev-parse --show-toplevel
 [pull]
 	ff = only
+[core]
+	editor = vim
