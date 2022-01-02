@@ -47,6 +47,7 @@ export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=/usr/local/texlive/2020/bin/x86_64-linux:$PATH
 export PATH=~/gems/bin:$PATH
+export PATH=~/.deno/bin:$PATH
 
 function ghcode() {
     local repo=${1#https://github.com/}
