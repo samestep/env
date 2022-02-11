@@ -64,3 +64,7 @@ if [ "$PWD" = '/mnt/c/Users/sam' ]
 then
   cd
 fi
+
+if which starship > /dev/null; then
+  eval "$(starship init bash)"
+fi
