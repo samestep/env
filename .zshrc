@@ -28,6 +28,10 @@ export PATH=~/.gem/ruby/X.X.0/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 
+## aliases
+
+alias ls=exa
+
 ## functions
 
 function ghcode() {
