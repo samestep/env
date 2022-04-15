@@ -1,13 +1,15 @@
-[user]
-	email = sam@samestep.com
-	name = Sam Estep
-	signingkey = 2B42037F
 [alias]
 	adog = log --all --date-order --oneline --graph
 	bdog = log --branches --date-order --oneline --graph
 	dog = log --date-order --oneline --graph
 	root = rev-parse --show-toplevel
-[pull]
-	ff = only
 [core]
 	editor = vim
+[init]
+	defaultBranch = main
+[pull]
+	ff = only
+[user]
+	email = sam@samestep.com
+	name = Sam Estep
+	signingkey = 2B42037F
