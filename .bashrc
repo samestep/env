@@ -66,6 +66,7 @@ export PATH=~/.deno/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=~/gems/bin:$PATH
+export PATH=~/github/phacility/arcanist/bin:$PATH
 
 ## functions
 
