@@ -65,6 +65,7 @@ export PATH=/usr/local/texlive/2020/bin/x86_64-linux:$PATH
 export PATH=~/.deno/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
+export PATH=~/bin:$PATH
 export PATH=~/gems/bin:$PATH
 export PATH=~/github/phacility/arcanist/bin:$PATH
 
