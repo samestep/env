@@ -5,6 +5,12 @@
 # Cargo
 source ~/.cargo/env
 
+# Emscripten
+if [ -f ~/github/emscripten-core/emsdk/emsdk_env.sh ]; then
+    export EMSDK_QUIET=1
+    source ~/github/emscripten-core/emsdk/emsdk_env.sh
+fi
+
 # nvm
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
