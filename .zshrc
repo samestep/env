@@ -19,9 +19,6 @@ export NVM_DIR="$HOME/.nvm"
 # opam
 [[ ! -r ~/.opam/opam-init/init.zsh ]] || source ~/.opam/opam-init/init.zsh  > /dev/null 2> /dev/null
 
-# pyenv
-eval "$(pyenv init -)"
-
 # Starship
 eval "$(starship init zsh)"
 
@@ -34,6 +31,11 @@ export PATH=~/.gem/ruby/X.X.0/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=~/bin:$PATH
+
+## tab completion
+
+fpath+=~/.zfunc
+autoload -Uz compinit && compinit
 
 ## aliases
 
