@@ -32,6 +32,7 @@ export PATH=~/.gem/ruby/X.X.0/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=~/bin:$PATH
+export PATH=~/Library/Python/3.9/bin:$PATH
 
 ## tab completion
 
