@@ -76,7 +76,7 @@ function ghcode() {
     local folder=~/github/$repo
     if [ ! -d "$folder" ]; then
         rm -f "$folder"
-        gh repo clone "$repo" "$folder"
+        gh repo clone "$repo" "$folder" -- --recurse-submodules
     fi
     code "$folder"
 }
