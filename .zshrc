@@ -2,6 +2,10 @@
 
 ## softwares (alphabetical)
 
+# Bun
+export BUN_INSTALL=~/.bun
+[ -s "$BUN_INSTALL/_bun" ] && source "$BUN_INSTALL/_bun"
+
 # Cargo
 source ~/.cargo/env
 
@@ -26,6 +30,7 @@ eval "$(starship init zsh)"
 export SDKROOT=$(xcrun --show-sdk-path)
 
 ## PATH (alphabetical)
+export PATH=~/.bun/bin:$PATH
 export PATH=~/.config/yarn/global/node_modules/.bin:$PATH
 export PATH=~/.deno/bin:$PATH
 export PATH=~/.gem/ruby/X.X.0/bin:$PATH
