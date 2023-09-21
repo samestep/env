@@ -47,6 +47,7 @@ autoload -Uz compinit && compinit
 ## aliases
 
 alias ls=exa
+alias sed=gsed
 
 ## functions
 
