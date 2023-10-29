@@ -5,6 +5,9 @@
 	root = rev-parse --show-toplevel
 [core]
 	editor = vim
+[diff "lockb"]
+	textconv = bun
+	binary = true
 [filter "lfs"]
 	process = git-lfs filter-process
 	required = true
