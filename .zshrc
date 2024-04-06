@@ -58,5 +58,9 @@ function ghcode() {
         rm -f "$folder"
         gh repo clone "$repo" "$folder" -- --recurse-submodules
     fi
-    code "$folder"
+    if [ -d "$folder" ]; then
+        code "$folder"
+    else
+        false
+    fi
 }
