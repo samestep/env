@@ -34,10 +34,10 @@ export PATH=~/.bun/bin:$PATH
 export PATH=~/.config/yarn/global/node_modules/.bin:$PATH
 export PATH=~/.deno/bin:$PATH
 export PATH=~/.gem/ruby/X.X.0/bin:$PATH
+export PATH=~/.juliaup/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=~/bin:$PATH
-export PATH=~/Library/Python/3.9/bin:$PATH
 
 ## tab completion
 
