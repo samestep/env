@@ -15,6 +15,9 @@ if [ -f ~/github/emscripten-core/emsdk/emsdk_env.sh ]; then
     source ~/github/emscripten-core/emsdk/emsdk_env.sh
 fi
 
+# Homebrew
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
 # nvm
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
@@ -37,6 +40,7 @@ export SDKROOT=$(xcrun --show-sdk-path)
 export PATH=~/.bun/bin:$PATH
 export PATH=~/.config/yarn/global/node_modules/.bin:$PATH
 export PATH=~/.deno/bin:$PATH
+export PATH=~/.elan/bin:$PATH
 export PATH=~/.juliaup/bin:$PATH
 export PATH=~/.local/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
@@ -54,6 +58,10 @@ alias ls=exa
 alias sed=gsed
 
 ## functions
+
+function code () {
+    VSCODE_CWD="$PWD" open -n -b "com.microsoft.VSCode" --args $*
+}
 
 function ghcode() {
     local repo=${1#https://github.com/}
