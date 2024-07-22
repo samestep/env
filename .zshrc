@@ -54,7 +54,7 @@ autoload -Uz compinit && compinit
 ## aliases
 
 alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew'
-alias ls=exa
+alias ls=eza
 alias sed=gsed
 
 ## functions
