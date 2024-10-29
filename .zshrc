@@ -33,16 +33,21 @@ eval "$(pyenv init -)"
 # Starship
 eval "$(starship init zsh)"
 
+# Wasmtime
+export WASMTIME_HOME="$HOME/.wasmtime"
+
 # XCode
 export SDKROOT=$(xcrun --show-sdk-path)
 
 ## PATH (alphabetical)
+export PATH=/opt/homebrew/opt/llvm/bin:$PATH
 export PATH=~/.bun/bin:$PATH
 export PATH=~/.config/yarn/global/node_modules/.bin:$PATH
 export PATH=~/.deno/bin:$PATH
 export PATH=~/.elan/bin:$PATH
 export PATH=~/.juliaup/bin:$PATH
 export PATH=~/.local/bin:$PATH
+export PATH=~/.wasmtime/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=~/bin:$PATH
 
