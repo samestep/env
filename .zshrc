@@ -9,6 +9,9 @@ export BUN_INSTALL=~/.bun
 # Cargo
 source ~/.cargo/env
 
+# chruby
+source $HOMEBREW_PREFIX/opt/chruby/share/chruby/chruby.sh
+
 # Emscripten
 if [ -f ~/github/emscripten-core/emsdk/emsdk_env.sh ]; then
     export EMSDK_QUIET=1
@@ -81,3 +84,6 @@ function ghcode() {
         false
     fi
 }
+
+# bun completions
+[ -s "/Users/samueles/.bun/_bun" ] && source "/Users/samueles/.bun/_bun"
