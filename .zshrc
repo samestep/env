@@ -11,6 +11,7 @@ source ~/.cargo/env
 
 # chruby
 source $HOMEBREW_PREFIX/opt/chruby/share/chruby/chruby.sh
+source $HOMEBREW_PREFIX/opt/chruby/share/chruby/auto.sh
 
 # Emscripten
 if [ -f ~/github/emscripten-core/emsdk/emsdk_env.sh ]; then
