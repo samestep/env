@@ -54,6 +54,7 @@ export PATH=~/.local/bin:$PATH
 export PATH=~/.wasmtime/bin:$PATH
 export PATH=~/.yarn/bin:$PATH
 export PATH=~/bin:$PATH
+export PATH=~/go/bin:$PATH
 
 ## tab completion
 
