@@ -44,7 +44,7 @@ export WASMTIME_HOME="$HOME/.wasmtime"
 export SDKROOT=$(xcrun --show-sdk-path)
 
 ## PATH (alphabetical)
-export PATH=/opt/homebrew/opt/llvm/bin:$PATH
+export PATH=/opt/homebrew/opt/llvm@16/bin:$PATH
 export PATH=~/.bun/bin:$PATH
 export PATH=~/.config/yarn/global/node_modules/.bin:$PATH
 export PATH=~/.deno/bin:$PATH
