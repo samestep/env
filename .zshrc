@@ -30,10 +30,6 @@ export NVM_DIR="$HOME/.nvm"
 # opam
 [[ ! -r ~/.opam/opam-init/init.zsh ]] || source ~/.opam/opam-init/init.zsh  > /dev/null 2> /dev/null
 
-# Pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-eval "$(pyenv init -)"
-
 # Starship
 eval "$(starship init zsh)"
 
@@ -63,7 +59,6 @@ autoload -Uz compinit && compinit
 
 ## aliases
 
-alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew'
 alias ls=eza
 alias sed=gsed
 
