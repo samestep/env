@@ -64,10 +64,6 @@ alias sed=gsed
 
 ## functions
 
-function code () {
-    VSCODE_CWD="$PWD" open -n -b "com.microsoft.VSCode" --args $*
-}
-
 function ghcode() {
     local repo=${1#https://github.com/}
     local folder=~/github/$repo
