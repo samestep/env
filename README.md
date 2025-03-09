@@ -23,4 +23,5 @@ Finally, run these commands to replace the bootstrapped configuration by cloning
 cd ~/github/samestep
 rm -r nixos-config
 gh repo clone samestep/nixos-config
+home-manager switch
 ```
