@@ -1,6 +1,15 @@
 # NixOS config
 
-From a fresh [NixOS installation](https://nixos.org/download/), run these commands to bootstrap this configuration:
+From a fresh [NixOS installation](https://nixos.org/download/), run these commands to bootstrap the NixOS configuration:
+
+```sh
+mkdir -p ~/github/samestep/nixos-config/etc/nixos
+curl https://raw.githubusercontent.com/samestep/nixos-config/refs/heads/main/etc/nixos/configuration.nix -o ~/github/samestep/nixos-config/etc/nixos/configuration.nix
+sudo ln -fs ~/github/samestep/nixos-config/etc/nixos/configuration.nix /etc/nixos/configuration.nix
+nixos-rebuild switch --use-remote-sudo
+```
+
+Then run these commands to bootstrap the Home Manager configuration:
 
 ```sh
 mkdir -p ~/github/samestep/nixos-config/home/sam/.config/{home-manager,nixpkgs}
