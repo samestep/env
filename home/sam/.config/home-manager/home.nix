@@ -51,6 +51,7 @@ in
     gh
     git
     nixfmt-rfc-style
+    starship
     vim
   ];
 
@@ -92,6 +93,10 @@ in
     # EDITOR = "emacs";
   };
 
+  home.shellAliases = {
+    code = "cursor";
+  };
+
   dconf = {
     enable = true;
     settings = {
@@ -101,6 +106,8 @@ in
     };
   };
 
+  programs.bash.enable = true; # Necessary for aliases and Starship to work.
+
   programs.git = {
     enable = true;
     userName = "Sam Estep";
@@ -109,4 +116,8 @@ in
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  programs.starship = {
+    enable = true;
+  };
 }
