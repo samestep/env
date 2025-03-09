@@ -72,6 +72,7 @@ in
 
     ".config/Cursor/User/keybindings.json" = symlinkHome ".config/Cursor/User/keybindings.json";
     ".config/Cursor/User/settings.json" = symlinkHome ".config/Cursor/User/settings.json";
+    ".gitconfig" = symlinkHome ".gitconfig";
   };
 
   # Home Manager can also manage your environment variables through
@@ -108,12 +109,6 @@ in
   };
 
   programs.bash.enable = true; # Necessary for aliases and Starship to work.
-
-  programs.git = {
-    enable = true;
-    userName = "Sam Estep";
-    userEmail = "sam@samestep.com";
-  };
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;

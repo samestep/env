@@ -1,0 +1,22 @@
+[alias]
+	adog = log --all --date-order --oneline --graph
+	bdog = log --branches --date-order --oneline --graph
+	dog = log --date-order --oneline --graph
+	root = rev-parse --show-toplevel
+[core]
+	editor = vim
+[fetch]
+	all = true
+	prune = true
+[init]
+	defaultBranch = main
+[merge]
+	conflictStyle = zdiff3
+[pull]
+	ff = only
+[push]
+	autoSetupRemote = true
+[user]
+	email = sam@samestep.com
+	name = Sam Estep
+	signingkey = 2B42037F
