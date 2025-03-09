@@ -41,6 +41,7 @@
     # '')
 
     code-cursor
+    discord
     gh
     git
     nixfmt-rfc-style
