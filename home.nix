@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   # Home Manager needs a bit of information about you and the paths it should
@@ -78,7 +83,7 @@
   };
 
   # https://discourse.nixos.org/t/apps-installed-via-home-manager-are-not-visible-within-gnome/48252
-  home.activation.copyDesktopFiles = lib.hm.dag.entryAfter ["installPackages"] ''
+  home.activation.copyDesktopFiles = lib.hm.dag.entryAfter [ "installPackages" ] ''
     if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
 
       if [ ! -d "${config.home.homeDirectory}/.local/share/applications" ]; then
