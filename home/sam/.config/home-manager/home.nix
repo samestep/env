@@ -52,7 +52,6 @@ in
     git
     nixfmt-rfc-style
     spotify
-    starship
     vim
   ];
 
