@@ -35,5 +35,10 @@
   {
     "key": "ctrl+m ctrl+pageup",
     "command": "-workbench.action.previousEditorInGroup"
+  },
+  {
+    "key": "ctrl+k",
+    "command": "-cursorai.action.generateInTerminal",
+    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported"
   }
 ]
