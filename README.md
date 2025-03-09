@@ -1,12 +1,2 @@
-# env
-
-**ARCHIVED in favor of https://github.com/samestep/dotfiles**
-
-My [Ubuntu 20.04][] environment. The Markdown files include instructions to
-setup various things, and the dotfiles can be symlinked to from your homedir:
-
-```sh
-./dotfiles.sh
-```
-
-[ubuntu 20.04]: https://releases.ubuntu.com/20.04/
+# nixos-config
+My NixOS configuration.
