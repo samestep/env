@@ -3,5 +3,6 @@
   "editor.formatOnSave": true,
   "nix.formatterPath": "nixfmt",
   "git.autofetch": true,
-  "git.confirmSync": false
+  "git.confirmSync": false,
+  "workbench.colorTheme": "Default Dark Modern"
 }
