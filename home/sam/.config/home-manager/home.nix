@@ -9,6 +9,7 @@ let
   symlink = subpath: {
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/github/samestep/nixos-config/${subpath}";
   };
+  symlinkHome = subpath: symlink "home/sam/${subpath}";
 in
 {
   # Home Manager needs a bit of information about you and the paths it should
@@ -67,8 +68,8 @@ in
     #   org.gradle.daemon.idletimeout=3600000
     # '';
 
-    ".config/Cursor/User/keybindings.json" = symlink "Cursor/User/keybindings.json";
-    ".config/Cursor/User/settings.json" = symlink "Cursor/User/settings.json";
+    ".config/Cursor/User/keybindings.json" = symlinkHome ".config/Cursor/User/keybindings.json";
+    ".config/Cursor/User/settings.json" = symlinkHome ".config/Cursor/User/settings.json";
   };
 
   # Home Manager can also manage your environment variables through

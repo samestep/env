@@ -3,10 +3,10 @@
 From a fresh [NixOS installation](https://nixos.org/download/), run these commands to bootstrap this configuration:
 
 ```sh
-mkdir -p ~/github/samestep/nixos-config/{home-manager,nixpkgs}
-curl https://raw.githubusercontent.com/samestep/nixos-config/refs/heads/main/home-manager/home.nix -o ~/github/samestep/nixos-config/home-manager/home.nix
-curl https://raw.githubusercontent.com/samestep/nixos-config/refs/heads/main/nixpkgs/config.nix -o ~/github/samestep/nixos-config/nixpkgs/config.nix
-ln -fs ~/github/samestep/nixos-config/{home-manager,nixpkgs} ~/.config
+mkdir -p ~/github/samestep/nixos-config/home/sam/.config/{home-manager,nixpkgs}
+curl https://raw.githubusercontent.com/samestep/nixos-config/refs/heads/main/home/sam/.config/home-manager/home.nix -o ~/github/samestep/nixos-config/home/sam/.config/home-manager/home.nix
+curl https://raw.githubusercontent.com/samestep/nixos-config/refs/heads/main/home/sam/.config/nixpkgs/config.nix -o ~/github/samestep/nixos-config/home/sam/.config/nixpkgs/config.nix
+ln -fs ~/github/samestep/nixos-config/home/sam/.config/{home-manager,nixpkgs} ~/.config
 ```
 
 Then run [these commands](https://nix-community.github.io/home-manager/index.xhtml#sec-install-standalone) to do a standalone installation of Home Manager:
