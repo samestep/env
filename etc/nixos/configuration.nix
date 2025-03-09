@@ -82,6 +82,7 @@
     isNormalUser = true;
     description = "Sam Estep";
     extraGroups = [
+      "docker"
       "networkmanager"
       "wheel"
     ];
@@ -100,6 +101,9 @@
     dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
     localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
   };
+
+  # https://wiki.nixos.org/wiki/Docker#Rootless_docker
+  virtualisation.docker.enable = true;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
