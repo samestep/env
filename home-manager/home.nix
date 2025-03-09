@@ -108,6 +108,15 @@ in
     fi
   '';
 
+  dconf = {
+    enable = true;
+    settings = {
+      "org/gnome/desktop/interface".color-scheme = "prefer-dark";
+      "org/gnome/desktop/session".idle-delay = lib.hm.gvariant.mkUint32 0;
+      "org/gnome/settings-daemon/plugins/power".sleep-inactive-ac-type = "nothing";
+    };
+  };
+
   programs.git = {
     enable = true;
     userName = "Sam Estep";
