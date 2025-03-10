@@ -15,7 +15,7 @@ sudo ln -fs ~/github/samestep/nixos-config/etc/nixos/configuration.nix /etc/nixo
 nixos-rebuild switch --use-remote-sudo
 ```
 
-Run these commands to [do a standalone installation of Home Manager](https://nix-community.github.io/home-manager/index.xhtml#sec-install-standalone) and setup the Home Manager configuration:
+Run these commands to do a [standalone installation of Home Manager](https://nix-community.github.io/home-manager/index.xhtml#sec-install-standalone) and setup the Home Manager configuration:
 
 ```sh
 ln -fs ~/github/samestep/nixos-config/home/sam/.config/{home-manager,nixpkgs} ~/.config
