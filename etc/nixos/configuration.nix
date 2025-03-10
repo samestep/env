@@ -74,6 +74,13 @@
     #media-session.enable = true;
   };
 
+  # https://wiki.nixos.org/wiki/NVIDIA
+  hardware.graphics.enable = true;
+  services.xserver.videoDrivers = [ "nvidia" ];
+  # The open-source kernel modules "only support GPUs of the Turing architecture
+  # or newer" and I'm on a GTX 970, which is based on the Maxwell architecture.
+  hardware.nvidia.open = false;
+
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
