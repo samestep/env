@@ -105,6 +105,8 @@ in
         clock-format = "12h";
         color-scheme = "prefer-dark";
       };
+
+      # Don't go to sleep.
       "org/gnome/desktop/session".idle-delay = lib.hm.gvariant.mkUint32 0;
       "org/gnome/settings-daemon/plugins/power".sleep-inactive-ac-type = "nothing";
     };
