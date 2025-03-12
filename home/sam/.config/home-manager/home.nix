@@ -51,6 +51,7 @@ in
     gh
     git
     nixfmt-rfc-style
+    obsidian
     spotify
     vim
   ];
