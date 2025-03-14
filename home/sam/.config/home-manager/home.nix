@@ -113,6 +113,14 @@ in
     };
   };
 
+  nix = {
+    package = pkgs.nix;
+    settings.experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+  };
+
   programs.bash.enable = true; # Necessary for aliases and Starship to work.
 
   # Let Home Manager install and manage itself.
