@@ -7,7 +7,7 @@
 
 let
   symlink = subpath: {
-    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/github/samestep/nixos-config/${subpath}";
+    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/github/samestep/env/${subpath}";
   };
 in
 {
