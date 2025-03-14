@@ -55,5 +55,9 @@
     "key": "ctrl+shift+k",
     "command": "-aipopup.action.modal.generate",
     "when": "editorFocus && !composerBarIsVisible && !composerControlPanelIsVisible"
+  },
+  {
+    "key": "ctrl+e",
+    "command": "-workbench.action.quickOpen"
   }
 ]
