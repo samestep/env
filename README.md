@@ -18,7 +18,7 @@ This machine has an x86 CPU and an NVIDIA GTX 970, runs NixOS, and follows the N
 Run these commands to setup the NixOS configuration:
 
 ```sh
-sudo ln -fs ~/github/samestep/env/nixos/configuration.nix /etc/nixos/configuration.nix
+sudo ln -fs ~/github/samestep/env/desktop/nixos/configuration.nix /etc/nixos/configuration.nix
 nixos-rebuild switch --use-remote-sudo
 ```
 
