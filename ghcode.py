@@ -8,7 +8,7 @@ from pathlib import Path
 def run(cmd: list[str]) -> None:
     returncode = subprocess.run(cmd).returncode
     if returncode != 0:
-        sys.exit(1)
+        sys.exit(returncode)
 
 
 def parse(url: str) -> str:
