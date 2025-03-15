@@ -3,9 +3,7 @@
 My [Nix](https://nixos.org/) environment. Once you have Nix installed, the first step is to clone this repo and set up the Nixpkgs config which is needed for bootstrapping:
 
 ```sh
-mkdir -p ~/github/samestep
-cd ~/github/samestep
-nix-shell -p git gh --run "gh auth login && gh repo clone samestep/env"
+nix-shell -p git gh --run "gh auth login && gh repo clone samestep/env ~/github/samestep/env"
 ln -fs ~/github/samestep/env/nixpkgs ~/.config
 ```
 
