@@ -37,7 +37,7 @@ in
     spotify
     vim
 
-    (pkgs.writers.writePython3Bin "ghcode" { } ../ghcode.py)
+    (pkgs.writers.writePython3Bin "ghcode" { } ../../ghcode.py)
   ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
