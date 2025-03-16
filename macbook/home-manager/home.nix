@@ -1,5 +1,7 @@
 { config, pkgs, ... }:
-
+let
+  util = import ../../util.nix { inherit config; };
+in
 {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
@@ -51,6 +53,9 @@
     #   org.gradle.console=verbose
     #   org.gradle.daemon.idletimeout=3600000
     # '';
+
+    ".bunfig.toml" = util.symlink ".bunfig.toml";
+    ".gitconfig" = util.symlink ".gitconfig";
   };
 
   # Home Manager can also manage your environment variables through
