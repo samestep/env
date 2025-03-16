@@ -10,7 +10,7 @@ There are separate configurations for the two different machines I use.
 
 ## [Desktop](desktop)
 
-This machine has an x86 CPU and an NVIDIA GTX 970, runs NixOS, and follows the Nixpkgs version 24.11 channel.
+This machine has an x86 CPU and an NVIDIA GTX 970, and runs NixOS.
 
 Run these commands to setup the NixOS configuration:
 
@@ -19,7 +19,7 @@ sudo ln -fs ~/github/samestep/env/desktop/nixos/configuration.nix /etc/nixos/con
 nixos-rebuild switch --use-remote-sudo
 ```
 
-Run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
+Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
@@ -30,15 +30,19 @@ You may need to log out and back in to see everything installed in the GNOME app
 
 ## [MacBook](macbook)
 
-This machine has an Apple M1 chip, runs macOS, and follows the Nixpkgs version 25.05 channel.
+This machine has an Apple M1 chip and runs macOS.
 
-Run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
+[Enable flakes](https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager) by making sure this line is present in `/etc/nix/nix.conf`:
+
+```
+experimental-features = nix-command flakes
+```
+
+Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
 
 ```sh
-ln -fs ~/github/samestep/env/macbook/home-manager ~/.config
-nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
-nix-channel --update
-nix-shell '<home-manager>' -A install
+ln -fs ~/github/samestep/env ~/.config/home-manager
+nix run home-manager/release-24.11 -- init --switch
 ```
 
 [home-manager standalone]: https://nix-community.github.io/home-manager/index.xhtml#sec-flakes-standalone

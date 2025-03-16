@@ -1,5 +1,5 @@
 {
-  description = "Home Manager configuration of sam";
+  description = "My Nix environment";
 
   inputs = {
     # Specify the source of Home Manager and Nixpkgs.
@@ -12,20 +12,37 @@
 
   outputs =
     { nixpkgs, home-manager, ... }:
-    let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-    in
     {
-      homeConfigurations."sam" = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
+      homeConfigurations."sam" =
+        let
+          system = "x86_64-linux";
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
 
-        # Specify your home configuration modules here, for example,
-        # the path to your home.nix.
-        modules = [ ./desktop/home-manager/home.nix ];
+          # Specify your home configuration modules here, for example,
+          # the path to your home.nix.
+          modules = [ ./desktop/home-manager/home.nix ];
 
-        # Optionally use extraSpecialArgs
-        # to pass through arguments to home.nix
-      };
+          # Optionally use extraSpecialArgs
+          # to pass through arguments to home.nix
+        };
+
+      homeConfigurations."samueles" =
+        let
+          system = "aarch64-darwin";
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+
+          # Specify your home configuration modules here, for example,
+          # the path to your home.nix.
+          modules = [ ./macbook/home-manager/home.nix ];
+
+          # Optionally use extraSpecialArgs
+          # to pass through arguments to home.nix
+        };
     };
 }
