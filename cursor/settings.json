@@ -34,6 +34,7 @@
   "nix.formatterPath": "nixfmt",
   "rust-analyzer.check.command": "clippy",
   "svg.preview.mode": "svg",
+  "terminal.integrated.allowChords": false,
   "window.customTitleBarVisibility": "never",
   "window.titleBarStyle": "native",
   "window.zoomLevel": 1,
