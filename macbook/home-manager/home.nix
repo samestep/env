@@ -54,7 +54,6 @@ in
     #   org.gradle.daemon.idletimeout=3600000
     # '';
 
-    ".bunfig.toml" = util.symlink ".bunfig.toml";
     ".gitconfig" = util.symlink ".gitconfig";
   };
 

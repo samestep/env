@@ -55,7 +55,6 @@ in
 
     ".config/Cursor/User/keybindings.json" = util.symlink "desktop/cursor/keybindings.json";
     ".config/Cursor/User/settings.json" = util.symlink "cursor/settings.json";
-    ".bunfig.toml" = util.symlink ".bunfig.toml";
     ".gitconfig" = util.symlink ".gitconfig";
   };
 
