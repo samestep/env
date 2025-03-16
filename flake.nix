@@ -13,6 +13,8 @@
   outputs =
     { nixpkgs, home-manager, ... }:
     {
+      packages = home-manager.packages;
+
       homeConfigurations."sam" =
         let
           system = "x86_64-linux";

@@ -23,7 +23,7 @@ Then run these commands to do a [standalone installation of Home Manager][home-m
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run home-manager/release-24.11 -- init --switch
+nix run ~/github/samestep/env -- init --switch
 ```
 
 You may need to log out and back in to see everything installed in the GNOME applications launcher.
@@ -41,8 +41,10 @@ experimental-features = nix-command flakes
 Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
 
 ```sh
-ln -fs ~/github/samestep/env ~/.config/home-manager
-nix run home-manager/release-24.11 -- init --switch
+nix run ~/github/samestep/env -- init --switch
+rm -r ~/.config/home-manager
+ln -s ~/github/samestep/env ~/.config/home-manager
+home-manager switch
 ```
 
 [home-manager standalone]: https://nix-community.github.io/home-manager/index.xhtml#sec-flakes-standalone
