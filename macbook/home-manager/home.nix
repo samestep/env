@@ -54,6 +54,8 @@ in
     #   org.gradle.daemon.idletimeout=3600000
     # '';
 
+    "Library/Application Support/Cursor/User/keybindings.json" = util.symlink "macbook/cursor/keybindings.json";
+    "Library/Application Support/Cursor/User/settings.json" = util.symlink "cursor/settings.json";
     ".gitconfig" = util.symlink ".gitconfig";
   };
 
