@@ -26,15 +26,15 @@ in
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
-  home.packages = with pkgs; [
-    code-cursor
-    discord
-    gh
-    git
-    nixfmt-rfc-style
-    obsidian
-    spotify
-    vim
+  home.packages = [
+    pkgs.code-cursor
+    pkgs.discord
+    pkgs.gh
+    pkgs.git
+    pkgs.nixfmt-rfc-style
+    pkgs.obsidian
+    pkgs.spotify
+    pkgs.vim
 
     (pkgs.writers.writePython3Bin "ghcode" { } ../../ghcode.py)
   ];
@@ -109,7 +109,5 @@ in
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  programs.starship = {
-    enable = true;
-  };
+  programs.starship.enable = true;
 }
