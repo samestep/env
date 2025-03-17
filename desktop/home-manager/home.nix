@@ -104,10 +104,17 @@ in
     ];
   };
 
-  programs.bash.enable = true; # Necessary for aliases and Starship to work.
+  programs = {
+    bash.enable = true; # Necessary for aliases and Starship to work.
 
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
+    direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+    };
 
-  programs.starship.enable = true;
+    # Let Home Manager install and manage itself.
+    home-manager.enable = true;
+
+    starship.enable = true;
+  };
 }
