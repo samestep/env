@@ -74,10 +74,17 @@ in
     code = "cursor";
   };
 
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
+  programs = {
+    direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+    };
 
-  programs.starship.enable = true;
+    # Let Home Manager install and manage itself.
+    home-manager.enable = true;
 
-  programs.zsh.enable = true; # Necessary for aliases and Starship to work.
+    starship.enable = true;
+
+    zsh.enable = true; # Necessary for aliases and Starship to work.
+  };
 }
