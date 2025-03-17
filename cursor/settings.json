@@ -32,6 +32,7 @@
   "git.autofetch": true,
   "git.confirmSync": false,
   "nix.formatterPath": "nixfmt",
+  "python.terminal.activateEnvironment": false,
   "rust-analyzer.check.command": "clippy",
   "svg.preview.mode": "svg",
   "terminal.integrated.allowChords": false,
