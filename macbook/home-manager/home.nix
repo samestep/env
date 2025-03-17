@@ -23,6 +23,7 @@ in
   # environment.
   home.packages = [
     pkgs.code-cursor
+    pkgs.gh
     pkgs.iterm2
     pkgs.nixfmt-rfc-style
 
