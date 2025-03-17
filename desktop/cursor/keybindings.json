@@ -51,12 +51,16 @@
     "when": "!notebookEditorFocused && editorLangId == 'markdown'"
   },
   {
-    "key": "ctrl+shift+k",
-    "command": "-aipopup.action.modal.generate",
-    "when": "editorFocus && !composerBarIsVisible && !composerControlPanelIsVisible"
-  },
-  {
     "key": "ctrl+e",
     "command": "-workbench.action.quickOpen"
+  },
+  {
+    "key": "ctrl+shift+k",
+    "command": "-aipopup.action.modal.generate",
+    "when": "editorFocus && !composerBarIsVisible"
+  },
+  {
+    "key": "ctrl+shift+k",
+    "command": "-composer.openAsBar"
   }
 ]
