@@ -24,6 +24,7 @@ in
   home.packages = [
     pkgs.code-cursor
     pkgs.gh
+    pkgs.git
     pkgs.iterm2
     pkgs.nixfmt-rfc-style
 
