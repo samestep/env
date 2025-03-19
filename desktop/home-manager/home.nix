@@ -24,9 +24,6 @@ in
     homeDirectory = "/home/sam";
 
     packages = util.packages ++ [
-      pkgs.discord
-      pkgs.obsidian
-      pkgs.spotify
       pkgs.vim
     ];
 

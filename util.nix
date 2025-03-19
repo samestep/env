@@ -6,8 +6,11 @@ rec {
 
   packages = [
     pkgs.code-cursor
+    pkgs.discord
     pkgs.gh
     pkgs.git
+    pkgs.obsidian
+    pkgs.spotify
 
     (pkgs.writers.writePython3Bin "ghcode" { } ./ghcode.py)
   ];
