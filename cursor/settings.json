@@ -12,6 +12,7 @@
     "editor.tabSize": 4
   },
   "[rust]": { "editor.rulers": [100], "editor.tabSize": 4 },
+  "[slang]": { "editor.tabSize": 4 },
   "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "cmake.configureOnOpen": false,
