@@ -8,7 +8,7 @@ let
   util = import ../../util.nix { inherit config pkgs; };
 in
 {
-  nixpkgs.config.allowUnfree = true;
+  nixpkgs = util.nixpkgs;
 
   home = {
     # This value determines the Home Manager release that your configuration is
@@ -30,15 +30,12 @@ in
       pkgs.vim
     ];
 
-    file = {
+    file = util.file // {
       ".config/Cursor/User/keybindings.json" = util.symlink "desktop/cursor/keybindings.json";
       ".config/Cursor/User/settings.json" = util.symlink "cursor/settings.json";
-      ".gitconfig" = util.symlink ".gitconfig";
     };
 
-    shellAliases = {
-      code = "cursor";
-    };
+    shellAliases = util.shellAliases;
   };
 
   dconf = {
@@ -55,16 +52,7 @@ in
     };
   };
 
-  programs = {
+  programs = util.programs // {
     bash.enable = true; # Necessary for aliases and Starship to work.
-
-    direnv = {
-      enable = true;
-      nix-direnv.enable = true;
-    };
-
-    home-manager.enable = true; # Let Home Manager install and manage itself.
-
-    starship.enable = true;
   };
 }

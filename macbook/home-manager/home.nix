@@ -3,7 +3,7 @@ let
   util = import ../../util.nix { inherit config pkgs; };
 in
 {
-  nixpkgs.config.allowUnfree = true;
+  nixpkgs = util.nixpkgs;
 
   home = {
     # This value determines the Home Manager release that your configuration is
@@ -22,28 +22,16 @@ in
       pkgs.iterm2
     ];
 
-    file = {
+    file = util.file // {
       "Library/Application Support/Cursor/User/keybindings.json" =
         util.symlink "macbook/cursor/keybindings.json";
       "Library/Application Support/Cursor/User/settings.json" = util.symlink "cursor/settings.json";
-      ".gitconfig" = util.symlink ".gitconfig";
     };
 
-    shellAliases = {
-      code = "cursor";
-    };
+    shellAliases = util.shellAliases;
   };
 
-  programs = {
-    direnv = {
-      enable = true;
-      nix-direnv.enable = true;
-    };
-
-    home-manager.enable = true; # Let Home Manager install and manage itself.
-
-    starship.enable = true;
-
+  programs = util.programs // {
     zsh.enable = true; # Necessary for aliases and Starship to work.
   };
 }
