@@ -10,8 +10,8 @@
   outputs =
     { nixpkgs, home-manager, ... }:
     let
-      pkgsX86 = nixpkgs.legacyPackages.x86_64-linux;
-      pkgsArm = nixpkgs.legacyPackages.aarch64-darwin;
+      pkgsX86 = import nixpkgs { system = "x86_64-linux"; };
+      pkgsArm = import nixpkgs { system = "aarch64-darwin"; };
     in
     {
       packages = home-manager.packages; # Support bootstrapping Home Manager.
