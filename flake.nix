@@ -1,50 +1,33 @@
 {
   description = "My Nix environment";
-
   inputs = {
-    # Specify the source of Home Manager and Nixpkgs.
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-
   outputs =
     { nixpkgs, home-manager, ... }:
+    let
+      pkgsX86 = nixpkgs.legacyPackages.x86_64-linux;
+      pkgsArm = nixpkgs.legacyPackages.aarch64-darwin;
+    in
     {
-      packages = home-manager.packages;
-
-      homeConfigurations."sam" =
-        let
-          system = "x86_64-linux";
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
-        home-manager.lib.homeManagerConfiguration {
-          inherit pkgs;
-
-          # Specify your home configuration modules here, for example,
-          # the path to your home.nix.
+      packages = home-manager.packages; # Support bootstrapping Home Manager.
+      homeConfigurations = {
+        "sam" = home-manager.lib.homeManagerConfiguration {
+          pkgs = pkgsX86;
           modules = [ ./desktop/home-manager/home.nix ];
-
-          # Optionally use extraSpecialArgs
-          # to pass through arguments to home.nix
         };
-
-      homeConfigurations."samueles" =
-        let
-          system = "aarch64-darwin";
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
-        home-manager.lib.homeManagerConfiguration {
-          inherit pkgs;
-
-          # Specify your home configuration modules here, for example,
-          # the path to your home.nix.
+        "samueles" = home-manager.lib.homeManagerConfiguration {
+          pkgs = pkgsArm;
           modules = [ ./macbook/home-manager/home.nix ];
-
-          # Optionally use extraSpecialArgs
-          # to pass through arguments to home.nix
         };
+      };
+      devShells = {
+        x86_64-linux.default = with pkgsX86; mkShell { buildInputs = [ nixfmt-rfc-style ]; };
+        aarch64-darwin.default = with pkgsArm; mkShell { buildInputs = [ nixfmt-rfc-style ]; };
+      };
     };
 }

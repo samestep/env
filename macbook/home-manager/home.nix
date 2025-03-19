@@ -26,7 +26,6 @@ in
     pkgs.gh
     pkgs.git
     pkgs.iterm2
-    pkgs.nixfmt-rfc-style
 
     (pkgs.writers.writePython3Bin "ghcode" { } ../../ghcode.py)
   ];

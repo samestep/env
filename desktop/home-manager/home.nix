@@ -31,7 +31,6 @@ in
     pkgs.discord
     pkgs.gh
     pkgs.git
-    pkgs.nixfmt-rfc-style
     pkgs.obsidian
     pkgs.spotify
     pkgs.vim
