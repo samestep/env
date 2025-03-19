@@ -28,6 +28,8 @@ rec {
   };
 
   programs = {
+    eza.enable = true;
+
     direnv = {
       enable = true;
       nix-direnv.enable = true;
