@@ -13,6 +13,7 @@ rec {
     pkgs.spotify
 
     (pkgs.writers.writePython3Bin "ghcode" { } ./ghcode.py)
+    (pkgs.writers.writePython3Bin "scratch" { } ./scratch.py)
   ];
 
   symlink = subpath: {
