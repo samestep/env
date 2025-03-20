@@ -25,9 +25,21 @@
           modules = [ ./macbook/home-manager/home.nix ];
         };
       };
-      devShells = {
-        x86_64-linux.default = with pkgsX86; mkShell { buildInputs = [ nixfmt-rfc-style ]; };
-        aarch64-darwin.default = with pkgsArm; mkShell { buildInputs = [ nixfmt-rfc-style ]; };
-      };
+      devShells =
+        let
+          shell =
+            pkgs:
+            with pkgs;
+            mkShell {
+              buildInputs = [
+                nixfmt-rfc-style
+                python3
+              ];
+            };
+        in
+        {
+          x86_64-linux.default = shell pkgsX86;
+          aarch64-darwin.default = shell pkgsArm;
+        };
     };
 }
