@@ -5,6 +5,7 @@ rec {
   };
 
   packages = [
+    pkgs.cloc
     pkgs.code-cursor
     pkgs.discord
     pkgs.gh
@@ -21,6 +22,7 @@ rec {
   };
 
   file = {
+    ".config/cloc" = symlink "cloc";
     ".gitconfig" = symlink ".gitconfig";
   };
 
