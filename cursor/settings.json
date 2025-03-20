@@ -15,13 +15,14 @@
   "[slang]": { "editor.tabSize": 4 },
   "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "C_Cpp.clang_format_fallbackStyle": "LLVM", // It's the clang-format default.
   "cmake.configureOnOpen": false,
   "diffEditor.ignoreTrimWhitespace": true,
-  "diffEditor.maxComputationTime": 0,
+  "diffEditor.maxComputationTime": 0, // Don't bail on large diffs.
   "diffEditor.renderSideBySide": true,
   "editor.acceptSuggestionOnCommitCharacter": false,
   "editor.formatOnSave": true,
-  "editor.inlayHints.enabled": "off",
+  "editor.inlayHints.enabled": "off", // Rust type hints mess up column width.
   "editor.renderWhitespace": "boundary",
   "editor.rulers": [80],
   "editor.tabSize": 2,
@@ -32,14 +33,13 @@
   "files.trimTrailingWhitespace": true,
   "git.autofetch": true,
   "git.confirmSync": false,
-  "nix.formatterPath": "nixfmt",
-  "python.terminal.activateEnvironment": false,
+  "nix.formatterPath": "nixfmt", // Instead of the default nixpkgs-fmt.
+  "python.terminal.activateEnvironment": false, // Don't print on every command.
   "rust-analyzer.check.command": "clippy",
-  "svg.preview.mode": "svg",
   "terminal.integrated.allowChords": false,
-  "terminal.integrated.inheritEnv": false,
+  "terminal.integrated.inheritEnv": false, // Weird stuff happens otherwise.
   "window.customTitleBarVisibility": "never",
-  "window.titleBarStyle": "native",
+  "window.titleBarStyle": "native", // Necessary to hide the title bar.
   "window.zoomLevel": 1,
   "workbench.colorTheme": "Default Dark Modern",
   "workbench.panel.defaultLocation": "left",
