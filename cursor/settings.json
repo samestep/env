@@ -42,5 +42,6 @@
   "window.titleBarStyle": "native",
   "window.zoomLevel": 1,
   "workbench.colorTheme": "Default Dark Modern",
+  "workbench.panel.defaultLocation": "left",
   "workbench.sideBar.location": "right"
 }
