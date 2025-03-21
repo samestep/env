@@ -85,5 +85,10 @@
     "key": "cmd+k v",
     "command": "-markdown.showPreviewToSide",
     "when": "!notebookEditorFocused && editorLangId == 'markdown'"
+  },
+  {
+    "key": "shift+cmd+e",
+    "command": "-aichat.fixerrormessage",
+    "when": "(arbitrary function)"
   }
 ]
