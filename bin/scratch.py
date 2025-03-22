@@ -11,35 +11,8 @@ def run(cmd: list[str], **kwargs: Any) -> None:
         sys.exit(returncode)
 
 
-flake_contents = """
-{
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-  };
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        devShell =
-          with pkgs;
-          mkShell {
-            buildInputs = [
-              nixfmt-rfc-style
-            ];
-          };
-      }
-    );
-}
-""".lstrip()
+def get_template() -> str:
+    return (Path(__file__).parent.parent / "template.nix").read_text()
 
 
 def main() -> None:
@@ -52,7 +25,7 @@ def main() -> None:
     if not path.exists():
         path.mkdir(parents=True, exist_ok=True)
         run(["git", "init"], cwd=path)
-        (path / "flake.nix").write_text(flake_contents)
+        (path / "flake.nix").write_text(get_template())
         run(["git", "add", "flake.nix"], cwd=path)
         run(["nix", "flake", "lock"], cwd=path)
         (path / ".envrc").write_text("use flake\n")
