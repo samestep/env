@@ -19,20 +19,15 @@ rec {
     pkgs.obsidian
     pkgs.spotify
 
-    (pkgs.writers.writePython3Bin "ghcode" { } ./bin/ghcode.py)
-
-    (
-      let
-        name = "scratch";
-      in
-      pkgs.symlinkJoin {
-        inherit name;
-        paths = [
-          (pkgs.writeTextDir "template.nix" (builtins.readFile ./template.nix))
-          (pkgs.writers.writePython3Bin name { } ./bin/scratch.py)
-        ];
-      }
-    )
+    (pkgs.symlinkJoin {
+      name = "samestep";
+      paths = [
+        (pkgs.writeTextDir "template.nix" (builtins.readFile ./template.nix))
+        (pkgs.writers.writePython3Bin "flake" { } ./bin/flake.py)
+        (pkgs.writers.writePython3Bin "ghcode" { } ./bin/ghcode.py)
+        (pkgs.writers.writePython3Bin "scratch" { } ./bin/scratch.py)
+      ];
+    })
   ];
 
   # https://nix-community.github.io/home-manager/options.xhtml#opt-home.file
