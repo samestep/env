@@ -62,5 +62,17 @@
   {
     "key": "ctrl+shift+k",
     "command": "-composer.openAsBar"
+  },
+  {
+    "key": "ctrl+m alt+left",
+    "command": "workbench.action.positionPanelLeft"
+  },
+  {
+    "key": "ctrl+m alt+right",
+    "command": "workbench.action.positionPanelRight"
+  },
+  {
+    "key": "ctrl+m alt+down",
+    "command": "workbench.action.positionPanelBottom"
   }
 ]
