@@ -17,7 +17,7 @@
       {
         devShell =
           with pkgs;
-          mkShell {
+          mkShellNoCC {
             buildInputs = [
               nixfmt-rfc-style
             ];
