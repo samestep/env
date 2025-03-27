@@ -35,10 +35,12 @@
   "files.trimTrailingWhitespace": true,
   "git.autofetch": true,
   "git.confirmSync": false,
+  "julia.symbolCacheDownload": true, // Julia extension adds this automatically.
   "nix.formatterPath": "nixfmt", // Instead of the default nixpkgs-fmt.
   "python.terminal.activateEnvironment": false, // Don't print on every command.
   "rust-analyzer.check.command": "clippy",
   "terminal.integrated.allowChords": false,
+  "terminal.integrated.commandsToSkipShell": ["language-julia.interrupt"],
   "terminal.integrated.inheritEnv": false, // Weird stuff happens otherwise.
   "window.customTitleBarVisibility": "never",
   "window.titleBarStyle": "native", // Necessary to hide the title bar.
