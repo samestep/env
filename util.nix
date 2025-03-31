@@ -26,6 +26,7 @@ rec {
         (pkgs.writers.writePython3Bin "flake" { } ./bin/flake.py)
         (pkgs.writers.writePython3Bin "ghcode" { } ./bin/ghcode.py)
         (pkgs.writers.writePython3Bin "scratch" { } ./bin/scratch.py)
+        (pkgs.writers.writePython3Bin "shell" { } ./bin/shell.py)
       ];
     })
   ];

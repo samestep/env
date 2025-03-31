@@ -25,14 +25,15 @@ def main() -> None:
     Path(".envrc").write_text("use flake\n")
     run(["direnv", "allow"])
 
+    gitignore_path = Path(".gitignore")
     try:
-        gitignore = Path(".gitignore").read_text().splitlines()
+        gitignore = gitignore_path.read_text().splitlines()
     except FileNotFoundError:
         gitignore = []
     for line in ["/.direnv/", "/.envrc"]:
         if line not in gitignore:
             gitignore.append(line)
-    Path(".gitignore").write_text("\n".join(gitignore + [""]))
+    gitignore_path.write_text("\n".join(gitignore + [""]))
 
 
 if __name__ == "__main__":
