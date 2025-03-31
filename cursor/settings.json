@@ -1,7 +1,10 @@
 {
   "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[dockerfile]": { "editor.tabSize": 4 },
-  "[handlebars]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[handlebars]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "files.insertFinalNewline": false
+  },
   "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
