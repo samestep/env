@@ -27,19 +27,22 @@
       };
       devShells =
         let
-          shell =
+          shells =
             pkgs:
             with pkgs;
-            mkShell {
-              buildInputs = [
-                nixfmt-rfc-style
-                python3
-              ];
+            (import ./shells.nix pkgs)
+            // {
+              default = mkShellNoCC {
+                buildInputs = [
+                  nixfmt-rfc-style
+                  python3
+                ];
+              };
             };
         in
         {
-          x86_64-linux.default = shell pkgsX86;
-          aarch64-darwin.default = shell pkgsArm;
+          x86_64-linux = shells pkgsX86;
+          aarch64-darwin = shells pkgsArm;
         };
     };
 }
