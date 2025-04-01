@@ -6,4 +6,10 @@ pkgs: with pkgs; {
       pnpm
     ];
   };
+  yarn = mkShellNoCC {
+    buildInputs = [
+      nodejs
+      yarn
+    ];
+  };
 }
