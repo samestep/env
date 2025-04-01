@@ -1,6 +1,7 @@
 pkgs: with pkgs; {
-  pnpm = mkShellNoCC {
+  definitely-typed = mkShellNoCC {
     buildInputs = [
+      dprint
       nodejs
       pnpm
     ];
