@@ -6,6 +6,15 @@ pkgs: with pkgs; {
       pnpm
     ];
   };
+  vscode = mkShellNoCC {
+    buildInputs = [
+      clang
+      krb5
+      llvm
+      nodejs_20
+      python3
+    ];
+  };
   yarn = mkShellNoCC {
     buildInputs = [
       nodejs
