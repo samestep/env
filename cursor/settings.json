@@ -22,7 +22,7 @@
   "[yaml]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "C_Cpp.clang_format_fallbackStyle": "LLVM", // It's the clang-format default.
   "cmake.configureOnOpen": false,
-  "diffEditor.ignoreTrimWhitespace": true,
+  "diffEditor.ignoreTrimWhitespace": false, // Else might forget to stage stuff.
   "diffEditor.maxComputationTime": 0, // Don't bail on large diffs.
   "diffEditor.renderSideBySide": true,
   "editor.acceptSuggestionOnCommitCharacter": false,
