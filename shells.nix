@@ -6,6 +6,12 @@ pkgs: with pkgs; {
       pnpm
     ];
   };
+  pnpm = mkShellNoCC {
+    buildInputs = [
+      nodejs
+      pnpm
+    ];
+  };
   vscode = mkShellNoCC {
     buildInputs = [
       clang
