@@ -77,9 +77,27 @@
   # https://wiki.nixos.org/wiki/NVIDIA
   hardware.graphics.enable = true;
   services.xserver.videoDrivers = [ "nvidia" ];
-  # The open-source kernel modules "only support GPUs of the Turing architecture
-  # or newer" and I'm on a GTX 970, which is based on the Maxwell architecture.
-  hardware.nvidia.open = false;
+  hardware.nvidia = {
+    # The open-source kernel modules "support GPUs of the Turing architecture or
+    # newer" but I'm on a GTX 970, which is based on the Maxwell architecture.
+    open = false;
+    # Without this latest driver, I get this error when running CUDA programs:
+    # "forward compatibility was attempted on non supported HW"
+    package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
+      # Latest from here: https://download.nvidia.com/XFree86/Linux-x86_64/
+      version = "570.133.07";
+      sha256_64bit = "sha256-LUPmTFgb5e9VTemIixqpADfvbUX1QoTT2dztwI3E3CY=";
+      # Without this dummy `openSha256` hash, I get an error message saying
+      # "This version of NVIDIA driver does not provide a GSP firmware."
+      openSha256 = "";
+      # Without this `settingsSha256` hash, I get an error message saying
+      # "assertion '(useSettings -> (settingsSha256 != null))' failed"
+      settingsSha256 = "sha256-XMk+FvTlGpMquM8aE8kgYK2PIEszUZD2+Zmj2OpYrzU=";
+      # Without setting this to `false`, I get an error message saying
+      # "assertion '(usePersistenced -> (persistencedSha256 != null))' failed"
+      usePersistenced = false;
+    };
+  };
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
