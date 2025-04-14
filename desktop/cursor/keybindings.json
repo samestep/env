@@ -74,5 +74,9 @@
   {
     "key": "ctrl+m alt+down",
     "command": "workbench.action.positionPanelBottom"
+  },
+  {
+    "key": "ctrl+i",
+    "command": "composerMode.agent"
   }
 ]
