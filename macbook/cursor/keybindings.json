@@ -90,5 +90,9 @@
     "key": "shift+cmd+e",
     "command": "-aichat.fixerrormessage",
     "when": "(arbitrary function)"
+  },
+  {
+    "key": "cmd+i",
+    "command": "composerMode.agent"
   }
 ]
