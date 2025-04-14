@@ -12,7 +12,6 @@ rec {
   # https://nix-community.github.io/home-manager/options.xhtml#opt-home.packages
   packages = [
     pkgs.cloc
-    pkgs.code-cursor
     pkgs.discord
     pkgs.gh
     pkgs.git
@@ -37,11 +36,6 @@ rec {
     ".gitconfig" = symlink ".gitconfig";
   };
 
-  # https://nix-community.github.io/home-manager/options.xhtml#opt-home.shellAliases
-  shellAliases = {
-    code = "cursor";
-  };
-
   programs = {
     # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.bat.enable
     bat.enable = true;
@@ -60,5 +54,30 @@ rec {
 
     # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.starship.enable
     starship.enable = true;
+
+    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.vscode.enable
+    vscode = {
+      enable = true;
+      profiles.default.extensions =
+        with pkgs.vscode-extensions;
+        [
+          charliermarsh.ruff
+          esbenp.prettier-vscode
+          jnoortheen.nix-ide
+          julialang.language-julia
+          mkhl.direnv
+          ms-python.python
+          ms-vscode.cmake-tools
+          rust-lang.rust-analyzer
+        ]
+        ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+          {
+            publisher = "Seaube";
+            name = "clangformat";
+            version = "2.0.2";
+            sha256 = "sha256-vyKAb1CPmRyy89P90jIQ2MTaf2ZKE2jpaegiRWCr5Bw=";
+          }
+        ];
+    };
   };
 }

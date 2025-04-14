@@ -28,11 +28,9 @@ in
     ];
 
     file = util.file // {
-      ".config/Cursor/User/keybindings.json" = util.symlink "desktop/cursor/keybindings.json";
-      ".config/Cursor/User/settings.json" = util.symlink "cursor/settings.json";
+      ".config/Code/User/keybindings.json" = util.symlink "desktop/vscode/keybindings.json";
+      ".config/Code/User/settings.json" = util.symlink "vscode/settings.json";
     };
-
-    shellAliases = util.shellAliases;
   };
 
   dconf = {

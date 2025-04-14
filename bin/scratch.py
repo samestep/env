@@ -16,7 +16,7 @@ def get_template() -> str:
 
 
 def main() -> None:
-    description = "open a scratch space in Cursor"
+    description = "open a scratch space in VS Code"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("name")
     args = parser.parse_args()
@@ -33,7 +33,7 @@ def main() -> None:
         run(["git", "add", "."], cwd=path)
         run(["git", "commit", "-m", "Initial commit"], cwd=path)
         run(["direnv", "allow"], cwd=path)
-    run(["cursor", path])
+    run(["code", path])
 
 
 if __name__ == "__main__":

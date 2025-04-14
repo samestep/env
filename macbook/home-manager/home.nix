@@ -27,8 +27,6 @@ in
         util.symlink "macbook/cursor/keybindings.json";
       "Library/Application Support/Cursor/User/settings.json" = util.symlink "cursor/settings.json";
     };
-
-    shellAliases = util.shellAliases;
   };
 
   programs = util.programs // {

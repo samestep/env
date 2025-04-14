@@ -21,7 +21,7 @@ def parse(url: str) -> str:
 
 
 def main() -> None:
-    description = "clone a GitHub repository and open in Cursor"
+    description = "clone a GitHub repository and open in VS Code"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("repo")
     args = parser.parse_args()
@@ -31,7 +31,7 @@ def main() -> None:
     if not path.exists():
         cmd = ["gh", "repo", "clone", repo, path, "--", "--recurse-submodules"]
         run(cmd)
-    run(["cursor", path])
+    run(["code", path])
 
 
 if __name__ == "__main__":
