@@ -72,6 +72,12 @@ rec {
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           {
+            publisher = "ngtystr";
+            name = "ppm-pgm-viewer-for-vscode";
+            version = "1.2.0";
+            sha256 = "sha256-88dKhjfepOovsIjNxPQ5aEwNJlsQoCo9xtkqTJrb2ZA=";
+          }
+          {
             publisher = "Seaube";
             name = "clangformat";
             version = "2.0.2";
