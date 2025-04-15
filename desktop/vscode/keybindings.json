@@ -34,5 +34,9 @@
     "key": "ctrl+tab",
     "command": "-workbench.action.quickOpenNavigateNextInEditorPicker",
     "when": "inEditorsPicker && inQuickOpen"
+  },
+  {
+    "key": "ctrl+e",
+    "command": "-workbench.action.quickOpen"
   }
 ]
