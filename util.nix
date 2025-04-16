@@ -72,16 +72,16 @@ rec {
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           {
-            publisher = "ngtystr";
-            name = "ppm-pgm-viewer-for-vscode";
-            version = "1.2.0";
-            sha256 = "sha256-88dKhjfepOovsIjNxPQ5aEwNJlsQoCo9xtkqTJrb2ZA=";
-          }
-          {
             publisher = "Seaube";
             name = "clangformat";
             version = "2.0.2";
             sha256 = "sha256-vyKAb1CPmRyy89P90jIQ2MTaf2ZKE2jpaegiRWCr5Bw=";
+          }
+          {
+            publisher = "sysoev";
+            name = "vscode-open-in-github";
+            version = "1.18.0";
+            sha256 = "sha256-bOJ+b6jfRxYGhUizFGWYGsqI1M80awcAlLCUvWjizPk=";
           }
         ];
     };
