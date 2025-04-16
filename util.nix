@@ -65,18 +65,13 @@ rec {
           esbenp.prettier-vscode
           jnoortheen.nix-ide
           julialang.language-julia
+          llvm-vs-code-extensions.vscode-clangd
           mkhl.direnv
           ms-python.python
           ms-vscode.cmake-tools
           rust-lang.rust-analyzer
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-          {
-            publisher = "Seaube";
-            name = "clangformat";
-            version = "2.0.2";
-            sha256 = "sha256-vyKAb1CPmRyy89P90jIQ2MTaf2ZKE2jpaegiRWCr5Bw=";
-          }
           {
             publisher = "sysoev";
             name = "vscode-open-in-github";
