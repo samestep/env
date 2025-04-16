@@ -25,6 +25,7 @@ in
 
     packages = util.packages ++ [
       pkgs.vim
+      pkgs.xsel # Used by the VS Code "Open In GitHub" extension.
     ];
 
     file = util.file // {
