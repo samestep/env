@@ -73,6 +73,7 @@ rec {
           ms-python.python
           ms-vscode.cmake-tools
           rust-lang.rust-analyzer
+          stkb.rewrap
           tamasfe.even-better-toml
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
