@@ -62,16 +62,32 @@ rec {
         with pkgs.vscode-extensions;
         [
           charliermarsh.ruff
+          dbaeumer.vscode-eslint
           esbenp.prettier-vscode
+          github.vscode-github-actions
           jnoortheen.nix-ide
           julialang.language-julia
           llvm-vs-code-extensions.vscode-clangd
           mkhl.direnv
+          ms-azuretools.vscode-docker
           ms-python.python
           ms-vscode.cmake-tools
           rust-lang.rust-analyzer
+          tamasfe.even-better-toml
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+          {
+            publisher = "DIKU";
+            name = "futhark-vscode";
+            version = "0.1.3";
+            sha256 = "sha256-URikRSOUR/vdOKGP8/wopROAd18J81pxii8+DHd0sa0=";
+          }
+          {
+            publisher = "oven";
+            name = "bun-vscode";
+            version = "0.0.28";
+            sha256 = "sha256-WlGqqKbfrV0gqCCdVo/UFF+Gnxhq0TNJ4LuHwFaFYXA=";
+          }
           {
             publisher = "sysoev";
             name = "vscode-open-in-github";
