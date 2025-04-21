@@ -11,6 +11,7 @@
   "[jsonc]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[markdown]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[python]": {
+    "editor.codeActionsOnSave": { "source.organizeImports": "always" },
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.rulers": [72, 79, 88],
     "editor.tabSize": 4
