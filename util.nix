@@ -71,6 +71,7 @@ rec {
           mkhl.direnv
           ms-azuretools.vscode-docker
           ms-python.python
+          ms-python.vscode-pylance
           ms-vscode.cmake-tools
           rust-lang.rust-analyzer
           stkb.rewrap
