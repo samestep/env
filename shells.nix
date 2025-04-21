@@ -6,6 +6,11 @@ pkgs: with pkgs; {
       pnpm
     ];
   };
+  node = mkShellNoCC {
+    buildInputs = [
+      nodejs
+    ];
+  };
   pnpm = mkShellNoCC {
     buildInputs = [
       nodejs
