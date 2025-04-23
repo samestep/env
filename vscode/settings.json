@@ -51,6 +51,7 @@
   "window.titleBarStyle": "native", // Necessary to hide the title bar.
   "window.zoomLevel": 1,
   "workbench.colorTheme": "Default Dark Modern",
+  "workbench.editorAssociations": { "*.svg": "default" }, // Show me the code.
   "workbench.panel.defaultLocation": "left",
   "workbench.sideBar.location": "right"
 }

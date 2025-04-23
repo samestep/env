@@ -66,6 +66,7 @@ rec {
           esbenp.prettier-vscode
           github.vscode-github-actions
           jnoortheen.nix-ide
+          jock.svg
           julialang.language-julia
           llvm-vs-code-extensions.vscode-clangd
           mkhl.direnv
