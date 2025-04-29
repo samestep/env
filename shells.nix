@@ -17,6 +17,11 @@ pkgs: with pkgs; {
       pnpm
     ];
   };
+  uv = mkShellNoCC {
+    buildInputs = [
+      uv
+    ];
+  };
   vscode = mkShellNoCC {
     buildInputs = [
       clang
