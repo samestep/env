@@ -37,6 +37,7 @@ in
           dockutil = "${pkgs.dockutil}/bin/dockutil";
           dockItems = lib.strings.concatLines (
             map (item: "run ${dockutil} --no-restart --add ${lib.strings.escapeShellArg item}") [
+              "/Applications/System Settings.app"
               "/Applications/Utilities/Activity Monitor.app"
               "${pkgs.iterm2}/Applications/ITerm2.app"
               "/Applications/Firefox.app"
