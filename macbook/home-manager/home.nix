@@ -54,6 +54,7 @@ in
         lib.hm.dag.entryAfter [ "writeBoundary" ] ''
           run ${dockutil} --no-restart --remove all
           ${dockItems}
+          run ${dockutil} --no-restart --add ~/Downloads --section others --display stack
           run /usr/bin/killall Dock
         '';
     };
