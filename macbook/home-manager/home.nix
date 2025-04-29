@@ -39,6 +39,7 @@ in
             map (item: "run ${dockutil} --no-restart --add ${lib.strings.escapeShellArg item}") [
               "/Applications/Utilities/Activity Monitor.app"
               "${pkgs.iterm2}/Applications/ITerm2.app"
+              "/Applications/Firefox.app"
               "${pkgs.spotify}/Applications/Spotify.app"
               "${pkgs.discord}/Applications/Discord.app"
               "/Applications/Slack.app"
