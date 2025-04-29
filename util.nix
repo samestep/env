@@ -17,6 +17,7 @@ rec {
     pkgs.git
     pkgs.obsidian
     pkgs.spotify
+    pkgs.wasm-language-tools
 
     (pkgs.symlinkJoin {
       name = "samestep";
@@ -84,6 +85,12 @@ rec {
             name = "futhark-vscode";
             version = "0.1.3";
             sha256 = "sha256-URikRSOUR/vdOKGP8/wopROAd18J81pxii8+DHd0sa0=";
+          }
+          {
+            publisher = "gplane";
+            name = "wasm-language-tools";
+            version = "1.8.0";
+            sha256 = "sha256-WgKR839CJCUJb+Wx0uBiXwnA6dfjX0JA1/61Dp72yJE=";
           }
           {
             publisher = "oven";
