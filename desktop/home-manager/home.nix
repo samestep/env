@@ -24,6 +24,9 @@ in
     homeDirectory = "/home/sam";
 
     packages = util.packages ++ [
+      pkgs.discord
+      pkgs.obsidian
+      pkgs.spotify
       pkgs.vim
       pkgs.xsel # Used by the VS Code "Open In GitHub" extension.
     ];

@@ -12,11 +12,8 @@ rec {
   # https://nix-community.github.io/home-manager/options.xhtml#opt-home.packages
   packages = [
     pkgs.cloc
-    pkgs.discord
     pkgs.gh
     pkgs.git
-    pkgs.obsidian
-    pkgs.spotify
     pkgs.wasm-language-tools
 
     (pkgs.symlinkJoin {
