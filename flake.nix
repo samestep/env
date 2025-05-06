@@ -6,9 +6,18 @@
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs =
-    { nixpkgs, home-manager, ... }:
+    {
+      nixpkgs,
+      home-manager,
+      fenix,
+      ...
+    }:
     let
       pkgsX86 = import nixpkgs { system = "x86_64-linux"; };
       pkgsArm = import nixpkgs { system = "aarch64-darwin"; };
@@ -30,7 +39,7 @@
           shells =
             pkgs:
             with pkgs;
-            (import ./shells.nix pkgs)
+            (import ./shells.nix { inherit pkgs fenix; })
             // {
               default = mkShellNoCC {
                 buildInputs = [

@@ -1,4 +1,6 @@
-pkgs: with pkgs; {
+{ pkgs, fenix }:
+with pkgs;
+{
   definitely-typed = mkShellNoCC {
     buildInputs = [
       dprint
@@ -15,6 +17,11 @@ pkgs: with pkgs; {
     buildInputs = [
       nodejs
       pnpm
+    ];
+  };
+  rust = mkShell {
+    buildInputs = [
+      (fenix.packages.${system}.stable.toolchain)
     ];
   };
   uv = mkShellNoCC {
