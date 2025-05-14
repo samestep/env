@@ -90,6 +90,12 @@ rec {
             sha256 = "sha256-cutlbuEVPyfEFz+OI4X9rBxZ6FyETdAZO6ezmXKCGZc=";
           }
           {
+            publisher = "onelivesleft";
+            name = "the-language";
+            version = "0.0.86";
+            sha256 = "sha256-DmgtCwkcFUN112C7y8qY0ax8OiB4dgKw/LahQISHVuY=";
+          }
+          {
             publisher = "oven";
             name = "bun-vscode";
             version = "0.0.28";
