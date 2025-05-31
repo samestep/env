@@ -15,13 +15,11 @@
         pkgs = import nixpkgs { inherit system; };
       in
       {
-        devShell =
-          with pkgs;
-          mkShellNoCC {
-            buildInputs = [
-              nixfmt-rfc-style
-            ];
-          };
+        devShell = pkgs.mkShellNoCC {
+          buildInputs = [
+            pkgs.nixfmt-rfc-style
+          ];
+        };
       }
     );
 }

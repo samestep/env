@@ -1,47 +1,46 @@
 { pkgs, fenix }:
-with pkgs;
 {
-  definitely-typed = mkShellNoCC {
+  definitely-typed = pkgs.mkShellNoCC {
     buildInputs = [
-      dprint
-      nodejs
-      pnpm
+      pkgs.dprint
+      pkgs.nodejs
+      pkgs.pnpm
     ];
   };
-  node = mkShellNoCC {
+  node = pkgs.mkShellNoCC {
     buildInputs = [
-      nodejs
+      pkgs.nodejs
     ];
   };
-  pnpm = mkShellNoCC {
+  pnpm = pkgs.mkShellNoCC {
     buildInputs = [
-      nodejs
-      pnpm
+      pkgs.nodejs
+      pkgs.pnpm
     ];
   };
-  rust = mkShell {
+  rust = pkgs.mkShell {
     buildInputs = [
-      (fenix.packages.${system}.stable.toolchain)
+      (fenix.packages.${pkgs.system}.stable.toolchain)
     ];
   };
-  uv = mkShellNoCC {
+  uv = pkgs.mkShellNoCC {
     buildInputs = [
-      uv
+      pkgs.uv
     ];
   };
-  vscode = mkShellNoCC {
+  vscode = pkgs.mkShellNoCC {
     buildInputs = [
-      clang
-      krb5
-      llvm
-      nodejs_20
-      python3
+      pkgs.clang
+      pkgs.krb5
+      pkgs.llvm
+      pkgs.nodejs_20
+      pkgs.python3
     ];
   };
-  yarn = mkShellNoCC {
+  yarn = pkgs.mkShellNoCC {
     buildInputs = [
-      nodejs
-      yarn
+      pkgs.nodejs
+      pkgs.yarn
     ];
   };
 }

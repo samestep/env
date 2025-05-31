@@ -38,13 +38,12 @@
         let
           shells =
             pkgs:
-            with pkgs;
             (import ./shells.nix { inherit pkgs fenix; })
             // {
-              default = mkShellNoCC {
+              default = pkgs.mkShellNoCC {
                 buildInputs = [
-                  nixfmt-rfc-style
-                  python3
+                  pkgs.nixfmt-rfc-style
+                  pkgs.python3
                 ];
               };
             };
