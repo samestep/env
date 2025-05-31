@@ -72,6 +72,7 @@ rec {
           ms-python.vscode-pylance
           ms-toolsai.jupyter
           ms-vscode.cmake-tools
+          myriad-dreamin.tinymist
           rust-lang.rust-analyzer
           stkb.rewrap
           tamasfe.even-better-toml
