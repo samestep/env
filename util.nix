@@ -76,6 +76,7 @@ rec {
           rust-lang.rust-analyzer
           stkb.rewrap
           tamasfe.even-better-toml
+          ziglang.vscode-zig
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           {
