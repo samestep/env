@@ -27,7 +27,7 @@ in
 
     file = util.file // {
       "Library/Application Support/Code/User/keybindings.json" =
-        util.symlink "macbook/vscode/keybindings.json";
+        util.symlink "macos/vscode/keybindings.json";
       "Library/Application Support/Code/User/settings.json" = util.symlink "vscode/settings.json";
     };
 

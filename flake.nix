@@ -27,11 +27,15 @@
       homeConfigurations = {
         "sam" = home-manager.lib.homeManagerConfiguration {
           pkgs = pkgsX86;
-          modules = [ ./desktop/home-manager/home.nix ];
+          modules = [ ./nixos/home-manager/home.nix ];
         };
         "samueles" = home-manager.lib.homeManagerConfiguration {
           pkgs = pkgsArm;
-          modules = [ ./macbook/home-manager/home.nix ];
+          modules = [ ./macos/home-manager/home.nix ];
+        };
+        "saestep" = home-manager.lib.homeManagerConfiguration {
+          pkgs = pkgsX86;
+          modules = [ ./ubuntu/home-manager/home.nix ];
         };
       };
       devShells =
