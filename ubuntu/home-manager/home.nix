@@ -36,7 +36,6 @@ in
 
   nixGL = {
     packages = pkgs.nixgl.auto;
-    defaultWrapper = "nvidia";
     installScripts = [ "nvidia" ];
     vulkan.enable = true;
   };
