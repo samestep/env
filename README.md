@@ -49,7 +49,7 @@ home-manager switch
 
 ## [Ubuntu](ubuntu)
 
-This machine has an x86 CPU and runs Ubuntu.
+This machine has an x86 CPU and an NVIDIA GPU, and runs Ubuntu.
 
 [Enable flakes][flakes] by making sure this line is present in `/etc/nix/nix.conf`:
 
@@ -67,7 +67,7 @@ Then run these commands to do a [standalone installation of Home Manager][home-m
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env -- init --switch
+nix run ~/github/samestep/env -- init --switch --impure
 ```
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
