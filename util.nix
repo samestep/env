@@ -57,26 +57,28 @@ rec {
     vscode = {
       enable = true;
       profiles.default.extensions =
-        with pkgs.vscode-extensions;
+        let
+          vscode = pkgs.vscode-extensions;
+        in
         [
-          charliermarsh.ruff
-          dbaeumer.vscode-eslint
-          esbenp.prettier-vscode
-          github.vscode-github-actions
-          jnoortheen.nix-ide
-          jock.svg
-          llvm-vs-code-extensions.vscode-clangd
-          mkhl.direnv
-          ms-azuretools.vscode-docker
-          ms-python.python
-          ms-python.vscode-pylance
-          ms-toolsai.jupyter
-          ms-vscode.cmake-tools
-          myriad-dreamin.tinymist
-          rust-lang.rust-analyzer
-          stkb.rewrap
-          tamasfe.even-better-toml
-          ziglang.vscode-zig
+          vscode.charliermarsh.ruff
+          vscode.dbaeumer.vscode-eslint
+          vscode.esbenp.prettier-vscode
+          vscode.github.vscode-github-actions
+          vscode.jnoortheen.nix-ide
+          vscode.jock.svg
+          vscode.llvm-vs-code-extensions.vscode-clangd
+          vscode.mkhl.direnv
+          vscode.ms-azuretools.vscode-docker
+          vscode.ms-python.python
+          vscode.ms-python.vscode-pylance
+          vscode.ms-toolsai.jupyter
+          vscode.ms-vscode.cmake-tools
+          vscode.myriad-dreamin.tinymist
+          vscode.rust-lang.rust-analyzer
+          vscode.stkb.rewrap
+          vscode.tamasfe.even-better-toml
+          vscode.ziglang.vscode-zig
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           {
