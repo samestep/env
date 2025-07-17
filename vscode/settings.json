@@ -46,6 +46,7 @@
   "git.openRepositoryInParentFolders": "never",
   "julia.symbolCacheDownload": true, // Julia extension adds this automatically.
   "nix.formatterPath": "nixfmt", // Instead of the default nixpkgs-fmt.
+  "python.locator": "js", // The native locator seems broken with Nix.
   "python.terminal.activateEnvironment": false, // Don't print on every command.
   "rust-analyzer.check.command": "clippy",
   "terminal.integrated.allowChords": false,
