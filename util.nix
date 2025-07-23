@@ -78,6 +78,7 @@ rec {
           vscode.rust-lang.rust-analyzer
           vscode.stkb.rewrap
           vscode.tamasfe.even-better-toml
+          vscode.vadimcn.vscode-lldb
           vscode.ziglang.vscode-zig
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
