@@ -107,6 +107,12 @@ rec {
             sha256 = "sha256-WlGqqKbfrV0gqCCdVo/UFF+Gnxhq0TNJ4LuHwFaFYXA=";
           }
           {
+            publisher = "samestep";
+            name = "save-constantly";
+            version = "0.1.0";
+            sha256 = "sha256-s6M64yE1lx0mG/0zxYjNilMniflkAAhCxVccAU0jSEk=";
+          }
+          {
             publisher = "shader-slang";
             name = "slang-language-extension";
             version = "1.10.0";
