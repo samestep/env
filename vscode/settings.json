@@ -40,6 +40,10 @@
   "editor.tabSize": 2,
   "explorer.confirmDragAndDrop": false,
   "extensions.autoUpdate": false,
+  "files.associations": {
+    ".clangd": "yaml",
+    ".lldbinit": "plaintext"
+  },
   "files.autoSave": "off",
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
