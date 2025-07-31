@@ -104,8 +104,8 @@ rec {
           {
             publisher = "oven";
             name = "bun-vscode";
-            version = "0.0.28";
-            sha256 = "sha256-WlGqqKbfrV0gqCCdVo/UFF+Gnxhq0TNJ4LuHwFaFYXA=";
+            version = "0.0.29";
+            sha256 = "sha256-2lsPM9j6dFZyKHBXvsotV22DW2JgCIaLyPuhCxSs42k=";
           }
           {
             publisher = "samestep";
@@ -116,8 +116,8 @@ rec {
           {
             publisher = "shader-slang";
             name = "slang-language-extension";
-            version = "1.10.0";
-            sha256 = "sha256-gu2E2H1A9AO0KA2f5akk+2xk0p1SI8r6ljgGxmJ22ZA=";
+            version = "2.0.0";
+            sha256 = "sha256-ypbh/+R2bIjsmUAeqtX9ZhIcwfHNvBHXQAJreP9SPlU=";
           }
           {
             publisher = "sysoev";
