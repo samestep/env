@@ -25,6 +25,7 @@ in
 
     packages = util.packages ++ [
       pkgs.discord
+      pkgs.gnomeExtensions.appindicator # Needed for Dropbox in tray.
       pkgs.obsidian
       pkgs.spotify
       pkgs.vim
@@ -48,10 +49,17 @@ in
       # Don't go to sleep.
       "org/gnome/desktop/session".idle-delay = lib.hm.gvariant.mkUint32 0;
       "org/gnome/settings-daemon/plugins/power".sleep-inactive-ac-type = "nothing";
+      "org/gnome/shell".enabled-extensions = [
+        "appindicatorsupport@rgcjonas.gmail.com" # Needed for Dropbox in tray.
+      ];
     };
   };
 
   programs = util.programs // {
     bash.enable = true; # Necessary for aliases and Starship to work.
+  };
+
+  services = {
+    dropbox.enable = true;
   };
 }
