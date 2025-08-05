@@ -36,6 +36,12 @@ in
       ".config/Code/User/keybindings.json" = util.symlink "vscode/keybindings.json";
       ".config/Code/User/settings.json" = util.symlink "vscode/settings.json";
     };
+
+    activation = {
+      dropbox = lib.hm.dag.entryAfter [
+        "writeBoundary"
+      ] "run ${pkgs.dropbox-cli}/bin/dropbox autostart y";
+    };
   };
 
   dconf = {

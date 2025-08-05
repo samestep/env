@@ -26,7 +26,7 @@ ln -fsT ~/github/samestep/env ~/.config/home-manager
 nix run ~/github/samestep/env -- init --switch
 ```
 
-You may need to log out and back in to see everything installed in the GNOME applications launcher.
+You may need to log out and back in to see everything installed in the GNOME applications launcher, and to let Dropbox start for the first time.
 
 ## [macOS](macos)
 
