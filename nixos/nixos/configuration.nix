@@ -84,15 +84,18 @@
     # Without this latest driver, I get this error when running CUDA programs:
     # "forward compatibility was attempted on non supported HW"
     package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
-      # Latest from here: https://download.nvidia.com/XFree86/Linux-x86_64/
-      version = "570.133.07";
-      sha256_64bit = "sha256-LUPmTFgb5e9VTemIixqpADfvbUX1QoTT2dztwI3E3CY=";
+      # According to https://download.nvidia.com/XFree86/Linux-x86_64/ this is
+      # the last version before version 580, which is important because versions
+      # newer than 580 are only compatible with CUDA 13.0, and pretty much
+      # everything is still on CUDA 12.x versions instead.
+      version = "575.64.05";
+      sha256_64bit = "sha256-hfK1D5EiYcGRegss9+H5dDr/0Aj9wPIJ9NVWP3dNUC0=";
       # Without this dummy `openSha256` hash, I get an error message saying
       # "This version of NVIDIA driver does not provide a GSP firmware."
       openSha256 = "";
       # Without this `settingsSha256` hash, I get an error message saying
       # "assertion '(useSettings -> (settingsSha256 != null))' failed"
-      settingsSha256 = "sha256-XMk+FvTlGpMquM8aE8kgYK2PIEszUZD2+Zmj2OpYrzU=";
+      settingsSha256 = "sha256-o2zUnYFUQjHOcCrB0w/4L6xI1hVUXLAWgG2Y26BowBE=";
       # Without setting this to `false`, I get an error message saying
       # "assertion '(usePersistenced -> (persistencedSha256 != null))' failed"
       usePersistenced = false;
