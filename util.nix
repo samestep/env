@@ -61,6 +61,7 @@ rec {
           vscode = pkgs.vscode-extensions;
         in
         [
+          vscode.adpyke.codesnap
           vscode.charliermarsh.ruff
           vscode.dbaeumer.vscode-eslint
           vscode.esbenp.prettier-vscode
