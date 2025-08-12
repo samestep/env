@@ -14,6 +14,7 @@ rec {
     pkgs.cloc
     pkgs.gh
     pkgs.git
+    pkgs.jujutsu
     pkgs.wasm-language-tools
 
     (pkgs.symlinkJoin {
@@ -32,6 +33,7 @@ rec {
   file = {
     ".config/cloc" = symlink "cloc";
     ".gitconfig" = symlink ".gitconfig";
+    ".jjconfig.toml" = symlink ".jjconfig.toml";
   };
 
   programs = {
@@ -94,6 +96,12 @@ rec {
             name = "wasm-language-tools";
             version = "1.10.0";
             sha256 = "sha256-kQUWSeRWO/XWr4Ez32nTB3a8SCqi/MmHbiMGNJfIcqk=";
+          }
+          {
+            publisher = "jjk";
+            name = "jjk";
+            version = "0.8.1";
+            sha256 = "sha256-2JUn6wkWgZKZzhitQy6v9R/rCNLrt7DBtt59707hp6c=";
           }
           {
             publisher = "onelivesleft";

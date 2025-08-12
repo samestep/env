@@ -1,0 +1,7 @@
+[ui]
+default-command = "log"
+editor = "vim"
+
+[user]
+email = "sam@samestep.com"
+name = "Sam Estep"
