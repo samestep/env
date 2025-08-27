@@ -18,11 +18,11 @@
   };
   outputs =
     {
+      self,
       nixpkgs,
       home-manager,
       nixgl,
       fenix,
-      ...
     }:
     let
       pkgsX86 = import nixpkgs { system = "x86_64-linux"; };
