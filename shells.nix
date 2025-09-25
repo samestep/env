@@ -1,4 +1,4 @@
-{ pkgs, fenix }:
+{ pkgs }:
 {
   definitely-typed = pkgs.mkShellNoCC {
     buildInputs = [
@@ -20,7 +20,7 @@
   };
   rust = pkgs.mkShell {
     buildInputs = [
-      (fenix.packages.${pkgs.system}.stable.toolchain)
+      pkgs.rust-bin.stable.latest.default
     ];
   };
   uv = pkgs.mkShellNoCC {

@@ -11,8 +11,8 @@
       url = "github:jinluchang/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    fenix = {
-      url = "github:nix-community/fenix";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -22,29 +22,24 @@
       nixpkgs,
       home-manager,
       nixgl,
-      fenix,
+      rust-overlay,
     }:
-    let
-      pkgsX86 = import nixpkgs { system = "x86_64-linux"; };
-      pkgsArm = import nixpkgs { system = "aarch64-darwin"; };
-      pkgsNixGL = import nixpkgs {
-        system = "x86_64-linux";
-        overlays = [ nixgl.overlay ];
-      };
-    in
     {
       packages = home-manager.packages; # Support bootstrapping Home Manager.
       homeConfigurations = {
         "sam" = home-manager.lib.homeManagerConfiguration {
-          pkgs = pkgsX86;
+          pkgs = import nixpkgs { system = "x86_64-linux"; };
           modules = [ ./nixos/home-manager/home.nix ];
         };
         "samueles" = home-manager.lib.homeManagerConfiguration {
-          pkgs = pkgsArm;
+          pkgs = import nixpkgs { system = "aarch64-darwin"; };
           modules = [ ./macos/home-manager/home.nix ];
         };
         "saestep" = home-manager.lib.homeManagerConfiguration {
-          pkgs = pkgsNixGL;
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+            overlays = [ nixgl.overlay ];
+          };
           modules = [ ./ubuntu/home-manager/home.nix ];
         };
       };
@@ -52,7 +47,7 @@
         let
           shells =
             pkgs:
-            (import ./shells.nix { inherit pkgs fenix; })
+            (import ./shells.nix { inherit pkgs; })
             // {
               default = pkgs.mkShellNoCC {
                 buildInputs = [
@@ -63,8 +58,18 @@
             };
         in
         {
-          x86_64-linux = shells pkgsX86;
-          aarch64-darwin = shells pkgsArm;
+          x86_64-linux = shells (
+            import nixpkgs {
+              system = "x86_64-linux";
+              overlays = [ (import rust-overlay) ];
+            }
+          );
+          aarch64-darwin = shells (
+            import nixpkgs {
+              system = "aarch64-darwin";
+              overlays = [ (import rust-overlay) ];
+            }
+          );
         };
     };
 }
