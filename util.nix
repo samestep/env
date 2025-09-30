@@ -61,7 +61,6 @@ rec {
           vscode = pkgs.vscode-extensions;
         in
         [
-          vscode.adpyke.codesnap
           vscode.charliermarsh.ruff
           vscode.dbaeumer.vscode-eslint
           vscode.esbenp.prettier-vscode
@@ -81,7 +80,6 @@ rec {
           vscode.tamasfe.even-better-toml
           vscode.vadimcn.vscode-lldb
           vscode.xaver.clang-format
-          vscode.ziglang.vscode-zig
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           {
@@ -93,20 +91,14 @@ rec {
           {
             publisher = "gplane";
             name = "wasm-language-tools";
-            version = "1.10.0";
-            sha256 = "sha256-kQUWSeRWO/XWr4Ez32nTB3a8SCqi/MmHbiMGNJfIcqk=";
-          }
-          {
-            publisher = "onelivesleft";
-            name = "the-language";
-            version = "0.0.86";
-            sha256 = "sha256-DmgtCwkcFUN112C7y8qY0ax8OiB4dgKw/LahQISHVuY=";
+            version = "1.11.0";
+            sha256 = "sha256-XEUYqphdu5xUFUxo09vDPJ7ct5UNFa1Q534Yau/KRt0=";
           }
           {
             publisher = "oven";
             name = "bun-vscode";
-            version = "0.0.29";
-            sha256 = "sha256-2lsPM9j6dFZyKHBXvsotV22DW2JgCIaLyPuhCxSs42k=";
+            version = "0.0.30";
+            sha256 = "sha256-vMUoNoQet6gGZ+MRKY1tBvt7aBOCEgnVxgieCrehDPo=";
           }
           {
             publisher = "samestep";
@@ -117,8 +109,8 @@ rec {
           {
             publisher = "shader-slang";
             name = "slang-language-extension";
-            version = "2.0.1";
-            sha256 = "sha256-cMBFksLcEi3OmRpyuk/hMNo5HqsfGvWhheiLg6Dusn0=";
+            version = "2.0.2";
+            sha256 = "sha256-yevt8DPONHXtYzX+UHzI5GIGtDKLzLFT75m7FI31K8g=";
           }
           {
             publisher = "sysoev";
