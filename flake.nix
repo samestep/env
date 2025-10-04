@@ -6,6 +6,10 @@
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixgl = {
       # https://github.com/nix-community/nixGL/pull/195
       url = "github:jinluchang/nixGL";
@@ -21,6 +25,7 @@
       self,
       nixpkgs,
       home-manager,
+      nix-darwin,
       nixgl,
       rust-overlay,
     }:
@@ -34,6 +39,7 @@
         "samueles" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs { system = "aarch64-darwin"; };
           modules = [ ./macos/home-manager/home.nix ];
+          extraSpecialArgs = { inherit nix-darwin; };
         };
         "saestep" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -42,6 +48,9 @@
           };
           modules = [ ./ubuntu/home-manager/home.nix ];
         };
+      };
+      darwinConfigurations."gs21624" = nix-darwin.lib.darwinSystem {
+        modules = [ ./macos/nix-darwin/configuration.nix ];
       };
       devShells =
         let

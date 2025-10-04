@@ -47,6 +47,13 @@ ln -s ~/github/samestep/env ~/.config/home-manager
 home-manager switch
 ```
 
+Finally, run these commands to setup [nix-darwin][]:
+
+```sh
+sudo ln -s ~/github/samestep/env /etc/nix-darwin
+sudo darwin-rebuild switch
+```
+
 ## [Ubuntu](ubuntu)
 
 This machine has an x86 CPU and an NVIDIA GPU, and runs Ubuntu.
@@ -72,3 +79,4 @@ nix run ~/github/samestep/env -- init --switch --impure
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
 [home-manager standalone]: https://nix-community.github.io/home-manager/index.xhtml#sec-flakes-standalone
+[nix-darwin]: https://github.com/nix-darwin/nix-darwin

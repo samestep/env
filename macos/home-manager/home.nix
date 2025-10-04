@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  nix-darwin,
   ...
 }:
 let
@@ -23,7 +24,9 @@ in
     username = "samueles";
     homeDirectory = "/Users/samueles";
 
-    packages = util.packages;
+    packages = util.packages ++ [
+      nix-darwin.packages."aarch64-darwin".darwin-rebuild
+    ];
 
     file = util.file // {
       "Library/Application Support/Code/User/keybindings.json" =
