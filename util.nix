@@ -92,14 +92,14 @@ rec {
           {
             publisher = "gplane";
             name = "wasm-language-tools";
-            version = "1.11.0";
-            sha256 = "sha256-XEUYqphdu5xUFUxo09vDPJ7ct5UNFa1Q534Yau/KRt0=";
+            version = "1.12.0";
+            sha256 = "sha256-UNUmt5ePH278zwf4yg+aKKOotQDh+w4o6y28lsYmfNM=";
           }
           {
             publisher = "oven";
             name = "bun-vscode";
-            version = "0.0.30";
-            sha256 = "sha256-vMUoNoQet6gGZ+MRKY1tBvt7aBOCEgnVxgieCrehDPo=";
+            version = "0.0.31";
+            sha256 = "sha256-KlsXU1UpkxaX1rI16CD0KMhe7aarv8A94ZZ0TxlI5Ns=";
           }
           {
             publisher = "samestep";
