@@ -15,6 +15,7 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    npc.url = "github:samestep/npc";
   };
   outputs =
     {
@@ -23,6 +24,7 @@
       home-manager,
       nixgl,
       rust-overlay,
+      npc,
     }:
     {
       packages = home-manager.packages; # Support bootstrapping Home Manager.
@@ -30,10 +32,12 @@
         "sam" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs { system = "x86_64-linux"; };
           modules = [ ./nixos/home-manager/home.nix ];
+          extraSpecialArgs = { inherit npc; };
         };
         "samueles" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs { system = "aarch64-darwin"; };
           modules = [ ./macos/home-manager/home.nix ];
+          extraSpecialArgs = { inherit npc; };
         };
         "saestep" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -41,6 +45,7 @@
             overlays = [ nixgl.overlay ];
           };
           modules = [ ./ubuntu/home-manager/home.nix ];
+          extraSpecialArgs = { inherit npc; };
         };
       };
       devShells =
