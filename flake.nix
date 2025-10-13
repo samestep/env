@@ -15,7 +15,10 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    npc.url = "github:samestep/npc";
+    npc = {
+      url = "github:samestep/npc";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs =
     {
