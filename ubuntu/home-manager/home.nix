@@ -2,10 +2,11 @@
   config,
   lib,
   pkgs,
+  npc,
   ...
 }:
 let
-  util = import ../../util.nix { inherit config pkgs; };
+  util = import ../../util.nix { inherit config pkgs npc; };
 in
 {
   nixpkgs = util.nixpkgs;
