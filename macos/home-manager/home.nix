@@ -26,6 +26,12 @@ in
 
     packages = util.packages;
 
+    # Necessary for `git send-email` to work.
+    sessionVariables = {
+      NIX_SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+      SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+    };
+
     file = util.file // {
       "Library/Application Support/Code/User/keybindings.json" =
         util.symlink "macos/vscode/keybindings.json";

@@ -5,6 +5,8 @@
 	root = rev-parse --show-toplevel
 [core]
 	editor = vim
+[credential]
+	helper = store
 [fetch]
 	all = true
 	prune = true
@@ -16,6 +18,11 @@
 	ff = only
 [push]
 	autoSetupRemote = true
+[sendemail]
+	smtpEncryption = tls
+	smtpServer = smtp.gmail.com
+	smtpServerPort = 587
+	smtpUser = samuel.estep@gmail.com
 [user]
 	email = sam@samestep.com
 	name = Sam Estep
