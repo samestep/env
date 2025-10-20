@@ -16,6 +16,7 @@ rec {
   # https://nix-community.github.io/home-manager/options.xhtml#opt-home.packages
   packages = [
     pkgs.cloc
+    pkgs.codex
     pkgs.gh
     pkgs.git
     pkgs.wasm-language-tools
