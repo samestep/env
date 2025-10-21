@@ -117,8 +117,8 @@ rec {
           {
             publisher = "shader-slang";
             name = "slang-language-extension";
-            version = "2.0.2";
-            sha256 = "sha256-yevt8DPONHXtYzX+UHzI5GIGtDKLzLFT75m7FI31K8g=";
+            version = "2.0.3";
+            sha256 = "sha256-7Dr4+6IwpgpuXX5qPU/ZpwBLPMl+ckqqIBc7Vja2Apc=";
           }
           {
             publisher = "sysoev";
