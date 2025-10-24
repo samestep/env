@@ -59,7 +59,6 @@
             // {
               default = pkgs.mkShellNoCC {
                 buildInputs = [
-                  pkgs.nixfmt
                   pkgs.python3
                 ];
               };
