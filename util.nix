@@ -19,6 +19,7 @@ rec {
     pkgs.codex
     pkgs.gh
     pkgs.git
+    pkgs.nixfmt
     pkgs.wasm-language-tools
     npc.packages.${pkgs.system}.default
 
