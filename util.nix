@@ -55,9 +55,6 @@ rec {
       nix-direnv.enable = true;
     };
 
-    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.home-manager.enable
-    home-manager.enable = true;
-
     # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.starship.enable
     starship.enable = true;
 

@@ -30,7 +30,10 @@
       npc,
     }:
     {
-      packages = home-manager.packages; # Support bootstrapping Home Manager.
+      packages = {
+        x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
+        aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
+      };
       homeConfigurations = {
         "sam" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs { system = "x86_64-linux"; };

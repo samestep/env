@@ -23,7 +23,7 @@ Then run these commands to do a [standalone installation of Home Manager][home-m
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env -- init --switch
+nix run ~/github/samestep/env#home-manager -- init --switch
 ```
 
 You may need to log out and back in to see everything installed in the GNOME applications launcher, and to let Dropbox start for the first time.
@@ -41,10 +41,10 @@ experimental-features = nix-command flakes
 Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
 
 ```sh
-nix run ~/github/samestep/env -- init --switch
+nix run ~/github/samestep/env#home-manager -- init --switch
 rm -r ~/.config/home-manager
 ln -s ~/github/samestep/env ~/.config/home-manager
-home-manager switch
+nix run ~/github/samestep/env#home-manager switch
 ```
 
 ## [Ubuntu](ubuntu)
@@ -67,7 +67,7 @@ Then run these commands to do a [standalone installation of Home Manager][home-m
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env -- init --switch --impure
+nix run ~/github/samestep/env#home-manager -- init --switch --impure
 ```
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
