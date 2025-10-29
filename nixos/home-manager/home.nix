@@ -26,7 +26,6 @@ in
 
     packages = util.packages ++ [
       pkgs.discord
-      pkgs.gnomeExtensions.appindicator # Needed for Dropbox in tray.
       pkgs.obsidian
       pkgs.spotify
       pkgs.vim
@@ -36,12 +35,6 @@ in
     file = util.file // {
       ".config/Code/User/keybindings.json" = util.symlink "vscode/keybindings.json";
       ".config/Code/User/settings.json" = util.symlink "vscode/settings.json";
-    };
-
-    activation = {
-      dropbox = lib.hm.dag.entryAfter [
-        "writeBoundary"
-      ] "run ${pkgs.dropbox-cli}/bin/dropbox autostart y";
     };
   };
 
@@ -56,17 +49,10 @@ in
       # Don't go to sleep.
       "org/gnome/desktop/session".idle-delay = lib.hm.gvariant.mkUint32 0;
       "org/gnome/settings-daemon/plugins/power".sleep-inactive-ac-type = "nothing";
-      "org/gnome/shell".enabled-extensions = [
-        "appindicatorsupport@rgcjonas.gmail.com" # Needed for Dropbox in tray.
-      ];
     };
   };
 
   programs = util.programs // {
     bash.enable = true; # Necessary for aliases and Starship to work.
-  };
-
-  services = {
-    dropbox.enable = true;
   };
 }
