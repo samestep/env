@@ -15,6 +15,7 @@ rec {
 
   # https://nix-community.github.io/home-manager/options.xhtml#opt-home.packages
   packages = [
+    pkgs.btop
     pkgs.cloc
     pkgs.codex
     pkgs.gh
