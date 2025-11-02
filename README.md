@@ -10,7 +10,7 @@ There are separate configurations for the three different machines I use.
 
 ## [NixOS](nixos)
 
-This machine has an x86 CPU and an NVIDIA GTX 970, and runs NixOS.
+This machine has an x86 CPU and an NVIDIA RTX 3070, and runs NixOS.
 
 Run these commands to setup the NixOS configuration:
 
