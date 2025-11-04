@@ -22,7 +22,7 @@ rec {
     pkgs.git
     pkgs.nixfmt
     pkgs.wasm-language-tools
-    npc.packages.${pkgs.system}.default
+    npc.packages.${pkgs.stdenv.hostPlatform.system}.default
 
     (pkgs.symlinkJoin {
       name = "samestep";
