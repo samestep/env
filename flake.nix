@@ -18,6 +18,7 @@
     npc = {
       url = "github:samestep/npc";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
     };
   };
   outputs =
