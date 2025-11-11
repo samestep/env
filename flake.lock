@@ -138,11 +138,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1762276314,
-        "narHash": "sha256-NzPGJuTZU1yfFDaL5tYt1SfvB0M2wf6QM1UkYcuIDLs=",
+        "lastModified": 1762715725,
+        "narHash": "sha256-g1kxEbhXfbfPHLQAGvFDahvo/toWjSCQQZ357xqN+rc=",
         "owner": "samestep",
         "repo": "npc",
-        "rev": "c18c9b17079270449b1fb2efbdab195c4cc97397",
+        "rev": "56daf3f9d54ec6a93ba1854cf5aadac6757e10de",
         "type": "github"
       },
       "original": {
