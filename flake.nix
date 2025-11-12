@@ -1,5 +1,4 @@
 {
-  description = "My Nix environment";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     home-manager = {
