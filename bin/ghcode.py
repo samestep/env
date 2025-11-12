@@ -12,12 +12,12 @@ def run(cmd: list[str]) -> None:
 
 
 def parse(url: str) -> str:
-    regex = r"^(https://github\.com/)?([\w\.-]+/[\w\.-]+)"
+    regex = r"^((https://)?github\.com/)?([\w\.-]+/[\w\.-]+)"
     match = re.match(regex, url)
     if match is None:
         print(f"must match this regex: {regex}", file=sys.stderr)
         sys.exit(1)
-    return match.group(2)
+    return match.group(3)
 
 
 def main() -> None:
