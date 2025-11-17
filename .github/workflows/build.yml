@@ -1,0 +1,23 @@
+name: Build
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  nixos:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@v5
+      - run: nix build .#homeConfigurations.sam.activationPackage
+
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@v5
+      - run: nix build .#homeConfigurations.samueles.activationPackage
