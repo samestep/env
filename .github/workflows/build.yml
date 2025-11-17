@@ -21,7 +21,7 @@ jobs:
       - uses: nixbuild/nix-quick-install-action@v34
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v5
-      - run: nix build .#homeConfigurations.sam.activationPackage
+      - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
 
   macos:
     runs-on: macos-15
@@ -29,4 +29,4 @@ jobs:
       - uses: nixbuild/nix-quick-install-action@v34
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v5
-      - run: nix build .#homeConfigurations.samueles.activationPackage
+      - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
