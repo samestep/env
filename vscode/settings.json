@@ -52,7 +52,6 @@
   "git.confirmSync": false,
   "git.openRepositoryInParentFolders": "never",
   "julia.symbolCacheDownload": true, // Julia extension adds this automatically.
-  "python.locator": "js", // The native locator seems broken with Nix.
   "python.terminal.activateEnvironment": false, // Don't print on every command.
   "rust-analyzer.check.command": "clippy",
   "terminal.integrated.allowChords": false,
