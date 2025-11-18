@@ -17,6 +17,7 @@ jobs:
           path: flake.lock
 
   nixos:
+    needs: lock
     runs-on: ubuntu-24.04
     steps:
       - uses: AdityaGarg8/remove-unwanted-software@v5
@@ -37,6 +38,7 @@ jobs:
       - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
 
   macos:
+    needs: lock
     runs-on: macos-15
     steps:
       - uses: nixbuild/nix-quick-install-action@v34
