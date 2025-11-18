@@ -2,8 +2,20 @@ name: Update
 on:
   schedule:
     - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
+  lock:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: actions/checkout@v5
+      - run: nix flake update
+      - uses: actions/upload-artifact@v5
+        with:
+          name: flake.lock
+          path: flake.lock
+
   nixos:
     runs-on: ubuntu-24.04
     steps:
@@ -19,7 +31,9 @@ jobs:
       - uses: nixbuild/nix-quick-install-action@v34
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v5
-      - run: nix flake update
+      - uses: actions/download-artifact@v6
+        with:
+          name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
 
   macos:
@@ -28,5 +42,7 @@ jobs:
       - uses: nixbuild/nix-quick-install-action@v34
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v5
-      - run: nix flake update
+      - uses: actions/download-artifact@v6
+        with:
+          name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
