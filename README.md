@@ -1,4 +1,4 @@
-# env
+# env [![Update](https://github.com/samestep/env/actions/workflows/update.yml/badge.svg)](https://github.com/samestep/env/actions/workflows/update.yml)
 
 My [Nix](https://nixos.org/) environment. Once you have Nix installed, the first step is to clone this repo:
 
