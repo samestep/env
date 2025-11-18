@@ -1,0 +1,32 @@
+name: Build
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  nixos:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: AdityaGarg8/remove-unwanted-software@v5
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+          remove-large-packages: true
+          remove-cached-tools: true
+      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@v5
+      - run: nix flake update
+      - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
+
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: nixbuild/nix-quick-install-action@v34
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: actions/checkout@v5
+      - run: nix flake update
+      - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
