@@ -21,7 +21,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: nixbuild/nix-quick-install-action@v34
-      - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v6
         with:
@@ -33,7 +32,6 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: nixbuild/nix-quick-install-action@v34
-      - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v6
         with:
