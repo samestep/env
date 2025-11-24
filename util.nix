@@ -1,8 +1,4 @@
-{
-  config,
-  pkgs,
-  npc,
-}:
+{ config, pkgs }:
 rec {
   symlink = subpath: {
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/github/samestep/env/${subpath}";
@@ -21,8 +17,8 @@ rec {
     pkgs.gh
     pkgs.git
     pkgs.nixfmt
+    pkgs.npc
     pkgs.wasm-language-tools
-    npc.packages.${pkgs.stdenv.hostPlatform.system}.default
 
     (pkgs.symlinkJoin {
       name = "samestep";

@@ -36,22 +36,28 @@
       };
       homeConfigurations = {
         "sam" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs { system = "x86_64-linux"; };
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+            overlays = [ npc.overlays.default ];
+          };
           modules = [ ./nixos/home-manager/home.nix ];
-          extraSpecialArgs = { inherit npc; };
         };
         "samueles" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs { system = "aarch64-darwin"; };
+          pkgs = import nixpkgs {
+            system = "aarch64-darwin";
+            overlays = [ npc.overlays.default ];
+          };
           modules = [ ./macos/home-manager/home.nix ];
-          extraSpecialArgs = { inherit npc; };
         };
         "saestep" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
             system = "x86_64-linux";
-            overlays = [ nixgl.overlay ];
+            overlays = [
+              nixgl.overlay
+              npc.overlays.default
+            ];
           };
           modules = [ ./ubuntu/home-manager/home.nix ];
-          extraSpecialArgs = { inherit npc; };
         };
       };
       devShells =
