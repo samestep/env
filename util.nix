@@ -71,6 +71,7 @@ rec {
           vscode.jock.svg
           vscode.llvm-vs-code-extensions.vscode-clangd
           vscode.mkhl.direnv
+          vscode.moss-lang.moss-vscode
           vscode.ms-azuretools.vscode-containers
           vscode.ms-azuretools.vscode-docker
           vscode.ms-python.python

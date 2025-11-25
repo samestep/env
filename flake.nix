@@ -19,6 +19,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-overlay.follows = "rust-overlay";
     };
+    moss = {
+      url = "github:moss-lang/moss";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
   };
   outputs =
     {
@@ -28,6 +33,7 @@
       nixgl,
       rust-overlay,
       npc,
+      moss,
     }:
     {
       packages = {
@@ -38,14 +44,20 @@
         "sam" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
             system = "x86_64-linux";
-            overlays = [ npc.overlays.default ];
+            overlays = [
+              npc.overlays.default
+              moss.overlays.default
+            ];
           };
           modules = [ ./nixos/home-manager/home.nix ];
         };
         "samueles" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
             system = "aarch64-darwin";
-            overlays = [ npc.overlays.default ];
+            overlays = [
+              npc.overlays.default
+              moss.overlays.default
+            ];
           };
           modules = [ ./macos/home-manager/home.nix ];
         };
@@ -55,6 +67,7 @@
             overlays = [
               nixgl.overlay
               npc.overlays.default
+              moss.overlays.default
             ];
           };
           modules = [ ./ubuntu/home-manager/home.nix ];
