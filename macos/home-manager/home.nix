@@ -10,6 +10,10 @@ in
 {
   nixpkgs = util.nixpkgs;
 
+  # Enabling this causes permission issues:
+  # https://github.com/nix-community/home-manager/pull/8031
+  targets.darwin.copyApps.enable = false;
+
   home = {
     # https://nix-community.github.io/home-manager/release-notes.xhtml
     stateVersion = "25.11";
