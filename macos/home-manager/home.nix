@@ -45,7 +45,7 @@ in
               "/System/Applications/Utilities/Activity Monitor.app"
               "${pkgs.iterm2}/Applications/ITerm2.app"
               "/Applications/Firefox.app"
-              "${pkgs.spotify}/Applications/Spotify.app"
+              "/Applications/Spotify.app"
               "${pkgs.discord}/Applications/Discord.app"
               "${pkgs.slack}/Applications/Slack.app"
               "${pkgs.zoom-us}/Applications/zoom.us.app"
