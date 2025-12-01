@@ -95,8 +95,8 @@ rec {
           {
             publisher = "gplane";
             name = "wasm-language-tools";
-            version = "1.13.0";
-            sha256 = "sha256-tHexgk7iazc5QM/MsLZZiL+vmp6QR+g6SU96tO3xyjA=";
+            version = "1.15.0";
+            sha256 = "sha256-PogHwExxQ9HjMEzh0ifqwk0KndLJLO8FkPVhiJSqvnQ=";
           }
           {
             publisher = "oven";
