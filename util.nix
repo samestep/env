@@ -111,12 +111,6 @@ rec {
             sha256 = "sha256-s6M64yE1lx0mG/0zxYjNilMniflkAAhCxVccAU0jSEk=";
           }
           {
-            publisher = "shader-slang";
-            name = "slang-language-extension";
-            version = "2.0.3";
-            sha256 = "sha256-7Dr4+6IwpgpuXX5qPU/ZpwBLPMl+ckqqIBc7Vja2Apc=";
-          }
-          {
             publisher = "sysoev";
             name = "vscode-open-in-github";
             version = "1.18.0";
