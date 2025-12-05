@@ -101,8 +101,8 @@ rec {
           {
             publisher = "oven";
             name = "bun-vscode";
-            version = "0.0.31";
-            sha256 = "sha256-KlsXU1UpkxaX1rI16CD0KMhe7aarv8A94ZZ0TxlI5Ns=";
+            version = "0.0.32";
+            sha256 = "sha256-VlruOHiF5/wVhVVW1rq6DEc90u3IwbxD/tpTXyphD+U=";
           }
           {
             publisher = "samestep";
