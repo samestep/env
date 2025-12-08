@@ -48,7 +48,7 @@ in
               "/Applications/Spotify.app"
               "${pkgs.discord}/Applications/Discord.app"
               "${pkgs.slack}/Applications/Slack.app"
-              "${pkgs.zoom-us}/Applications/zoom.us.app"
+              "/Applications/zoom.us.app"
               "${pkgs.obsidian}/Applications/Obsidian.app"
               "${pkgs.vscode}/Applications/Visual Studio Code.app"
               "/Applications/Steam.app"
