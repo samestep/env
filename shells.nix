@@ -25,6 +25,7 @@
   };
   uv = pkgs.mkShellNoCC {
     buildInputs = [
+      pkgs.python3
       pkgs.uv
     ];
   };
