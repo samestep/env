@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: cachix/install-nix-action@v31
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
 
   macos:
     runs-on: macos-15
     steps:
       - uses: cachix/install-nix-action@v31
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
