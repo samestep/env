@@ -18,7 +18,6 @@ in
     homeDirectory = "/home/saestep";
 
     packages = util.packages ++ [
-      pkgs.spotify
       pkgs.xsel # Used by the VS Code "Open In GitHub" extension.
     ];
 
