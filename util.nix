@@ -16,6 +16,7 @@ rec {
     pkgs.codex
     pkgs.gh
     pkgs.git
+    pkgs.nix-output-monitor
     pkgs.nixfmt
     pkgs.npc
     pkgs.wasm-language-tools
