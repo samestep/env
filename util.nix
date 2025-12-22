@@ -65,7 +65,6 @@ rec {
         in
         [
           vscode.charliermarsh.ruff
-          vscode.dbaeumer.vscode-eslint
           vscode.esbenp.prettier-vscode
           vscode.github.vscode-github-actions
           vscode.jnoortheen.nix-ide
@@ -87,12 +86,6 @@ rec {
           vscode.xaver.clang-format
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-          {
-            publisher = "DIKU";
-            name = "futhark-vscode";
-            version = "0.1.3";
-            sha256 = "sha256-URikRSOUR/vdOKGP8/wopROAd18J81pxii8+DHd0sa0=";
-          }
           {
             publisher = "gplane";
             name = "wasm-language-tools";

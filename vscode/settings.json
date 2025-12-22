@@ -25,7 +25,6 @@
   "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[yaml]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
-  "[zig]": { "editor.tabSize": 4 },
   "cmake.configureOnOpen": false,
   "diffEditor.ignoreTrimWhitespace": false, // Else might forget to stage stuff.
   "diffEditor.maxComputationTime": 0, // Don't bail on large diffs.
@@ -50,11 +49,9 @@
   "git.autofetch": true,
   "git.confirmSync": false,
   "git.openRepositoryInParentFolders": "never",
-  "julia.symbolCacheDownload": true, // Julia extension adds this automatically.
   "python.terminal.activateEnvironment": false, // Don't print on every command.
   "rust-analyzer.check.command": "clippy",
   "terminal.integrated.allowChords": false,
-  "terminal.integrated.commandsToSkipShell": ["language-julia.interrupt"],
   "terminal.integrated.inheritEnv": false, // Weird stuff happens otherwise.
   "terminal.integrated.suggest.enabled": false,
   "window.customTitleBarVisibility": "never",
@@ -64,6 +61,5 @@
   "workbench.editor.empty.hint": "hidden",
   "workbench.editorAssociations": { "*.svg": "default" }, // Show me the code.
   "workbench.panel.defaultLocation": "left",
-  "workbench.sideBar.location": "right",
-  "zig.zls.enabled": "on"
+  "workbench.sideBar.location": "right"
 }
