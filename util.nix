@@ -84,6 +84,7 @@ rec {
           vscode.tamasfe.even-better-toml
           vscode.vadimcn.vscode-lldb
           vscode.xaver.clang-format
+          vscode.ziglang.vscode-zig
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           {

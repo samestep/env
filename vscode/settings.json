@@ -25,6 +25,7 @@
   "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[yaml]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[zig]": { "editor.tabSize": 4 },
   "cmake.configureOnOpen": false,
   "diffEditor.ignoreTrimWhitespace": false, // Else might forget to stage stuff.
   "diffEditor.maxComputationTime": 0, // Don't bail on large diffs.
@@ -61,5 +62,6 @@
   "workbench.editor.empty.hint": "hidden",
   "workbench.editorAssociations": { "*.svg": "default" }, // Show me the code.
   "workbench.panel.defaultLocation": "left",
-  "workbench.sideBar.location": "right"
+  "workbench.sideBar.location": "right",
+  "zig.zls.enabled": "on"
 }
