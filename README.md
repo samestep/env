@@ -16,7 +16,7 @@ Run these commands to setup the NixOS configuration:
 
 ```sh
 sudo ln -fs ~/github/samestep/env/nixos/nixos/configuration.nix /etc/nixos/configuration.nix
-nixos-rebuild switch --use-remote-sudo
+sudo nixos-rebuild switch
 ```
 
 Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
@@ -26,7 +26,7 @@ ln -fsT ~/github/samestep/env ~/.config/home-manager
 nix run ~/github/samestep/env#home-manager -- init --switch
 ```
 
-You may need to log out and back in to see everything installed in the GNOME applications launcher.
+This will create an extraneous `home.nix` file in this repository which you'll need to delete. Then you may need to log out and back in to see everything installed in the GNOME applications launcher.
 
 ## [macOS](macos)
 
