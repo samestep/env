@@ -5,10 +5,10 @@
 { config, pkgs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    /etc/nixos/hardware-configuration.nix
+  ];
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -81,9 +81,10 @@
   users.users.sam = {
     isNormalUser = true;
     description = "Sam Estep";
-    extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [
-    #  thunderbird
+    extraGroups = [
+      "docker"
+      "networkmanager"
+      "wheel"
     ];
   };
 
@@ -92,13 +93,6 @@
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
-
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment.systemPackages = with pkgs; [
-  #  vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
-  #  wget
-  ];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
@@ -127,4 +121,24 @@
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "25.11"; # Did you read the comment?
 
+  # https://wiki.nixos.org/wiki/Flakes#NixOS
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
+
+  # https://wiki.nixos.org/wiki/NVIDIA#Kernel_modules_from_NVIDIA
+  hardware.graphics.enable = true;
+  services.xserver.videoDrivers = [ "nvidia" ];
+  hardware.nvidia.open = true;
+
+  # https://wiki.nixos.org/wiki/Docker#System_setup
+  virtualisation.docker.enable = true;
+
+  # https://wiki.nixos.org/wiki/Steam#System_setup
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+  };
 }
