@@ -11,9 +11,16 @@ jobs:
     steps:
       - uses: cachix/install-nix-action@v31
       - uses: actions/checkout@v6
+      - run: nix build --print-build-logs .#nixosConfigurations.nixos.config.system.build.toplevel
+
+  hm-nixos:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@v6
       - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
 
-  macos:
+  hm-macos:
     runs-on: macos-15
     steps:
       - uses: cachix/install-nix-action@v31

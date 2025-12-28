@@ -1,5 +1,6 @@
 {
   inputs = {
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     home-manager = {
       url = "github:nix-community/home-manager/master";
@@ -28,6 +29,7 @@
   outputs =
     {
       self,
+      nixpkgs-stable,
       nixpkgs,
       home-manager,
       nixgl,
@@ -39,6 +41,11 @@
       packages = {
         x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
         aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
+      };
+      nixosConfigurations = {
+        "nixos" = nixpkgs-stable.lib.nixosSystem {
+          modules = [ ./nixos/nixos/configuration.nix ];
+        };
       };
       homeConfigurations = {
         "sam" = home-manager.lib.homeManagerConfiguration {

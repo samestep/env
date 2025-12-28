@@ -25,9 +25,20 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: flake.lock
+      - run: nix build --print-build-logs .#nixosConfigurations.nixos.config.system.build.toplevel
+
+  hm-nixos:
+    needs: lock
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
+        with:
+          name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
 
-  macos:
+  hm-macos:
     needs: lock
     runs-on: macos-15
     steps:
