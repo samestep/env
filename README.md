@@ -18,6 +18,7 @@ Run these commands to setup the NixOS configuration:
 sudo rm /etc/nixos/*
 sudo ln -s ~/github/samestep/env/flake.nix /etc/nixos/flake.nix
 sudo nixos-rebuild switch
+sudo nix-channel --remove nixos
 ```
 
 Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
