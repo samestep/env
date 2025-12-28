@@ -4,6 +4,10 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   lock:
     runs-on: ubuntu-24.04
@@ -48,3 +52,21 @@ jobs:
         with:
           name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
+
+  pr:
+    needs:
+      - lock
+      - nixos
+      - hm-nixos
+      - hm-macos
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
+        with:
+          name: flake.lock
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          branch: update
+          title: Update `flake.lock`
+          commit-message: Update `flake.lock`
