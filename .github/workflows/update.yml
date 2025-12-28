@@ -79,6 +79,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
       - uses: peter-evans/create-pull-request@v8
         with:
+          add-paths: flake.lock
           commit-message: Update `flake.lock`
           branch: update
           title: Update `flake.lock`
