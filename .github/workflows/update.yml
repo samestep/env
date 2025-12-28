@@ -14,11 +14,13 @@ jobs:
     steps:
       - uses: cachix/install-nix-action@v31
       - uses: actions/checkout@v6
-      - run: nix flake update
+      - run: nix flake update 2> >(tee nix-flake-update.txt >&2)
       - uses: actions/upload-artifact@v6
         with:
           name: flake.lock
-          path: flake.lock
+          path: |
+            flake.lock
+            nix-flake-update.txt
 
   nixos:
     needs: lock
@@ -65,8 +67,18 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: flake.lock
+      - id: body
+        run: |
+          {
+            echo 'body<<EOF'
+            echo '```'
+            cat nix-flake-update.txt
+            echo '```'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - uses: peter-evans/create-pull-request@v8
         with:
+          commit-message: Update `flake.lock`
           branch: update
           title: Update `flake.lock`
-          commit-message: Update `flake.lock`
+          body: ${{ steps.body.outputs.body }}
