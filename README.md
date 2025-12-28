@@ -15,8 +15,10 @@ This machine has an x86 CPU and an NVIDIA RTX 3070, and runs NixOS.
 Run these commands to setup the NixOS configuration:
 
 ```sh
-sudo ln -fs ~/github/samestep/env/nixos/nixos/configuration.nix /etc/nixos/configuration.nix
+sudo rm /etc/nixos/*
+sudo ln -s ~/github/samestep/env/flake.nix /etc/nixos/flake.nix
 sudo nixos-rebuild switch
+sudo nix-channel --remove nixos
 ```
 
 Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
