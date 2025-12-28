@@ -71,6 +71,7 @@ jobs:
         run: |
           {
             echo 'body<<EOF'
+            echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo '```'
             cat nix-flake-update.txt
             echo '```'
