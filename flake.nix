@@ -52,7 +52,7 @@
                 home-manager.packages.${system}.default
               ];
               text = ''
-                nom build ".#homeConfigurations.$USER.activationPackage"
+                nom build "$HOME/.config/home-manager#homeConfigurations.$USER.activationPackage"
                 home-manager switch
               '';
             };
