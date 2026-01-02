@@ -38,10 +38,31 @@
       moss,
     }:
     {
-      packages = {
-        x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
-        aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
-      };
+      packages =
+        let
+          hm =
+            system:
+            let
+              pkgs = import nixpkgs { inherit system; };
+            in
+            pkgs.writeShellApplication {
+              name = "hm";
+              runtimeInputs = [
+                pkgs.nix-output-monitor
+                home-manager.packages.${system}.default
+              ];
+              text = ''
+                nom build ".#homeConfigurations.$USER.activationPackage"
+                home-manager switch
+              '';
+            };
+        in
+        {
+          x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
+          aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
+          x86_64-linux.hm = hm "x86_64-linux";
+          aarch64-darwin.hm = hm "aarch64-darwin";
+        };
       nixosConfigurations = {
         "nixos" = nixpkgs-stable.lib.nixosSystem {
           modules = [ ./nixos/nixos/configuration.nix ];
