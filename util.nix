@@ -19,7 +19,6 @@ rec {
     pkgs.nix-output-monitor
     pkgs.nixfmt
     pkgs.npc
-    pkgs.wasm-language-tools
 
     (pkgs.symlinkJoin {
       name = "samestep";
@@ -67,6 +66,7 @@ rec {
           vscode.charliermarsh.ruff
           vscode.esbenp.prettier-vscode
           vscode.github.vscode-github-actions
+          vscode.gplane.wasm-language-tools
           vscode.jnoortheen.nix-ide
           vscode.jock.svg
           vscode.llvm-vs-code-extensions.vscode-clangd
@@ -87,12 +87,6 @@ rec {
           vscode.ziglang.vscode-zig
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-          {
-            publisher = "gplane";
-            name = "wasm-language-tools";
-            version = "1.15.0";
-            sha256 = "sha256-PogHwExxQ9HjMEzh0ifqwk0KndLJLO8FkPVhiJSqvnQ=";
-          }
           {
             publisher = "oven";
             name = "bun-vscode";
