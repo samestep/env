@@ -77,6 +77,7 @@ rec {
           vscode.ms-python.python
           vscode.ms-python.vscode-pylance
           vscode.ms-toolsai.jupyter
+          vscode.ms-vscode-remote.remote-containers
           vscode.ms-vscode.cmake-tools
           vscode.myriad-dreamin.tinymist
           vscode.rust-lang.rust-analyzer
