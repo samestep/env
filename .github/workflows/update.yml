@@ -55,7 +55,7 @@ jobs:
           name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
 
-  hm-docker:
+  hm-docker-x86:
     needs: lock
     runs-on: ubuntu-24.04
     steps:
@@ -64,7 +64,18 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.agent.activationPackage
+      - run: nix build --print-build-logs .#homeConfigurations.agent-amd64.activationPackage
+
+  hm-docker-arm:
+    needs: lock
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
+        with:
+          name: flake.lock
+      - run: nix build --print-build-logs .#homeConfigurations.agent-arm64.activationPackage
 
   pr:
     needs:
@@ -72,7 +83,8 @@ jobs:
       - nixos
       - hm-nixos
       - hm-macos
-      - hm-docker
+      - hm-docker-x86
+      - hm-docker-arm
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6

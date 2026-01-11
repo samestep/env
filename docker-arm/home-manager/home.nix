@@ -1,8 +1,4 @@
-{
-  config,
-  pkgs,
-  ...
-}:
+{ config, pkgs, ... }:
 let
   util = import ../../util.nix { inherit config pkgs; };
 in
@@ -13,13 +9,13 @@ in
     # # https://nix-community.github.io/home-manager/release-notes.xhtml
     stateVersion = "25.11";
 
-    username = "agent";
-    homeDirectory = "/home/agent";
+    username = "agent-arm64";
+    homeDirectory = "/home/agent-arm64";
 
     packages = util.packages;
 
     file = util.file // {
-      ".codex/config.toml" = util.symlink "docker/codex/config.toml";
+      ".codex/config.toml" = util.symlink "codex/config.toml";
     };
   };
 

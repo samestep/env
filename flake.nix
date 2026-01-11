@@ -102,9 +102,19 @@
           };
           modules = [ ./ubuntu/home-manager/home.nix ];
         };
-        "agent" = home-manager.lib.homeManagerConfiguration {
+        "agent-amd64" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
             system = "x86_64-linux";
+            overlays = [
+              npc.overlays.default
+              moss.overlays.default
+            ];
+          };
+          modules = [ ./docker/home-manager/home.nix ];
+        };
+        "agent-arm64" = home-manager.lib.homeManagerConfiguration {
+          pkgs = import nixpkgs {
+            system = "aarch64-linux";
             overlays = [
               npc.overlays.default
               moss.overlays.default

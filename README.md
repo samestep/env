@@ -72,9 +72,9 @@ ln -fsT ~/github/samestep/env ~/.config/home-manager
 nix run ~/github/samestep/env#home-manager -- init --switch --impure
 ```
 
-## [Docker](docker)
+## Docker ([x86](docker-x86) and [ARM](docker-arm))
 
-This repo also contains a dedicated Home Manager config for use in an x86 Ubuntu Docker container; for instance:
+This repo also contains dedicated Home Manager configs for use in an Ubuntu Docker container; for instance:
 
 ```sh
 docker build . -t agent
