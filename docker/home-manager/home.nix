@@ -20,6 +20,10 @@ in
     packages = util.packages;
   };
 
+  home.file = util.file // {
+    ".codex/config.toml" = util.symlink "docker/codex/config.toml";
+  };
+
   programs = util.programs // {
     bash.enable = true; # Necessary for aliases and Starship to work.
 
