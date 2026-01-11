@@ -16,9 +16,13 @@ in
 
     username = "root";
     homeDirectory = "/root";
+
+    packages = util.packages;
   };
 
   programs = util.programs // {
     bash.enable = true; # Necessary for aliases and Starship to work.
+
+    vscode.enable = false; # The extensions don't build properly inside Docker.
   };
 }
