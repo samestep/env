@@ -21,11 +21,6 @@ in
     file = util.file // {
       ".codex/config.toml" = util.symlink "docker/codex/config.toml";
     };
-
-    sessionVariables = {
-      # Prevent Bash warnings about not being able to change locale.
-      LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
-    };
   };
 
   programs = util.programs // {
