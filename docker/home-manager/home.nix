@@ -14,7 +14,7 @@ in
     # # https://nix-community.github.io/home-manager/release-notes.xhtml
     stateVersion = "25.11";
 
-    username = "agent";
+    username = "root";
     homeDirectory = "/root";
   };
 
