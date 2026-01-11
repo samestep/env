@@ -92,6 +92,13 @@ mkdir -m 0755 /nix
 chown agent /nix
 su - agent -c "sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon"
 su - agent -c "mkdir -p ~/.config/nix && printf 'experimental-features = nix-command flakes\n' > ~/.config/nix/nix.conf"
+cat >> /root/.bashrc <<'EOF'
+# Auto-switch root shells to the agent user.
+if [ "$(id -un)" = "root" ] && [ -z "${IN_AGENT_SHELL-}" ]; then
+  export IN_AGENT_SHELL=1
+  exec su - agent
+fi
+EOF
 ```
 
 Then to install and set up Home Manager, run these commands in a new shell in the Docker container:
