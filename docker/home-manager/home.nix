@@ -19,9 +19,6 @@ in
 
     packages = util.packages;
 
-    sessionVariables = {
-      USER = "root";
-    };
   };
 
   home.file = util.file // {
@@ -29,7 +26,12 @@ in
   };
 
   programs = util.programs // {
-    bash.enable = true; # Necessary for aliases and Starship to work.
+    bash = {
+      enable = true; # Necessary for aliases and Starship to work.
+      bashrcExtra = ''
+        export USER=root
+      '';
+    };
 
     vscode.enable = false; # The extensions don't build properly inside Docker.
   };
