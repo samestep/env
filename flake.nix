@@ -110,7 +110,7 @@
               moss.overlays.default
             ];
           };
-          modules = [ ./docker/home-manager/home.nix ];
+          modules = [ ./docker-x86/home-manager/home.nix ];
         };
         "agent-arm64" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -120,7 +120,7 @@
               moss.overlays.default
             ];
           };
-          modules = [ ./docker/home-manager/home.nix ];
+          modules = [ ./docker-arm/home-manager/home.nix ];
         };
       };
       devShells =
