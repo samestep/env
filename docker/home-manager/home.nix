@@ -18,7 +18,6 @@ in
     homeDirectory = "/root";
 
     packages = util.packages;
-
   };
 
   home.file = util.file // {
