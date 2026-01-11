@@ -100,6 +100,16 @@
           };
           modules = [ ./ubuntu/home-manager/home.nix ];
         };
+        "agent" = home-manager.lib.homeManagerConfiguration {
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+            overlays = [
+              npc.overlays.default
+              moss.overlays.default
+            ];
+          };
+          modules = [ ./docker/home-manager/home.nix ];
+        };
       };
       devShells =
         let
