@@ -64,7 +64,7 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.root.activationPackage
+      - run: nix build --print-build-logs .#homeConfigurations.agent.activationPackage
 
   pr:
     needs:

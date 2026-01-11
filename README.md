@@ -86,18 +86,21 @@ To install and set up Nix, run these commands in the Docker container:
 apt update
 apt upgrade -y
 apt install -y curl git sudo xz-utils
-yes | sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
-echo 'experimental-features = nix-command flakes' >> /etc/nix/nix.conf
-echo 'export USER=root' >> ~/.bashrc
+useradd -m -s /bin/bash agent
+usermod -aG sudo agent
+mkdir -m 0755 /nix
+chown agent /nix
+su - agent -c "sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon"
+su - agent -c "mkdir -p ~/.config/nix && printf 'experimental-features = nix-command flakes\n' > ~/.config/nix/nix.conf"
 ```
 
 Then to install and set up Home Manager, run these commands in a new shell in the Docker container:
 
 ```sh
+su - agent
 git clone https://github.com/samestep/env.git ~/github/samestep/env
-mkdir ~/.config
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env#home-manager -- init --switch
+nix run ~/github/samestep/env#home-manager -- init --switch -b backup
 ```
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
