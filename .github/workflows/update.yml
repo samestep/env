@@ -72,6 +72,7 @@ jobs:
       - nixos
       - hm-nixos
       - hm-macos
+      - hm-docker
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
