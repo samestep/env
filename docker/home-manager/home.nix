@@ -18,6 +18,10 @@ in
     homeDirectory = "/root";
 
     packages = util.packages;
+
+    sessionVariables = {
+      USER = "root";
+    };
   };
 
   home.file = util.file // {
