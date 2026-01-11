@@ -59,8 +59,10 @@
         in
         {
           x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
+          aarch64-linux.home-manager = home-manager.packages.aarch64-linux.default;
           aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
           x86_64-linux.hm = hm "x86_64-linux";
+          aarch64-linux.hm = hm "aarch64-linux";
           aarch64-darwin.hm = hm "aarch64-darwin";
         };
       nixosConfigurations = {
@@ -128,6 +130,12 @@
           x86_64-linux = shells (
             import nixpkgs {
               system = "x86_64-linux";
+              overlays = [ (import rust-overlay) ];
+            }
+          );
+          aarch64-linux = shells (
+            import nixpkgs {
+              system = "aarch64-linux";
               overlays = [ (import rust-overlay) ];
             }
           );
