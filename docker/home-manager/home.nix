@@ -18,10 +18,18 @@ in
     homeDirectory = "/root";
 
     packages = util.packages;
-  };
 
-  home.file = util.file // {
-    ".codex/config.toml" = util.symlink "docker/codex/config.toml";
+    file = util.file // {
+      ".codex/config.toml" = util.symlink "docker/codex/config.toml";
+    };
+
+    activation = {
+      # Prevent Bash warnings about not being able to change locale.
+      localeArchive = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        mkdir -p /usr/lib/locale
+        ln -sfn "${pkgs.glibcLocales}/lib/locale/locale-archive" /usr/lib/locale/locale-archive
+      '';
+    };
   };
 
   programs = util.programs // {
