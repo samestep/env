@@ -77,38 +77,12 @@ nix run ~/github/samestep/env#home-manager -- init --switch --impure
 This repo also contains a dedicated Home Manager config for use in an x86 Ubuntu Docker container; for instance:
 
 ```sh
-docker create ubuntu sleep infinity
+docker build . -t agent
+docker create agent sleep infinity
 ```
 
-To install and set up Nix, run these commands in the Docker container:
-
-```sh
-apt update
-apt upgrade -y
-apt install -y curl git sudo xz-utils
-useradd -m -s /bin/bash agent
-usermod -aG sudo agent
-mkdir -m 0755 /nix
-chown agent /nix
-su - agent -c "sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daemon"
-su - agent -c "mkdir -p ~/.config/nix && printf 'experimental-features = nix-command flakes\n' > ~/.config/nix/nix.conf"
-cat >> /root/.bashrc <<'EOF'
-# Auto-switch root shells to the agent user.
-if [ "$(id -un)" = "root" ] && [ -z "${IN_AGENT_SHELL-}" ]; then
-  export IN_AGENT_SHELL=1
-  exec su - agent
-fi
-EOF
-```
-
-Then to install and set up Home Manager, run these commands in a new shell in the Docker container:
-
-```sh
-su - agent
-git clone https://github.com/samestep/env.git ~/github/samestep/env
-ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env#home-manager -- init --switch -b backup
-```
+Then in VS Code, start the container and [attach to it][dev containers].
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
+[dev containers]: https://code.visualstudio.com/docs/devcontainers/attach-container
 [home-manager standalone]: https://nix-community.github.io/home-manager/index.xhtml#sec-flakes-standalone
