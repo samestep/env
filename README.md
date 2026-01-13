@@ -15,6 +15,7 @@ This machine has an x86 CPU and an NVIDIA RTX 3070, and runs NixOS.
 Run these commands to setup the NixOS configuration:
 
 ```sh
+cp /etc/nixos/hardware-configuration.nix ~/github/samestep/env/nixos/nixos/
 sudo rm /etc/nixos/*
 sudo ln -s ~/github/samestep/env/flake.nix /etc/nixos/flake.nix
 sudo nixos-rebuild switch
