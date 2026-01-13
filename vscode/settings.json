@@ -27,6 +27,7 @@
   "[yaml]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[zig]": { "editor.tabSize": 4 },
   "cmake.configureOnOpen": false,
+  "dev.containers.gitCredentialHelperConfigLocation": "none",
   "diffEditor.ignoreTrimWhitespace": false, // Else might forget to stage stuff.
   "diffEditor.maxComputationTime": 0, // Don't bail on large diffs.
   "diffEditor.renderSideBySide": true,
