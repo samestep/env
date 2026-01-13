@@ -5,6 +5,8 @@ RUN apt-get update \
     && apt-get install -y curl git sudo xz-utils
 RUN useradd -m -s /bin/bash agent-${TARGETARCH} \
     && usermod -aG sudo agent-${TARGETARCH} \
+    && echo "agent-${TARGETARCH} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent \
+    && chmod 0440 /etc/sudoers.d/agent \
     && mkdir -m 0755 /nix \
     && chown agent-${TARGETARCH} /nix
 USER agent-${TARGETARCH}
