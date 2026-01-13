@@ -26,10 +26,10 @@ Then run these commands to setup the Home Manager configuration:
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env#home-manager -- switch
+nix run ~/github/samestep/env#home-manager switch
 ```
 
-This will create an extraneous `home.nix` file in this repository which you'll need to delete. Then you may need to log out and back in to see everything installed in the GNOME applications launcher.
+You may need to log out and back in to see everything installed in the GNOME applications launcher.
 
 ## [macOS](macos)
 
@@ -44,7 +44,7 @@ experimental-features = nix-command flakes
 Then run these commands to setup the Home Manager configuration:
 
 ```sh
-nix run ~/github/samestep/env#home-manager -- switch
+nix run ~/github/samestep/env#home-manager switch
 rm -r ~/.config/home-manager
 ln -s ~/github/samestep/env ~/.config/home-manager
 nix run ~/github/samestep/env#home-manager switch
