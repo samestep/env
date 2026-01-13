@@ -21,11 +21,11 @@ sudo nixos-rebuild switch
 sudo nix-channel --remove nixos
 ```
 
-Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
+Then run these commands to setup the Home Manager configuration:
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env#home-manager -- init --switch
+nix run ~/github/samestep/env#home-manager -- switch
 ```
 
 This will create an extraneous `home.nix` file in this repository which you'll need to delete. Then you may need to log out and back in to see everything installed in the GNOME applications launcher.
@@ -40,10 +40,10 @@ This machine has an Apple M1 chip and runs macOS.
 experimental-features = nix-command flakes
 ```
 
-Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
+Then run these commands to setup the Home Manager configuration:
 
 ```sh
-nix run ~/github/samestep/env#home-manager -- init --switch
+nix run ~/github/samestep/env#home-manager -- switch
 rm -r ~/.config/home-manager
 ln -s ~/github/samestep/env ~/.config/home-manager
 nix run ~/github/samestep/env#home-manager switch
@@ -65,11 +65,11 @@ Next [enable user namespace creation](https://askubuntu.com/a/1511983) by making
 echo 'kernel.apparmor_restrict_unprivileged_userns = 0' | sudo tee /etc/sysctl.d/20-apparmor-donotrestrict.conf
 ```
 
-Then run these commands to do a [standalone installation of Home Manager][home-manager standalone] and setup the Home Manager configuration:
+Then run these commands to setup the Home Manager configuration:
 
 ```sh
 ln -fsT ~/github/samestep/env ~/.config/home-manager
-nix run ~/github/samestep/env#home-manager -- init --switch --impure
+nix run ~/github/samestep/env#home-manager -- switch --impure
 ```
 
 ## Docker ([x86](docker-x86) and [ARM](docker-arm))
@@ -81,8 +81,6 @@ docker build . -t agent
 docker create agent sleep infinity
 ```
 
-Then in VS Code, start the container and [attach to it][dev containers].
+Then in VS Code, start the container and [attach to it](https://code.visualstudio.com/docs/devcontainers/attach-container).
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
-[dev containers]: https://code.visualstudio.com/docs/devcontainers/attach-container
-[home-manager standalone]: https://nix-community.github.io/home-manager/index.xhtml#sec-flakes-standalone

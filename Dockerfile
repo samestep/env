@@ -17,4 +17,4 @@ ENV USER=agent-${TARGETARCH}
 ENV PATH=/home/agent-${TARGETARCH}/.nix-profile/bin:$PATH
 RUN git clone https://github.com/samestep/env.git ~/github/samestep/env \
     && ln -fsT ~/github/samestep/env ~/.config/home-manager \
-    && nix run ~/github/samestep/env#home-manager -- init --switch -b backup
+    && nix run ~/github/samestep/env#home-manager -- switch -b backup
