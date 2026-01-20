@@ -66,4 +66,6 @@ in
   programs = util.programs // {
     zsh.enable = true; # Necessary for aliases and Starship to work.
   };
+
+  assertions = util.assertions;
 }
