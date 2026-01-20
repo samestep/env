@@ -22,4 +22,6 @@ in
   programs = util.programs // {
     bash.enable = true; # Necessary for aliases and Starship to work.
   };
+
+  assertions = util.assertions;
 }

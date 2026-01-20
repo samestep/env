@@ -109,4 +109,11 @@ rec {
         ];
     };
   };
+
+  assertions = [
+    {
+      assertion = config.programs.vscode.package.version != "1.108.0";
+      message = "VS Code 1.108.0 is broken: https://github.com/microsoft/vscode/issues/286825";
+    }
+  ];
 }
