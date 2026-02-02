@@ -1,4 +1,4 @@
 .DS_Store
 /.direnv/
 /nix-flake-update.txt
-/result
+/result*
