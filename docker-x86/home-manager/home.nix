@@ -15,7 +15,7 @@ in
     packages = util.packages;
 
     file = util.file // {
-      ".codex/config.toml" = util.symlink "codex/config.toml";
+      ".codex/config.toml" = util.symlink "docker-x86/codex/config.toml";
     };
   };
 

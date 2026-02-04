@@ -35,6 +35,7 @@ rec {
 
   # https://nix-community.github.io/home-manager/options.xhtml#opt-home.file
   file = {
+    ".codex/config.toml" = symlink "codex/config.toml";
     ".config/cloc" = symlink "cloc";
     ".gitconfig" = symlink ".gitconfig";
   };
