@@ -132,6 +132,10 @@
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.nvidia.open = true;
 
+  # https://wiki.nixos.org/wiki/Virt-manager#Installation
+  virtualisation.libvirtd.enable = true;
+  programs.virt-manager.enable = true;
+
   # https://wiki.nixos.org/wiki/Docker#System_setup
   virtualisation.docker.enable = true;
 

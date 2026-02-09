@@ -19,6 +19,7 @@ in
 
     packages = util.packages ++ [
       pkgs.discord
+      pkgs.gnome-boxes
       pkgs.obsidian
       pkgs.prismlauncher
       pkgs.vim
