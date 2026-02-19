@@ -82,7 +82,8 @@
     isNormalUser = true;
     description = "Sam Estep";
     extraGroups = [
-      "docker"
+      "docker" # https://wiki.nixos.org/wiki/Docker#System_setup
+      "libvirtd" # https://wiki.nixos.org/wiki/Virt-manager#Installation
       "networkmanager"
       "wheel"
     ];
