@@ -19,10 +19,10 @@ in
 
     packages = util.packages ++ [
       pkgs.discord
-      pkgs.gnome-boxes
       pkgs.obsidian
       pkgs.prismlauncher
       pkgs.vim
+      pkgs.virt-viewer
       pkgs.xsel # Used by the VS Code "Open In GitHub" extension.
     ];
 
