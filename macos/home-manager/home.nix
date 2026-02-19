@@ -50,7 +50,6 @@ in
               "/Applications/zoom.us.app"
               "${pkgs.obsidian}/Applications/Obsidian.app"
               "${pkgs.vscode}/Applications/Visual Studio Code.app"
-              "/Applications/Steam.app"
             ]
           );
         in
