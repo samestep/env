@@ -1,4 +1,8 @@
-{ config, pkgs }:
+{
+  config,
+  lib,
+  pkgs,
+}:
 rec {
   symlink = subpath: {
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/github/samestep/env/${subpath}";
@@ -115,8 +119,8 @@ rec {
 
   assertions = [
     {
-      assertion = config.programs.vscode.package.version != "1.108.0";
-      message = "VS Code 1.108.0 is broken: https://github.com/microsoft/vscode/issues/286825";
+      assertion = lib.versionOlder pkgs.codex.version "0.113.0";
+      message = "Codex 0.113.0 introduced unwanted prompts: https://github.com/openai/codex/issues/14345";
     }
   ];
 }
