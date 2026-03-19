@@ -1,0 +1,15 @@
+diff --git a/core/src/config/mod.rs b/core/src/config/mod.rs
+index 624fef72d..bd621c246 100644
+--- a/core/src/config/mod.rs
++++ b/core/src/config/mod.rs
+@@ -1905,7 +1905,9 @@ impl Config {
+             .collect::<Result<Vec<_>, _>>()?;
+         let active_project = cfg
+             .get_active_project(&resolved_cwd)
+-            .unwrap_or(ProjectConfig { trust_level: None });
++            .unwrap_or(ProjectConfig {
++                trust_level: Some(TrustLevel::Untrusted),
++            });
+         let permission_config_syntax = resolve_permission_config_syntax(
+             &config_layer_stack,
+             &cfg,
