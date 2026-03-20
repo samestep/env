@@ -17,7 +17,6 @@ rec {
   packages = [
     pkgs.btop
     pkgs.cloc
-    pkgs.codex
     pkgs.gh
     pkgs.git
     pkgs.nix-index
@@ -29,6 +28,14 @@ rec {
       name = "samestep";
       paths = [
         (pkgs.writeTextDir "template.nix" (builtins.readFile ./template.nix))
+        (pkgs.writers.writePython3Bin "codex" {
+          makeWrapperArgs = [
+            "--prefix"
+            "PATH"
+            ":"
+            (lib.makeBinPath [ pkgs.codex ])
+          ];
+        } ./bin/codex.py)
         (pkgs.writers.writePython3Bin "flake" { } ./bin/flake.py)
         (pkgs.writers.writePython3Bin "ghcode" { } ./bin/ghcode.py)
         (pkgs.writers.writePython3Bin "scratch" { } ./bin/scratch.py)
@@ -118,9 +125,5 @@ rec {
   };
 
   assertions = [
-    {
-      assertion = lib.versionOlder pkgs.codex.version "0.113.0";
-      message = "Codex 0.113.0 introduced unwanted prompts: https://github.com/openai/codex/issues/14345";
-    }
   ];
 }
