@@ -1,3 +1,7 @@
-# Equivalent to `--dangerously-bypass-approvals-and-sandbox`.
+# First two lines equivalent to `--dangerously-bypass-approvals-and-sandbox`.
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
+model = "gpt-5.4"
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"

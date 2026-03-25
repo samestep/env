@@ -1,3 +1,7 @@
-# Equivalent to `--full-auto`.
+# First two lines equivalent to `--full-auto`.
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
+model = "gpt-5.4"
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
