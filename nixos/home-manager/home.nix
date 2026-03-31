@@ -27,8 +27,8 @@ in
     ];
 
     file = util.file // {
-      ".config/Code/User/keybindings.json" = util.symlink "vscode/keybindings.json";
-      ".config/Code/User/settings.json" = util.symlink "vscode/settings.json";
+      ".config/Code/User/keybindings.json" = util.symlink "vscode/keybindings.jsonc";
+      ".config/Code/User/settings.json" = util.symlink "vscode/settings.jsonc";
     };
   };
 
