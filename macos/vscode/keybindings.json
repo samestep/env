@@ -2,111 +2,111 @@
   {
     "key": "ctrl+shift+tab",
     "command": "-workbench.action.quickOpenLeastRecentlyUsedEditorInGroup",
-    "when": "!activeEditorGroupEmpty"
+    "when": "!activeEditorGroupEmpty",
   },
   {
     "key": "ctrl+shift+tab",
     "command": "-workbench.action.quickOpenNavigatePreviousInEditorPicker",
-    "when": "inEditorsPicker && inQuickOpen"
+    "when": "inEditorsPicker && inQuickOpen",
   },
   {
     "key": "ctrl+tab",
     "command": "-workbench.action.quickOpenPreviousRecentlyUsedEditorInGroup",
-    "when": "!activeEditorGroupEmpty"
+    "when": "!activeEditorGroupEmpty",
   },
   {
     "key": "ctrl+tab",
     "command": "-workbench.action.quickOpenNavigateNextInEditorPicker",
-    "when": "inEditorsPicker && inQuickOpen"
+    "when": "inEditorsPicker && inQuickOpen",
   },
   {
     "key": "ctrl+shift+tab",
-    "command": "workbench.action.previousEditorInGroup"
+    "command": "workbench.action.previousEditorInGroup",
   },
   {
     "key": "cmd+k alt+cmd+left",
-    "command": "-workbench.action.previousEditorInGroup"
+    "command": "-workbench.action.previousEditorInGroup",
   },
   {
     "key": "ctrl+tab",
-    "command": "workbench.action.nextEditorInGroup"
+    "command": "workbench.action.nextEditorInGroup",
   },
   {
     "key": "cmd+k alt+cmd+right",
-    "command": "-workbench.action.nextEditorInGroup"
+    "command": "-workbench.action.nextEditorInGroup",
   },
   {
     "key": "ctrl+cmd+left",
     "command": "-workbench.action.terminal.resizePaneLeft",
-    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported"
+    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported",
   },
   {
     "key": "ctrl+cmd+left",
-    "command": "-workbench.action.moveEditorToPreviousGroup"
+    "command": "-workbench.action.moveEditorToPreviousGroup",
   },
   {
     "key": "ctrl+cmd+right",
     "command": "-workbench.action.terminal.resizePaneRight",
-    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported"
+    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported",
   },
   {
     "key": "ctrl+cmd+right",
-    "command": "-workbench.action.moveEditorToNextGroup"
+    "command": "-workbench.action.moveEditorToNextGroup",
   },
   {
     "key": "ctrl+cmd+right",
     "command": "-quickInput.acceptInBackground",
-    "when": "cursorAtEndOfQuickInputBox && inQuickInput && quickInputType == 'quickPick' || inQuickInput && !inputFocus && quickInputType == 'quickPick'"
+    "when": "cursorAtEndOfQuickInputBox && inQuickInput && quickInputType == 'quickPick' || inQuickInput && !inputFocus && quickInputType == 'quickPick'",
   },
   {
     "key": "ctrl+cmd+down",
     "command": "-notebook.cell.focusInOutput",
-    "when": "notebookCellHasOutputs && notebookEditorFocused"
+    "when": "notebookCellHasOutputs && notebookEditorFocused",
   },
   {
     "key": "ctrl+cmd+down",
     "command": "-notebook.focusNextEditor",
-    "when": "notebookEditorFocused && notebookOutputFocused"
+    "when": "notebookEditorFocused && notebookOutputFocused",
   },
   {
     "key": "ctrl+cmd+down",
     "command": "-workbench.action.terminal.resizePaneDown",
-    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported"
+    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported",
   },
   {
     "key": "ctrl+cmd+down",
     "command": "-quickInput.nextSeparator",
-    "when": "inQuickInput && quickInputType == 'quickPick'"
+    "when": "inQuickInput && quickInputType == 'quickPick'",
   },
   {
     "key": "ctrl+cmd+up",
     "command": "-notebook.cell.focusOutOutput",
-    "when": "notebookEditorFocused && notebookOutputFocused"
+    "when": "notebookEditorFocused && notebookOutputFocused",
   },
   {
     "key": "ctrl+cmd+up",
     "command": "-workbench.action.terminal.resizePaneUp",
-    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported"
+    "when": "terminalFocus && terminalHasBeenCreated || terminalFocus && terminalProcessSupported",
   },
   {
     "key": "ctrl+cmd+up",
     "command": "-quickInput.previousSeparator",
-    "when": "inQuickInput && quickInputType == 'quickPick'"
+    "when": "inQuickInput && quickInputType == 'quickPick'",
   },
   {
     "key": "ctrl+cmd+left",
-    "command": "workbench.action.positionPanelLeft"
+    "command": "workbench.action.positionPanelLeft",
   },
   {
     "key": "ctrl+cmd+right",
-    "command": "workbench.action.positionPanelRight"
+    "command": "workbench.action.positionPanelRight",
   },
   {
     "key": "ctrl+cmd+down",
-    "command": "workbench.action.positionPanelBottom"
+    "command": "workbench.action.positionPanelBottom",
   },
   {
     "key": "ctrl+cmd+up",
-    "command": "workbench.action.positionPanelTop"
-  }
+    "command": "workbench.action.positionPanelTop",
+  },
 ]

@@ -1,42 +1,42 @@
 [
   {
     "key": "ctrl+shift+tab",
-    "command": "workbench.action.previousEditorInGroup"
+    "command": "workbench.action.previousEditorInGroup",
   },
   {
     "key": "ctrl+k ctrl+pageup",
-    "command": "-workbench.action.previousEditorInGroup"
+    "command": "-workbench.action.previousEditorInGroup",
   },
   {
     "key": "ctrl+shift+tab",
     "command": "-workbench.action.quickOpenLeastRecentlyUsedEditorInGroup",
-    "when": "!activeEditorGroupEmpty"
+    "when": "!activeEditorGroupEmpty",
   },
   {
     "key": "ctrl+shift+tab",
     "command": "-workbench.action.quickOpenNavigatePreviousInEditorPicker",
-    "when": "inEditorsPicker && inQuickOpen"
+    "when": "inEditorsPicker && inQuickOpen",
   },
   {
     "key": "ctrl+tab",
-    "command": "workbench.action.nextEditorInGroup"
+    "command": "workbench.action.nextEditorInGroup",
   },
   {
     "key": "ctrl+k ctrl+pagedown",
-    "command": "-workbench.action.nextEditorInGroup"
+    "command": "-workbench.action.nextEditorInGroup",
   },
   {
     "key": "ctrl+tab",
     "command": "-workbench.action.quickOpenPreviousRecentlyUsedEditorInGroup",
-    "when": "!activeEditorGroupEmpty"
+    "when": "!activeEditorGroupEmpty",
   },
   {
     "key": "ctrl+tab",
     "command": "-workbench.action.quickOpenNavigateNextInEditorPicker",
-    "when": "inEditorsPicker && inQuickOpen"
+    "when": "inEditorsPicker && inQuickOpen",
   },
   {
     "key": "ctrl+e",
-    "command": "-workbench.action.quickOpen"
-  }
+    "command": "-workbench.action.quickOpen",
+  },
 ]

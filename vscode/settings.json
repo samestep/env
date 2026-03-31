@@ -1,12 +1,12 @@
 {
   "[cpp]": {
-    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
   },
   "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[dockerfile]": { "editor.tabSize": 4 },
   "[handlebars]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "files.insertFinalNewline": false
+    "files.insertFinalNewline": false,
   },
   "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[jai]": { "editor.tabSize": 4 },
@@ -19,7 +19,7 @@
     "editor.codeActionsOnSave": { "source.organizeImports": "always" },
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.rulers": [72, 79, 88],
-    "editor.tabSize": 4
+    "editor.tabSize": 4,
   },
   "[rust]": { "editor.rulers": [100], "editor.tabSize": 4 },
   "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
@@ -42,7 +42,7 @@
   "extensions.autoUpdate": false,
   "files.associations": {
     ".clangd": "yaml",
-    ".lldbinit": "plaintext"
+    ".lldbinit": "plaintext",
   },
   "files.autoSave": "off",
   "files.insertFinalNewline": true,
@@ -59,10 +59,9 @@
   "window.customTitleBarVisibility": "never",
   "window.titleBarStyle": "native", // Necessary to hide the title bar.
   "window.zoomLevel": 1,
-  "workbench.colorTheme": "Default Dark Modern",
   "workbench.editor.empty.hint": "hidden",
   "workbench.editorAssociations": { "*.svg": "default" }, // Show me the code.
   "workbench.panel.defaultLocation": "left",
   "workbench.sideBar.location": "right",
-  "zig.zls.enabled": "on"
+  "zig.zls.enabled": "on",
 }
