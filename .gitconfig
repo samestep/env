@@ -18,6 +18,8 @@
 	ff = only
 [push]
 	autoSetupRemote = true
+[remote "origin"]
+	tagOpt = --tags
 [sendemail]
 	smtpEncryption = tls
 	smtpServer = smtp.gmail.com
