@@ -3,4 +3,4 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
 [tui.model_availability_nux]
-"gpt-5.5" = 2
+"gpt-5.5" = 4
