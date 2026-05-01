@@ -81,7 +81,23 @@
             comma = final.symlinkJoin {
               name = "comma";
               paths = [
-                nix-index-database.packages.${final.stdenv.hostPlatform.system}.comma-with-db
+                (nix-index-database.packages.${final.stdenv.hostPlatform.system}.comma-with-db.override {
+                  # Have comma use Nix from PATH, to avoid Determinate warnings.
+                  comma = prev.comma.override {
+                    nix = final.symlinkJoin {
+                      name = "nix";
+                      paths = [
+                        (final.writeShellScriptBin "nix" ''
+                          exec nix "$@"
+                        '')
+                        (final.writeShellScriptBin "nix-env" ''
+                          exec nix-env "$@"
+                        '')
+                      ];
+                      meta.mainProgram = "nix";
+                    };
+                  };
+                })
               ];
               nativeBuildInputs = [ final.makeWrapper ];
               postBuild = ''
