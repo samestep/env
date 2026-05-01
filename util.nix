@@ -17,6 +17,7 @@ rec {
   packages = [
     pkgs.btop
     pkgs.cloc
+    pkgs.comma
     pkgs.gh
     pkgs.git
     pkgs.nix-output-monitor

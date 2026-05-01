@@ -75,74 +75,99 @@
           modules = [ ./nixos/nixos/configuration.nix ];
         };
       };
-      homeConfigurations = {
-        "sam" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-            overlays = [
-              npc.overlays.default
-              moss.overlays.default
+      homeConfigurations =
+        let
+          commaOverlay = final: prev: {
+            comma = final.symlinkJoin {
+              name = "comma";
+              paths = [
+                nix-index-database.packages.${final.stdenv.hostPlatform.system}.comma-with-db
+              ];
+              nativeBuildInputs = [ final.makeWrapper ];
+              postBuild = ''
+                for cmd in , comma; do
+                  wrapProgram $out/bin/$cmd \
+                    --unset NIX_PATH \
+                    --set COMMA_CACHING 1 \
+                    --set COMMA_NIXPKGS_FLAKE nixpkgs/${nixpkgs.rev}
+                done
+              '';
+            };
+          };
+        in
+        {
+          "sam" = home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              system = "x86_64-linux";
+              overlays = [
+                commaOverlay
+                npc.overlays.default
+                moss.overlays.default
+              ];
+            };
+            modules = [
+              nix-index-database.homeModules.default
+              ./nixos/home-manager/home.nix
             ];
           };
-          modules = [
-            nix-index-database.homeModules.default
-            ./nixos/home-manager/home.nix
-          ];
-        };
-        "samueles" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "aarch64-darwin";
-            overlays = [
-              npc.overlays.default
-              moss.overlays.default
+          "samueles" = home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              system = "aarch64-darwin";
+              overlays = [
+                commaOverlay
+                npc.overlays.default
+                moss.overlays.default
+              ];
+            };
+            modules = [
+              nix-index-database.homeModules.default
+              ./macos/home-manager/home.nix
             ];
           };
-          modules = [
-            nix-index-database.homeModules.default
-            ./macos/home-manager/home.nix
-          ];
-        };
-        "saestep" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-            overlays = [
-              nixgl.overlay
-              npc.overlays.default
-              moss.overlays.default
+          "saestep" = home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              system = "x86_64-linux";
+              overlays = [
+                commaOverlay
+                nixgl.overlay
+                npc.overlays.default
+                moss.overlays.default
+              ];
+            };
+            modules = [
+              nix-index-database.homeModules.default
+              ./ubuntu/home-manager/home.nix
             ];
           };
-          modules = [
-            nix-index-database.homeModules.default
-            ./ubuntu/home-manager/home.nix
-          ];
-        };
-        "agent-amd64" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-            overlays = [
-              npc.overlays.default
-              moss.overlays.default
+          "agent-amd64" = home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              system = "x86_64-linux";
+              overlays = [
+                commaOverlay
+                npc.overlays.default
+                moss.overlays.default
+              ];
+            };
+            modules = [
+              nix-index-database.homeModules.default
+              ./docker-x86/home-manager/home.nix
             ];
           };
-          modules = [
-            nix-index-database.homeModules.default
-            ./docker-x86/home-manager/home.nix
-          ];
-        };
-        "agent-arm64" = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            system = "aarch64-linux";
-            overlays = [
-              npc.overlays.default
-              moss.overlays.default
+          "agent-arm64" = home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              system = "aarch64-linux";
+              overlays = [
+                commaOverlay
+                npc.overlays.default
+                moss.overlays.default
+              ];
+            };
+            modules = [
+              nix-index-database.homeModules.default
+              ./docker-arm/home-manager/home.nix
             ];
           };
-          modules = [
-            nix-index-database.homeModules.default
-            ./docker-arm/home-manager/home.nix
-          ];
         };
-      };
       devShells =
         let
           shells =
