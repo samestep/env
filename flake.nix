@@ -6,6 +6,10 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixgl = {
       # https://github.com/nix-community/nixGL/pull/195
       url = "github:jinluchang/nixGL";
@@ -32,6 +36,7 @@
       nixpkgs-stable,
       nixpkgs,
       home-manager,
+      nix-index-database,
       nixgl,
       rust-overlay,
       npc,
@@ -79,7 +84,10 @@
               moss.overlays.default
             ];
           };
-          modules = [ ./nixos/home-manager/home.nix ];
+          modules = [
+            nix-index-database.homeModules.default
+            ./nixos/home-manager/home.nix
+          ];
         };
         "samueles" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -89,7 +97,10 @@
               moss.overlays.default
             ];
           };
-          modules = [ ./macos/home-manager/home.nix ];
+          modules = [
+            nix-index-database.homeModules.default
+            ./macos/home-manager/home.nix
+          ];
         };
         "saestep" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -100,7 +111,10 @@
               moss.overlays.default
             ];
           };
-          modules = [ ./ubuntu/home-manager/home.nix ];
+          modules = [
+            nix-index-database.homeModules.default
+            ./ubuntu/home-manager/home.nix
+          ];
         };
         "agent-amd64" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -110,7 +124,10 @@
               moss.overlays.default
             ];
           };
-          modules = [ ./docker-x86/home-manager/home.nix ];
+          modules = [
+            nix-index-database.homeModules.default
+            ./docker-x86/home-manager/home.nix
+          ];
         };
         "agent-arm64" = home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -120,7 +137,10 @@
               moss.overlays.default
             ];
           };
-          modules = [ ./docker-arm/home-manager/home.nix ];
+          modules = [
+            nix-index-database.homeModules.default
+            ./docker-arm/home-manager/home.nix
+          ];
         };
       };
       devShells =
