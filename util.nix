@@ -20,7 +20,6 @@ rec {
     pkgs.comma
     pkgs.gh
     pkgs.git
-    pkgs.nix-output-monitor
     pkgs.nixfmt
     pkgs.npc
 
@@ -53,9 +52,6 @@ rec {
   };
 
   programs = {
-    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.bat.enable
-    bat.enable = true;
-
     # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.eza.enable
     eza.enable = true;
 
