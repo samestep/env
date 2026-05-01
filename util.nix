@@ -56,6 +56,8 @@ rec {
       nix-direnv.enable = true;
     };
 
+    nix-index.enable = false; # Comma obviates this slow command-not-found hook.
+
     starship.enable = true;
 
     vscode = {
