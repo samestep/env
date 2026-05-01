@@ -8,12 +8,10 @@ rec {
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/github/samestep/env/${subpath}";
   };
 
-  # https://nix-community.github.io/home-manager/options.xhtml#opt-nixpkgs.config
   nixpkgs = {
     config.allowUnfree = true;
   };
 
-  # https://nix-community.github.io/home-manager/options.xhtml#opt-home.packages
   packages = [
     pkgs.btop
     pkgs.cloc
@@ -44,7 +42,6 @@ rec {
     })
   ];
 
-  # https://nix-community.github.io/home-manager/options.xhtml#opt-home.file
   file = {
     ".codex/config.toml" = symlink "codex/config.toml";
     ".config/cloc" = symlink "cloc";
@@ -52,19 +49,15 @@ rec {
   };
 
   programs = {
-    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.eza.enable
     eza.enable = true;
 
-    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.direnv.enable
     direnv = {
       enable = true;
       nix-direnv.enable = true;
     };
 
-    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.starship.enable
     starship.enable = true;
 
-    # https://nix-community.github.io/home-manager/options.xhtml#opt-programs.vscode.enable
     vscode = {
       enable = true;
       profiles.default.extensions =
