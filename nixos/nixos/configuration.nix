@@ -128,9 +128,6 @@
     "flakes"
   ];
 
-  # https://wiki.nixos.org/wiki/Linux_kernel#Configuration
-  boot.kernelPackages = pkgs.linuxPackages_latest; # https://copy.fail/
-
   # https://wiki.nixos.org/wiki/NVIDIA#Kernel_modules_from_NVIDIA
   hardware.graphics.enable = true;
   services.xserver.videoDrivers = [ "nvidia" ];
