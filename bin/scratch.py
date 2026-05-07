@@ -4,6 +4,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
+gitignore = """
+.DS_Store
+/.direnv/
+/.envrc
+/result*
+""".lstrip()
+
 
 def run(cmd: list[str], **kwargs: Any) -> None:
     returncode = subprocess.run(cmd, **kwargs).returncode
@@ -28,10 +35,10 @@ def main() -> None:
         (path / "flake.nix").write_text(get_template())
         run(["git", "add", "flake.nix"], cwd=path)
         run(["nix", "flake", "lock"], cwd=path)
-        (path / ".envrc").write_text("use flake\n")
-        (path / ".gitignore").write_text("/.direnv/\n")
+        (path / ".gitignore").write_text(gitignore)
         run(["git", "add", "."], cwd=path)
         run(["git", "commit", "-m", "Initial commit"], cwd=path)
+        (path / ".envrc").write_text("use flake\n")
         run(["direnv", "allow"], cwd=path)
     run(["code", path])
 

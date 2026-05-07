@@ -30,7 +30,7 @@ def main() -> None:
         gitignore = gitignore_path.read_text().splitlines()
     except FileNotFoundError:
         gitignore = []
-    for line in ["/.direnv/", "/.envrc"]:
+    for line in [".DS_Store", "/.direnv/", "/.envrc", "/result*"]:
         if line not in gitignore:
             gitignore.append(line)
     gitignore_path.write_text("\n".join(gitignore + [""]))
