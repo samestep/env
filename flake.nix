@@ -191,7 +191,7 @@
             (import ./shells.nix { inherit pkgs; })
             // {
               default = pkgs.mkShellNoCC {
-                buildInputs = [
+                packages = [
                   pkgs.python3
                 ];
               };

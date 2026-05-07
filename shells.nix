@@ -1,29 +1,29 @@
 { pkgs }:
 {
   node = pkgs.mkShellNoCC {
-    buildInputs = [
+    packages = [
       pkgs.nodejs
     ];
   };
   pnpm = pkgs.mkShellNoCC {
-    buildInputs = [
+    packages = [
       pkgs.nodejs
       pkgs.pnpm
     ];
   };
   rust = pkgs.mkShell {
-    buildInputs = [
+    packages = [
       pkgs.rust-bin.stable.latest.default
     ];
   };
   uv = pkgs.mkShellNoCC {
-    buildInputs = [
+    packages = [
       pkgs.python3
       pkgs.uv
     ];
   };
   yarn = pkgs.mkShellNoCC {
-    buildInputs = [
+    packages = [
       pkgs.nodejs
       pkgs.yarn
     ];
