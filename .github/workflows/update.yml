@@ -46,7 +46,7 @@ jobs:
 
   hm-macos:
     needs: lock
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: cachix/install-nix-action@v31
       - uses: actions/checkout@v6
@@ -79,7 +79,7 @@ jobs:
 
   hm-tart:
     needs: lock
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: cachix/install-nix-action@v31
       - uses: actions/checkout@v6
