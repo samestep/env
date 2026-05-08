@@ -84,4 +84,103 @@ docker create agent sleep infinity
 
 Then in VS Code, start the container and [attach to it](https://code.visualstudio.com/docs/devcontainers/attach-container).
 
+## [libvirt](docker-x86)
+
+The Docker configs can also be used for virtual machines. First make sure you have [virt-manager](https://virt-manager.org/) and virt-viewer installed, as they are in this repo's NixOS config. Then make sure you've started the `default` network:
+
+```sh
+virsh -c qemu:///system net-start default
+```
+
+You can also run this command so the `default` network starts automatically in the future:
+
+```sh
+virsh -c qemu:///system net-autostart default
+```
+
+Download an OS ISO like [Ubuntu 26.04](https://releases.ubuntu.com/26.04/) and run this command to create a VM, tweaking the CPU/RAM/disk parameters as appropriate:
+
+```sh
+virt-install --connect qemu:///system --vcpus 32 --memory 65536 --disk size=1000 --network network=default --cdrom ubuntu-26.04-live-server-amd64.iso
+```
+
+If you're using Ubuntu 26.04 specifically then you may also need to add the following at the end of the command, since osinfo-db didn't add Ubuntu 26.04 [until after its release](https://gitlab.com/libosinfo/osinfo-db/-/commit/6f01a968803a30c7e5da631b0205c5982b20b842):
+
+```
+--osinfo detect=on,require=off
+```
+
+Here's what the other flags mean:
+
+- the `--connect` setting makes the `default` network visible
+- `--vcpus` allows the VM to use all the cores instead of just two
+- `--memory` is in MiB
+- `--disk size` is in GB
+- the `--network` setting is necessary for SSH to work after installation
+
+When installing Ubuntu, in the "Storage configuration" step, increase the size of the `ubuntu-lv` device from `100.000G` to the maximum allowed, which will depend on how much disk space you gave it. Then use these options in the "Profile configuration" step:
+
+- Your name: `Agent`
+- Your servers name: `sandbox-amd64`
+- Pick a username: `agent-amd64`
+- Choose a password: `password`
+- Confirm your password: `password`
+
+Check the "Install OpenSSH server" box in the "SSH configuration" step. Then once installation is finished, ignore the message saying to remove the installation medium, and just hit ENTER to reboot.
+
+After rebooting, log in and take note of the IP address, which should look something like this:
+
+```
+IPv4 address for enp1s0: 192.168.122.133
+```
+
+Now you can close the virt-viewer window; you won't need it again. Reconnect using SSH:
+
+```sh
+ssh agent-amd64@192.168.122.133
+```
+
+The only reason for choosing a password at all was because the Ubuntu installer forces you to; first step after installation is to enable passwordless `sudo`:
+
+```sh
+echo "agent-amd64 ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/agent && sudo chmod 0440 /etc/sudoers.d/agent
+```
+
+The next step is to reconfigure chrony so that it can readjust the VM's clock if it becomes wrong e.g. if the host machine reboots. Make this edit to `/etc/chrony/chrony.conf`:
+
+```diff
+-makestep 1 3
++makestep 1 -1
+```
+
+Then install Nix:
+
+```sh
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
+```
+
+Enable [flakes][]:
+
+```sh
+echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
+```
+
+After installing Nix you'll need to log back out and back in. Then clone this repo:
+
+```sh
+git clone https://github.com/samestep/env.git ~/github/samestep/env
+```
+
+And set up the Home Manager symlink:
+
+```sh
+mkdir ~/.config && ln -fsT ~/github/samestep/env ~/.config/home-manager
+```
+
+And finally set up the Home Manager config itself:
+
+```sh
+nix run ~/github/samestep/env#home-manager -- switch -b backup
+```
+
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
