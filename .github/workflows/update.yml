@@ -77,6 +77,17 @@ jobs:
           name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.agent-arm64.activationPackage
 
+  hm-tart:
+    needs: lock
+    runs-on: macos-15
+    steps:
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: flake.lock
+      - run: nix build --print-build-logs .#homeConfigurations.admin.activationPackage
+
   pr:
     needs:
       - lock
@@ -85,6 +96,7 @@ jobs:
       - hm-macos
       - hm-docker-x86
       - hm-docker-arm
+      - hm-tart
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6

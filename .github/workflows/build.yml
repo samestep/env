@@ -40,3 +40,10 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - uses: actions/checkout@v6
       - run: nix build --print-build-logs .#homeConfigurations.agent-arm64.activationPackage
+
+  hm-tart:
+    runs-on: macos-15
+    steps:
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@v6
+      - run: nix build --print-build-logs .#homeConfigurations.admin.activationPackage
