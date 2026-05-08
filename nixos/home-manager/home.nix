@@ -48,6 +48,12 @@ in
 
   programs = util.programs // {
     bash.enable = true; # Necessary for aliases and Starship to work.
+
+    firefox = {
+      enable = true;
+      # Using the new default since `stateVersion` isn't the newest.
+      configPath = "${config.xdg.configHome}/mozilla/firefox";
+    };
   };
 
   assertions = util.assertions;
