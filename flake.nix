@@ -183,6 +183,20 @@
               ./docker-arm/home-manager/home.nix
             ];
           };
+          "admin" = home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              system = "aarch64-darwin";
+              overlays = [
+                commaOverlay
+                npc.overlays.default
+                moss.overlays.default
+              ];
+            };
+            modules = [
+              nix-index-database.homeModules.default
+              ./tart/home-manager/home.nix
+            ];
+          };
         };
       devShells =
         let

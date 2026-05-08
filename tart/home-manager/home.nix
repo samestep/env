@@ -11,11 +11,11 @@ in
   nixpkgs = util.nixpkgs;
 
   home = {
-    # # https://nix-community.github.io/home-manager/release-notes.xhtml
+    # https://nix-community.github.io/home-manager/release-notes.xhtml
     stateVersion = "25.11";
 
-    username = "agent-arm64";
-    homeDirectory = "/home/agent-arm64";
+    username = "admin";
+    homeDirectory = "/Users/admin";
 
     packages = util.packages;
 
@@ -25,7 +25,7 @@ in
   };
 
   programs = util.programs // {
-    bash.enable = true; # Necessary for aliases and Starship to work.
+    zsh.enable = true; # Necessary for aliases and Starship to work.
   };
 
   assertions = util.assertions;

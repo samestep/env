@@ -43,7 +43,7 @@ rec {
   ];
 
   file = {
-    ".codex/config.toml" = symlink "codex/config.toml";
+    ".codex/config.toml" = symlink "codex/safe.toml";
     ".config/cloc" = symlink "cloc";
     ".gitconfig" = symlink ".gitconfig";
   };

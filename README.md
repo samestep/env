@@ -183,4 +183,90 @@ And finally set up the Home Manager config itself:
 nix run ~/github/samestep/env#home-manager -- switch -b backup
 ```
 
+## [Tart](tart)
+
+This config can be used for macOS VMs created with [Tart](https://tart.run/), which comes with the host-side macOS config in this repo. First, download a macOS image:
+
+```sh
+tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:latest tahoe-vanilla
+```
+
+By default, Tart gives the VM only 50 GB of disk space and access to half the CPU cores, so adjust those as appropriate:
+
+```sh
+tart set tahoe-vanilla --cpu 8 --disk-size 250
+```
+
+Next follow the [steps to finish resizing the disk of a macOS Tart VM](https://tart.run/faq/#disk-resizing), starting by booting in recovery mode:
+
+```sh
+tart run --recovery tahoe-vanilla
+```
+
+Choose Options, then open the Terminal under Utilities. Delete the preexisting recovery partition:
+
+```sh
+diskutil eraseVolume free free disk0s3
+```
+
+Repair the disk:
+
+```sh
+yes | diskutil repairDisk disk0
+```
+
+And resize the system Apple File System container to use the new disk space:
+
+```sh
+diskutil apfs resizeContainer disk0s2 0
+```
+
+Shut down the VM, then reboot it:
+
+```sh
+tart run tahoe-vanilla
+```
+
+Since we're using the vanilla image, we still need to install the Xcode Command Line Tools:
+
+```sh
+xcode-select --install
+```
+
+That should pop up a dialogue which you need to accept. Now shut down the VM again and reboot it once more, this time without graphics:
+
+```sh
+tart run --no-graphics tahoe-vanilla
+```
+
+Leave that running and SSH into the VM from a different terminal:
+
+```sh
+ssh admin@$(tart ip tahoe-vanilla)
+```
+
+The password is `admin`. [Install Nix](https://github.com/DeterminateSystems/nix-installer/tree/v3.20.0#install-determinate-nix):
+
+```sh
+curl -fsSL https://install.determinate.systems/nix | sh -s -- install
+```
+
+You may need to start a new shell. Clone this repo:
+
+```sh
+git clone https://github.com/samestep/env.git ~/github/samestep/env
+```
+
+Set up the Home Manager symlink:
+
+```sh
+ln -s ~/github/samestep/env ~/.config/home-manager
+```
+
+And finally activate the Home Manager config:
+
+```sh
+nix run ~/github/samestep/env#home-manager switch
+```
+
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager

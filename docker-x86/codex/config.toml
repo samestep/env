@@ -1,6 +1,0 @@
-# First two lines equivalent to `--dangerously-bypass-approvals-and-sandbox`.
-approval_policy = "never"
-sandbox_mode = "danger-full-access"
-
-[tui.model_availability_nux]
-"gpt-5.5" = 4

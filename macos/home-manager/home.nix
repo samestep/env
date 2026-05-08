@@ -21,7 +21,9 @@ in
     username = "samueles";
     homeDirectory = "/Users/samueles";
 
-    packages = util.packages;
+    packages = util.packages ++ [
+      pkgs.tart
+    ];
 
     # Necessary for `git send-email` to work.
     sessionVariables = {
