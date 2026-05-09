@@ -92,6 +92,13 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
+  environment.systemPackages = [
+    pkgs.cloud-utils # Provides cloud-localds for cloud-init seed images.
+    pkgs.cdrtools
+    pkgs.pkgsCross.aarch64-multiplatform.OVMF.fd # Provides FV/QEMU_EFI.fd for aarch64 VMs.
+    pkgs.qemu_full # Includes qemu-system-aarch64 for cross-architecture VMs.
+  ];
+
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
@@ -132,6 +139,7 @@
 
   # https://wiki.nixos.org/wiki/Virt-manager#Installation
   virtualisation.libvirtd.enable = true;
+  virtualisation.libvirtd.qemu.package = pkgs.qemu_full;
   programs.virt-manager.enable = true;
 
   # https://wiki.nixos.org/wiki/Docker#System_setup

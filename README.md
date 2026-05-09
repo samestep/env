@@ -183,6 +183,122 @@ And finally set up the Home Manager config itself:
 nix run ~/github/samestep/env#home-manager -- switch -b backup
 ```
 
+## aarch64 Linux VM on x86 NixOS
+
+You can also create an `aarch64-linux` VM on the x86 NixOS machine. This repo's NixOS config installs `qemu_full`, the ARM64 OVMF firmware, `cloud-utils`, and `cdrtools`; after rebuilding, `qemu-system-aarch64`, `qemu-img`, `cloud-localds`, and `/run/current-system/sw/FV/QEMU_EFI.fd` should be available:
+
+```sh
+sudo nixos-rebuild switch
+```
+
+This uses QEMU system emulation, so it does not require ARM hardware. It is slower than a native VM, but it gives you a real `aarch64` kernel and userspace. Create a dedicated SSH key for the VM:
+
+```sh
+ssh-keygen -t ed25519 -f ~/.ssh/aarch64_linux -N '' -C 'aarch64-linux VM'
+```
+
+Download the Ubuntu ARM64 cloud image and create a 250 GB qcow2 overlay:
+
+```sh
+sudo mkdir -p /var/lib/aarch64-linux
+sudo chown "$USER" /var/lib/aarch64-linux
+cd /var/lib/aarch64-linux
+
+curl -LO https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-arm64.img
+qemu-img create -f qcow2 -F qcow2 -b ubuntu-26.04-server-cloudimg-arm64.img aarch64-linux.qcow2 250G
+```
+
+Create the cloud-init seed:
+
+```sh
+PUBKEY="$(cat ~/.ssh/aarch64_linux.pub)"
+
+cat > user-data <<EOF
+#cloud-config
+hostname: sandbox-arm64
+manage_etc_hosts: true
+
+users:
+  - default
+  - name: agent-arm64
+    gecos: Agent
+    groups: [adm, sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    lock_passwd: false
+    plain_text_passwd: password
+    ssh_authorized_keys:
+      - $PUBKEY
+
+ssh_pwauth: true
+disable_root: true
+
+chpasswd:
+  expire: false
+
+growpart:
+  mode: auto
+  devices: ['/']
+resize_rootfs: true
+EOF
+
+cat > meta-data <<EOF
+instance-id: aarch64-linux-001
+local-hostname: sandbox-arm64
+EOF
+
+cloud-localds seed.iso user-data meta-data
+```
+
+Then run the VM under systemd with 8 vCPUs, 16 GiB RAM, the 250 GB disk, and SSH forwarded to `127.0.0.1:2222`:
+
+```sh
+sudo tee /etc/systemd/system/aarch64-linux-qemu.service >/dev/null <<'EOF'
+[Unit]
+Description=Nested aarch64-linux QEMU VM
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/lib/aarch64-linux
+ExecStart=/run/current-system/sw/bin/qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 8 -m 16384 -bios /run/current-system/sw/FV/QEMU_EFI.fd -nographic -drive id=hd0,if=none,format=qcow2,file=/var/lib/aarch64-linux/aarch64-linux.qcow2 -device virtio-blk-device,drive=hd0 -drive id=seed,if=none,format=raw,file=/var/lib/aarch64-linux/seed.iso,readonly=on -device virtio-blk-device,drive=seed -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 -device virtio-net-device,netdev=n0
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now aarch64-linux-qemu.service
+```
+
+The first boot can take a few minutes while cloud-init grows the disk and creates the user. Once SSH is up, connect with:
+
+```sh
+ssh -i ~/.ssh/aarch64_linux -p 2222 agent-arm64@127.0.0.1
+```
+
+Inside the VM, check that it is really ARM64 and that the requested resources are visible:
+
+```sh
+uname -m
+free -h
+lsblk
+df -h /
+```
+
+The password is `password` if you need console login, but SSH with the dedicated key is the normal path. Manage the VM with:
+
+```sh
+sudo systemctl status aarch64-linux-qemu.service
+sudo systemctl stop aarch64-linux-qemu.service
+sudo systemctl start aarch64-linux-qemu.service
+```
+
 ## [Tart](tart)
 
 This config can be used for macOS VMs created with [Tart](https://tart.run/), which comes with the host-side macOS config in this repo. First, download a macOS image:
