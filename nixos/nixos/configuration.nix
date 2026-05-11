@@ -93,9 +93,7 @@
   nixpkgs.config.allowUnfree = true;
 
   environment.systemPackages = [
-    pkgs.cloud-utils # Provides cloud-localds for cloud-init seed images.
-    pkgs.cdrtools
-    pkgs.pkgsCross.aarch64-multiplatform.OVMF.fd # Provides FV/QEMU_EFI.fd for aarch64 VMs.
+    pkgs.pkgsCross.aarch64-multiplatform.OVMF.fd # Provides AAVMF firmware for aarch64 VMs.
     pkgs.qemu_full # Includes qemu-system-aarch64 for cross-architecture VMs.
   ];
 

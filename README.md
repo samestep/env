@@ -185,72 +185,114 @@ nix run ~/github/samestep/env#home-manager -- switch -b backup
 
 ## aarch64 Linux VM on x86 NixOS
 
-You can also create an `aarch64-linux` VM on the x86 NixOS machine. This repo's NixOS config installs `qemu_full`, the ARM64 OVMF firmware, `cloud-utils`, and `cdrtools`; after rebuilding, `qemu-system-aarch64`, `qemu-img`, `cloud-localds`, and `/run/current-system/sw/FV/QEMU_EFI.fd` should be available:
+You can also create an `aarch64-linux` VM on the x86 NixOS machine from an ARM64 installer ISO. This uses QEMU system emulation, so it does not require ARM hardware. It is slower than a native VM, but it gives you a real `aarch64` kernel and userspace.
+
+This repo's NixOS config installs `qemu_full` and ARM64 OVMF/AAVMF firmware; after rebuilding, `qemu-system-aarch64`, `qemu-img`, and ARM64 firmware files should be available:
 
 ```sh
 sudo nixos-rebuild switch
 ```
 
-This uses QEMU system emulation, so it does not require ARM hardware. It is slower than a native VM, but it gives you a real `aarch64` kernel and userspace. Create a dedicated SSH key for the VM:
-
-```sh
-ssh-keygen -t ed25519 -f ~/.ssh/aarch64_linux -N '' -C 'aarch64-linux VM'
-```
-
-Download the Ubuntu ARM64 cloud image and create a 250 GB qcow2 overlay:
+Download an ARM64 installer ISO. For example, Ubuntu 26.04 publishes the ARM64 live-server ISO under `cdimage.ubuntu.com`, rather than under the AMD64-focused `releases.ubuntu.com` page:
 
 ```sh
 sudo mkdir -p /var/lib/aarch64-linux
 sudo chown "$USER" /var/lib/aarch64-linux
 cd /var/lib/aarch64-linux
 
-curl -LO https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-arm64.img
-qemu-img create -f qcow2 -F qcow2 -b ubuntu-26.04-server-cloudimg-arm64.img aarch64-linux.qcow2 250G
+curl -LO https://cdimage.ubuntu.com/releases/26.04/release/ubuntu-26.04-live-server-arm64.iso
 ```
 
-Create the cloud-init seed:
+Create a 250 GB qcow2 disk, a local copy of the ARM64 UEFI firmware, and a writable UEFI variable store:
 
 ```sh
-PUBKEY="$(cat ~/.ssh/aarch64_linux.pub)"
+qemu-img create -f qcow2 aarch64-linux.qcow2 250G
 
-cat > user-data <<EOF
-#cloud-config
-hostname: sandbox-arm64
-manage_etc_hosts: true
+FIRMWARE_CODE="$(find -L /run/current-system/sw -path '*/FV/AAVMF_CODE.fd' | head -n 1)"
+FIRMWARE_VARS_TEMPLATE="$(find -L /run/current-system/sw -path '*/FV/AAVMF_VARS.fd' | head -n 1)"
+test -n "$FIRMWARE_CODE"
+test -n "$FIRMWARE_VARS_TEMPLATE"
 
-users:
-  - default
-  - name: agent-arm64
-    gecos: Agent
-    groups: [adm, sudo]
-    shell: /bin/bash
-    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
-    lock_passwd: false
-    plain_text_passwd: password
-    ssh_authorized_keys:
-      - $PUBKEY
-
-ssh_pwauth: true
-disable_root: true
-
-chpasswd:
-  expire: false
-
-growpart:
-  mode: auto
-  devices: ['/']
-resize_rootfs: true
-EOF
-
-cat > meta-data <<EOF
-instance-id: aarch64-linux-001
-local-hostname: sandbox-arm64
-EOF
-
-cloud-localds seed.iso user-data meta-data
+cp "$FIRMWARE_VARS_TEMPLATE" vars-pflash.raw
+cp "$FIRMWARE_CODE" AAVMF_CODE.fd
+chmod u+w vars-pflash.raw
+chmod u-w AAVMF_CODE.fd
 ```
 
-Then run the VM under systemd with 8 vCPUs, 16 GiB RAM, the 250 GB disk, and SSH forwarded to `127.0.0.1:2222`:
+Start the installer with 8 vCPUs, 16 GiB RAM, the blank disk, the installer ISO, ARM64 UEFI firmware, and SSH forwarding from `127.0.0.1:2222` to port 22 in the guest:
+
+```sh
+qemu-system-aarch64 \
+  -M virt \
+  -cpu cortex-a72 \
+  -smp 8 \
+  -m 16384 \
+  -drive if=pflash,format=raw,readonly=on,file=AAVMF_CODE.fd \
+  -drive if=pflash,format=raw,file=vars-pflash.raw \
+  -display gtk,gl=off \
+  -device virtio-gpu-pci \
+  -device qemu-xhci \
+  -device usb-kbd \
+  -device usb-tablet \
+  -drive id=hd0,if=none,format=qcow2,file=aarch64-linux.qcow2 \
+  -device virtio-blk-pci,drive=hd0 \
+  -drive id=cd0,if=none,format=raw,media=cdrom,file=ubuntu-26.04-live-server-arm64.iso,readonly=on \
+  -device virtio-blk-pci,drive=cd0 \
+  -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 \
+  -device virtio-net-pci,netdev=n0
+```
+
+Install the OS normally. Use these values if you want the VM to match the rest of this repo:
+
+- Your name: `Agent`
+- Your server's name: `sandbox-arm64`
+- Pick a username: `agent-arm64`
+- Choose a password: `password`
+- Confirm your password: `password`
+
+Enable OpenSSH server during installation. Once installation is finished, shut down the VM and start it again without the installer ISO:
+
+```sh
+qemu-system-aarch64 \
+  -M virt \
+  -cpu cortex-a72 \
+  -smp 8 \
+  -m 16384 \
+  -drive if=pflash,format=raw,readonly=on,file=AAVMF_CODE.fd \
+  -drive if=pflash,format=raw,file=vars-pflash.raw \
+  -display none \
+  -drive id=hd0,if=none,format=qcow2,file=aarch64-linux.qcow2 \
+  -device virtio-blk-pci,drive=hd0 \
+  -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 \
+  -device virtio-net-pci,netdev=n0
+```
+
+Now connect over SSH:
+
+```sh
+ssh agent-arm64@127.0.0.1 -p 2222
+```
+
+The only reason for choosing a password at all was because installers usually require one. First enable passwordless `sudo`, then add your SSH key:
+
+```sh
+echo "agent-arm64 ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/agent && sudo chmod 0440 /etc/sudoers.d/agent
+mkdir -p ~/.ssh
+curl https://github.com/samestep.keys >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Inside the VM, check that it is really ARM64 and that the requested resources are visible:
+
+```sh
+uname -m
+free -h
+lsblk
+df -h /
+```
+
+Finally, stop the manual QEMU process and run the installed VM under systemd:
 
 ```sh
 sudo tee /etc/systemd/system/aarch64-linux-qemu.service >/dev/null <<'EOF'
@@ -262,7 +304,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/var/lib/aarch64-linux
-ExecStart=/run/current-system/sw/bin/qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 8 -m 16384 -bios /run/current-system/sw/FV/QEMU_EFI.fd -nographic -drive id=hd0,if=none,format=qcow2,file=/var/lib/aarch64-linux/aarch64-linux.qcow2 -device virtio-blk-device,drive=hd0 -drive id=seed,if=none,format=raw,file=/var/lib/aarch64-linux/seed.iso,readonly=on -device virtio-blk-device,drive=seed -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 -device virtio-net-device,netdev=n0
+ExecStart=/run/current-system/sw/bin/qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 8 -m 16384 -drive if=pflash,format=raw,readonly=on,file=/var/lib/aarch64-linux/AAVMF_CODE.fd -drive if=pflash,format=raw,file=/var/lib/aarch64-linux/vars-pflash.raw -display none -drive id=hd0,if=none,format=qcow2,file=/var/lib/aarch64-linux/aarch64-linux.qcow2 -device virtio-blk-pci,drive=hd0 -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 -device virtio-net-pci,netdev=n0
 Restart=on-failure
 RestartSec=5
 KillSignal=SIGTERM
@@ -276,22 +318,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now aarch64-linux-qemu.service
 ```
 
-The first boot can take a few minutes while cloud-init grows the disk and creates the user. Once SSH is up, connect with:
-
-```sh
-ssh -i ~/.ssh/aarch64_linux -p 2222 agent-arm64@127.0.0.1
-```
-
-Inside the VM, check that it is really ARM64 and that the requested resources are visible:
-
-```sh
-uname -m
-free -h
-lsblk
-df -h /
-```
-
-The password is `password` if you need console login, but SSH with the dedicated key is the normal path. Manage the VM with:
+Manage the VM with:
 
 ```sh
 sudo systemctl status aarch64-linux-qemu.service
