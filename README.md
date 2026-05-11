@@ -185,12 +185,19 @@ nix run ~/github/samestep/env#home-manager -- switch -b backup
 
 ## aarch64 Linux VM on x86 NixOS
 
-You can also create an `aarch64-linux` VM on the x86 NixOS machine from an ARM64 installer ISO. This uses QEMU system emulation, so it does not require ARM hardware. It is slower than a native VM, but it gives you a real `aarch64` kernel and userspace.
+You can also create an `aarch64-linux` VM on the x86 NixOS machine from an ARM64 installer ISO. This still uses QEMU system emulation, so it does not require ARM hardware. It is slower than a native VM, but it gives you a real `aarch64` kernel and userspace.
 
-This repo's NixOS config installs `qemu_full` and ARM64 OVMF/AAVMF firmware; after rebuilding, `qemu-system-aarch64`, `qemu-img`, and ARM64 firmware files should be available:
+This repo's NixOS config installs ARM64 OVMF/AAVMF firmware and configures libvirt to use `qemu_full`. The firmware lets the emulated ARM machine boot installer ISOs through UEFI, and `qemu_full` gives libvirt access to `qemu-system-aarch64`. Rebuild first:
 
 ```sh
 sudo nixos-rebuild switch
+```
+
+Make sure the libvirt `default` network is running:
+
+```sh
+virsh -c qemu:///system net-start default
+virsh -c qemu:///system net-autostart default
 ```
 
 Download an ARM64 installer ISO. For example, Ubuntu 26.04 publishes the ARM64 live-server ISO under `cdimage.ubuntu.com`, rather than under the AMD64-focused `releases.ubuntu.com` page:
@@ -203,43 +210,33 @@ cd /var/lib/aarch64-linux
 curl -LO https://cdimage.ubuntu.com/releases/26.04/release/ubuntu-26.04-live-server-arm64.iso
 ```
 
-Create a 250 GB qcow2 disk, a local copy of the ARM64 UEFI firmware, and a writable UEFI variable store:
+Find the ARM64 UEFI firmware files:
 
 ```sh
-qemu-img create -f qcow2 aarch64-linux.qcow2 250G
-
 FIRMWARE_CODE="$(find -L /run/current-system/sw -path '*/FV/AAVMF_CODE.fd' | head -n 1)"
 FIRMWARE_VARS_TEMPLATE="$(find -L /run/current-system/sw -path '*/FV/AAVMF_VARS.fd' | head -n 1)"
 test -n "$FIRMWARE_CODE"
 test -n "$FIRMWARE_VARS_TEMPLATE"
-
-cp "$FIRMWARE_VARS_TEMPLATE" vars-pflash.raw
-cp "$FIRMWARE_CODE" AAVMF_CODE.fd
-chmod u+w vars-pflash.raw
-chmod u-w AAVMF_CODE.fd
 ```
 
-Start the installer with 8 vCPUs, 16 GiB RAM, the blank disk, the installer ISO, ARM64 UEFI firmware, and SSH forwarding from `127.0.0.1:2222` to port 22 in the guest:
+Then create the VM with 8 vCPUs, 16 GiB RAM, a 250 GB disk, the ARM64 UEFI firmware, virtio disk/network devices, and libvirt's NAT network:
 
 ```sh
-qemu-system-aarch64 \
-  -M virt \
-  -cpu cortex-a72 \
-  -smp 8 \
-  -m 16384 \
-  -drive if=pflash,format=raw,readonly=on,file=AAVMF_CODE.fd \
-  -drive if=pflash,format=raw,file=vars-pflash.raw \
-  -display gtk,gl=off \
-  -device virtio-gpu-pci \
-  -device qemu-xhci \
-  -device usb-kbd \
-  -device usb-tablet \
-  -drive id=hd0,if=none,format=qcow2,file=aarch64-linux.qcow2 \
-  -device virtio-blk-pci,drive=hd0 \
-  -drive id=cd0,if=none,format=raw,media=cdrom,file=ubuntu-26.04-live-server-arm64.iso,readonly=on \
-  -device virtio-blk-pci,drive=cd0 \
-  -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 \
-  -device virtio-net-pci,netdev=n0
+virt-install \
+  --connect qemu:///system \
+  --name aarch64-linux \
+  --arch aarch64 \
+  --machine virt \
+  --virt-type qemu \
+  --cpu cortex-a72 \
+  --vcpus 8 \
+  --memory 16384 \
+  --disk size=250,format=qcow2,bus=virtio \
+  --network network=default,model=virtio \
+  --boot loader="$FIRMWARE_CODE",loader.readonly=yes,loader.type=pflash,nvram.template="$FIRMWARE_VARS_TEMPLATE" \
+  --cdrom /var/lib/aarch64-linux/ubuntu-26.04-live-server-arm64.iso \
+  --osinfo detect=on,require=off \
+  --autostart
 ```
 
 Install the OS normally. Use these values if you want the VM to match the rest of this repo:
@@ -250,27 +247,25 @@ Install the OS normally. Use these values if you want the VM to match the rest o
 - Choose a password: `password`
 - Confirm your password: `password`
 
-Enable OpenSSH server during installation. Once installation is finished, shut down the VM and start it again without the installer ISO:
+Enable OpenSSH server during installation. Once installation is finished, the VM may shut off or reboot. If it is shut off, start it again. If it reboots back into the installer, eject the ISO and reboot:
 
 ```sh
-qemu-system-aarch64 \
-  -M virt \
-  -cpu cortex-a72 \
-  -smp 8 \
-  -m 16384 \
-  -drive if=pflash,format=raw,readonly=on,file=AAVMF_CODE.fd \
-  -drive if=pflash,format=raw,file=vars-pflash.raw \
-  -display none \
-  -drive id=hd0,if=none,format=qcow2,file=aarch64-linux.qcow2 \
-  -device virtio-blk-pci,drive=hd0 \
-  -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 \
-  -device virtio-net-pci,netdev=n0
+virsh -c qemu:///system start aarch64-linux || true
+virsh -c qemu:///system change-media aarch64-linux sda --eject || true
+virsh -c qemu:///system reboot aarch64-linux || true
 ```
 
-Now connect over SSH:
+Find the VM's IP address:
 
 ```sh
-ssh agent-arm64@127.0.0.1 -p 2222
+virsh -c qemu:///system domifaddr aarch64-linux
+virsh -c qemu:///system net-dhcp-leases default
+```
+
+Now connect over SSH, replacing the IP address with the address shown by libvirt or on the VM console:
+
+```sh
+ssh agent-arm64@192.168.122.123
 ```
 
 The only reason for choosing a password at all was because installers usually require one. First enable passwordless `sudo`, then add your SSH key:
@@ -292,38 +287,13 @@ lsblk
 df -h /
 ```
 
-Finally, stop the manual QEMU process and run the installed VM under systemd:
-
-```sh
-sudo tee /etc/systemd/system/aarch64-linux-qemu.service >/dev/null <<'EOF'
-[Unit]
-Description=Nested aarch64-linux QEMU VM
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=/var/lib/aarch64-linux
-ExecStart=/run/current-system/sw/bin/qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 8 -m 16384 -drive if=pflash,format=raw,readonly=on,file=/var/lib/aarch64-linux/AAVMF_CODE.fd -drive if=pflash,format=raw,file=/var/lib/aarch64-linux/vars-pflash.raw -display none -drive id=hd0,if=none,format=qcow2,file=/var/lib/aarch64-linux/aarch64-linux.qcow2 -device virtio-blk-pci,drive=hd0 -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 -device virtio-net-pci,netdev=n0
-Restart=on-failure
-RestartSec=5
-KillSignal=SIGTERM
-TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now aarch64-linux-qemu.service
-```
-
 Manage the VM with:
 
 ```sh
-sudo systemctl status aarch64-linux-qemu.service
-sudo systemctl stop aarch64-linux-qemu.service
-sudo systemctl start aarch64-linux-qemu.service
+virsh -c qemu:///system list --all
+virsh -c qemu:///system shutdown aarch64-linux
+virsh -c qemu:///system start aarch64-linux
+virsh -c qemu:///system autostart aarch64-linux
 ```
 
 ## [Tart](tart)

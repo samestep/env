@@ -94,7 +94,6 @@
 
   environment.systemPackages = [
     pkgs.pkgsCross.aarch64-multiplatform.OVMF.fd # Provides AAVMF firmware for aarch64 VMs.
-    pkgs.qemu_full # Includes qemu-system-aarch64 for cross-architecture VMs.
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
