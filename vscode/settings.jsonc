@@ -59,6 +59,7 @@
   "window.customTitleBarVisibility": "never",
   "window.titleBarStyle": "native", // Necessary to hide the title bar.
   "window.zoomLevel": 1,
+  "workbench.browser.openLocalhostLinks": false,
   "workbench.editor.empty.hint": "hidden",
   "workbench.editorAssociations": { "*.svg": "default" }, // Show me the code.
   "workbench.panel.defaultLocation": "left",
