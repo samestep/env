@@ -187,7 +187,7 @@ nix run ~/github/samestep/env#home-manager -- switch -b backup
 
 You can also create an `aarch64-linux` VM on the x86 NixOS machine from an ARM64 installer ISO. This still uses QEMU system emulation, so it does not require ARM hardware. It is slower than a native VM, but it gives you a real `aarch64` kernel and userspace.
 
-This repo's NixOS config installs ARM64 OVMF/AAVMF firmware and configures libvirt to use `qemu_full`. The firmware lets the emulated ARM machine boot installer ISOs through UEFI, and `qemu_full` gives libvirt access to `qemu-system-aarch64`. Rebuild first:
+This repo's NixOS config installs ARM64 OVMF/AAVMF firmware, exposes it under `/etc/aarch64-linux`, and configures libvirt to use `qemu_full`. The firmware lets the emulated ARM machine boot installer ISOs through UEFI, and `qemu_full` gives libvirt access to `qemu-system-aarch64`. Rebuild first:
 
 ```sh
 sudo nixos-rebuild switch
@@ -210,13 +210,13 @@ cd /var/lib/aarch64-linux
 curl -LO https://cdimage.ubuntu.com/releases/26.04/release/ubuntu-26.04-live-server-arm64.iso
 ```
 
-Find the ARM64 UEFI firmware files:
+Set the ARM64 UEFI firmware paths:
 
 ```sh
-FIRMWARE_CODE="$(find -L /run/current-system/sw -path '*/FV/AAVMF_CODE.fd' | head -n 1)"
-FIRMWARE_VARS_TEMPLATE="$(find -L /run/current-system/sw -path '*/FV/AAVMF_VARS.fd' | head -n 1)"
-test -n "$FIRMWARE_CODE"
-test -n "$FIRMWARE_VARS_TEMPLATE"
+FIRMWARE_CODE=/etc/aarch64-linux/AAVMF_CODE.fd
+FIRMWARE_VARS_TEMPLATE=/etc/aarch64-linux/AAVMF_VARS.fd
+test -e "$FIRMWARE_CODE"
+test -e "$FIRMWARE_VARS_TEMPLATE"
 ```
 
 Then create the VM with 8 vCPUs, 16 GiB RAM, a 250 GB disk, the ARM64 UEFI firmware, virtio disk/network devices, and libvirt's NAT network:

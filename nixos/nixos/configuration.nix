@@ -4,6 +4,10 @@
 
 { config, pkgs, ... }:
 
+let
+  aarch64Ovmf = pkgs.pkgsCross.aarch64-multiplatform.OVMF.fd;
+in
+
 {
   imports = [
     # Include the results of the hardware scan.
@@ -95,6 +99,9 @@
   environment.systemPackages = [
     pkgs.pkgsCross.aarch64-multiplatform.OVMF.fd # Provides AAVMF firmware for aarch64 VMs.
   ];
+
+  environment.etc."aarch64-linux/AAVMF_CODE.fd".source = "${aarch64Ovmf}/FV/AAVMF_CODE.fd";
+  environment.etc."aarch64-linux/AAVMF_VARS.fd".source = "${aarch64Ovmf}/FV/AAVMF_VARS.fd";
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
