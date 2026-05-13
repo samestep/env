@@ -134,6 +134,23 @@
   virtualisation.libvirtd.enable = true;
   programs.virt-manager.enable = true;
 
+  # Build virt-install with Ubuntu 26.04 support.
+  nixpkgs.overlays = [
+    (final: prev: {
+      osinfo-db = prev.osinfo-db.overrideAttrs (old: {
+        src = final.fetchFromGitLab {
+          owner = "libosinfo";
+          repo = "osinfo-db";
+          rev = "6f01a968803a30c7e5da631b0205c5982b20b842";
+          hash = "sha256-bG2fOBepSJebxrz07+FKwhmbu98IXesuLMaE6Np5f4M=";
+        };
+        installPhase = ''
+          osinfo-db-import --dir "$out/share/osinfo" "osinfo-db-19800101.tar.xz"
+        '';
+      });
+    })
+  ];
+
   # https://wiki.nixos.org/wiki/Docker#System_setup
   virtualisation.docker.enable = true;
 
