@@ -104,11 +104,7 @@ Download an OS ISO like [Ubuntu 26.04](https://releases.ubuntu.com/26.04/) and r
 virt-install --connect qemu:///system --vcpus 32 --memory 65536 --disk size=1000 --network network=default --cdrom ubuntu-26.04-live-server-amd64.iso
 ```
 
-If you're using Ubuntu 26.04 specifically then you may also need to add the following at the end of the command, since osinfo-db didn't add Ubuntu 26.04 [until after its release](https://gitlab.com/libosinfo/osinfo-db/-/commit/6f01a968803a30c7e5da631b0205c5982b20b842):
-
-```
---osinfo detect=on,require=off
-```
+The NixOS config in this repo includes the [osinfo-db entry for Ubuntu 26.04](https://gitlab.com/libosinfo/osinfo-db/-/commit/6f01a968803a30c7e5da631b0205c5982b20b842), so `virt-install` should identify this ISO and choose modern Ubuntu defaults.
 
 Here's what the other flags mean:
 
@@ -235,7 +231,6 @@ virt-install \
   --network network=default,model=virtio \
   --boot loader="$FIRMWARE_CODE",loader.readonly=yes,loader.type=pflash,nvram.template="$FIRMWARE_VARS_TEMPLATE" \
   --cdrom /var/lib/aarch64-linux/ubuntu-26.04-live-server-arm64.iso \
-  --osinfo detect=on,require=off \
   --autostart
 ```
 
@@ -254,7 +249,6 @@ Here's why the extra flags are there:
 - `loader.readonly=yes` says the firmware code image is immutable. This matters on NixOS because the firmware file lives in the read-only Nix store and because UEFI variables belong in the separate NVRAM file, not in the firmware code image. Current libvirt accepts the XML without this flag, but then the domain no longer records the intended split between read-only firmware code and writable NVRAM as clearly.
 - `loader.type=pflash` says the firmware is exposed as persistent flash memory, which is how AAVMF/OVMF-style UEFI firmware is provided to QEMU guests. This one is not just cosmetic: without it, libvirt emits a loader with no pflash type, and this setup fails because ACPI on `aarch64` requires UEFI.
 - `--cdrom /var/lib/aarch64-linux/ubuntu-26.04-live-server-arm64.iso` attaches the ARM64 installer ISO. Without it, the new empty disk has nothing bootable on it.
-- `--osinfo detect=on,require=off` lets installation continue if your local `libosinfo` database cannot identify this ISO. Without `require=off`, `virt-install` may stop before creating the VM just because the ISO is too new or not recognized.
 - `--autostart` is not the same thing as libvirt's save/restore behavior during host shutdown. Save/restore handles a VM that was already running when the host went down. Autostart means libvirt should start this persistent VM when the host boots. Without it, the VM can remain shut off after a host boot if there was no managed-save state to restore, or if it had been shut down before the reboot.
 
 Install the OS normally. Use these values if you want the VM to match the rest of this repo:

@@ -95,6 +95,21 @@ in
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.overlays = [
+    (final: prev: {
+      # Add Ubuntu 26.04 before the next osinfo-db release reaches Nixpkgs.
+      osinfo-db = prev.osinfo-db.overrideAttrs (old: {
+        installPhase = old.installPhase + ''
+          install -Dm644 ${
+            final.fetchurl {
+              url = "https://gitlab.com/libosinfo/osinfo-db/-/raw/6f01a968803a30c7e5da631b0205c5982b20b842/data/os/ubuntu.com/ubuntu-26.04.xml.in";
+              hash = "sha256-ukNfG+BzJqKahwcbUzPHj1DwdSisORx6i1fjWVzwqRc=";
+            }
+          } "$out/share/osinfo/os/ubuntu.com/ubuntu-26.04.xml"
+        '';
+      });
+    })
+  ];
 
   environment.systemPackages = [
     pkgs.pkgsCross.aarch64-multiplatform.OVMF.fd # Provides AAVMF firmware for aarch64 VMs.
