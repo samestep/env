@@ -35,6 +35,8 @@ in
       "Library/Application Support/Code/User/keybindings.json" =
         util.symlink "macos/vscode/keybindings.jsonc";
       "Library/Application Support/Code/User/settings.json" = util.symlink "vscode/settings.jsonc";
+      "Library/Application Support/com.mitchellh.ghostty/config.ghostty" =
+        util.symlink "ghostty/config.ghostty";
     };
 
     activation = {

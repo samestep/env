@@ -29,6 +29,7 @@ in
     file = util.file // {
       ".config/Code/User/keybindings.json" = util.symlink "vscode/keybindings.jsonc";
       ".config/Code/User/settings.json" = util.symlink "vscode/settings.jsonc";
+      ".config/ghostty/config.ghostty" = util.symlink "ghostty/config.ghostty";
     };
   };
 
