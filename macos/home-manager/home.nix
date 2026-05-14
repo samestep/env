@@ -46,7 +46,7 @@ in
               "/System/Applications/System Settings.app"
               "/System/Applications/Utilities/Disk Utility.app"
               "/System/Applications/Utilities/Activity Monitor.app"
-              "${pkgs.iterm2}/Applications/ITerm2.app"
+              "${pkgs.ghostty-bin}/Applications/Ghostty.app"
               "/Applications/Firefox.app"
               "${pkgs.discord}/Applications/Discord.app"
               "${pkgs.slack}/Applications/Slack.app"

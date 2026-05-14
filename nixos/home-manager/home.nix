@@ -54,6 +54,8 @@ in
       # Using the new default since `stateVersion` isn't the newest.
       configPath = "${config.xdg.configHome}/mozilla/firefox";
     };
+
+    ghostty.enable = true;
   };
 
   assertions = util.assertions;
