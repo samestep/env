@@ -233,7 +233,13 @@ Since we're using the vanilla image, we still need to install the Xcode Command 
 xcode-select --install
 ```
 
-That should pop up a dialogue which you need to accept. Now shut down the VM again and reboot it once more, this time without graphics:
+That should pop up a dialogue which you need to accept. You'll also want to [allow Ghostty's environment forwarding over SSH](https://ghostty.org/docs/features/shell-integration#remote-sshd-configuration):
+
+```sh
+AcceptEnv COLORTERM TERM_PROGRAM TERM_PROGRAM_VERSION | sudo tee /etc/ssh/sshd_config.d/101-color.conf
+```
+
+Now shut down the VM again and reboot it once more, this time without graphics:
 
 ```sh
 tart run --no-graphics tahoe-vanilla
