@@ -1,2 +1,2 @@
 font-feature = -calt, -liga, -dlig
-shell-integration-features = ssh-env,ssh-terminfo
+shell-integration-features = no-cursor,ssh-env,ssh-terminfo
