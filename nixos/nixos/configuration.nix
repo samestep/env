@@ -160,4 +160,9 @@
     remotePlay.openFirewall = true;
     dedicatedServer.openFirewall = true;
   };
+
+  # Use Ghostty instead of muscle memory.
+  environment.gnome.excludePackages = [
+    pkgs.gnome-console
+  ];
 }
