@@ -144,6 +144,8 @@ The next step is to reconfigure chrony so that it can readjust the VM's clock if
 +makestep 1 -1
 ```
 
+Note that the above may be unnecessary if you configure libvirt to shut down VMs when you shut down the host machine. That may be a good idea in general, since if libvirt only suspends and resumes the VMs when the host machine reboots, their DHCP leases can disappear from the host, forcing you to use an explicit IP address for SSH.
+
 Then install Nix:
 
 ```sh

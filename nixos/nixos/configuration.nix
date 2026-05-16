@@ -136,6 +136,7 @@
 
   # https://libvirt.org/nss.html
   virtualisation.libvirtd.nss.enable = true;
+  virtualisation.libvirtd.onShutdown = "shutdown"; # Else DHCP leases disappear.
 
   # Build virt-install with Ubuntu 26.04 support.
   nixpkgs.overlays = [
