@@ -139,6 +139,7 @@
     enable = true; # https://github.com/NixOS/nixpkgs/pull/499440
     enableGuest = true; # The `libvirt_guest` variant works in more situations.
   };
+  virtualisation.libvirtd.onShutdown = "shutdown"; # Else DHCP leases disappear.
 
   # Build virt-install with Ubuntu 26.04 support.
   nixpkgs.overlays = [
