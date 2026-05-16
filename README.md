@@ -86,7 +86,7 @@ Then in VS Code, start the container and [attach to it](https://code.visualstudi
 
 ## [libvirt](docker-x86)
 
-The Docker configs can also be used for virtual machines. First make sure you have [virt-manager](https://virt-manager.org/), virt-viewer, and the [libvirt NSS module](https://libvirt.org/nss.html) installed, as they are in this repo's NixOS config. Then make sure you've started the `default` network:
+The Docker configs can also be used for virtual machines. First make sure you have [virt-manager](https://virt-manager.org/), virt-viewer, and the [`libvirt_guest` NSS module](https://libvirt.org/nss.html) installed, as they are in this repo's NixOS config. Then make sure you've started the `default` network:
 
 ```sh
 virsh -c qemu:///system net-start default

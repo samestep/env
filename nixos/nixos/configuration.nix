@@ -135,7 +135,10 @@
   programs.virt-manager.enable = true;
 
   # https://libvirt.org/nss.html
-  virtualisation.libvirtd.nss.enable = true;
+  virtualisation.libvirtd.nss = {
+    enable = true; # https://github.com/NixOS/nixpkgs/pull/499440
+    enableGuest = true; # The `libvirt_guest` variant works in more situations.
+  };
 
   # Build virt-install with Ubuntu 26.04 support.
   nixpkgs.overlays = [
