@@ -86,7 +86,7 @@ Then in VS Code, start the container and [attach to it](https://code.visualstudi
 
 ## [libvirt](docker-x86)
 
-The Docker configs can also be used for virtual machines. First make sure you have [virt-manager](https://virt-manager.org/) and virt-viewer installed, as they are in this repo's NixOS config. Then make sure you've started the `default` network:
+The Docker configs can also be used for virtual machines. First make sure you have [virt-manager](https://virt-manager.org/), virt-viewer, and the [libvirt NSS module](https://libvirt.org/nss.html) installed, as they are in this repo's NixOS config. Then make sure you've started the `default` network:
 
 ```sh
 virsh -c qemu:///system net-start default
@@ -101,7 +101,7 @@ virsh -c qemu:///system net-autostart default
 Download an OS ISO like [Ubuntu 26.04](https://releases.ubuntu.com/26.04/) and run this command to create a VM, tweaking the CPU/RAM/disk parameters as appropriate:
 
 ```sh
-virt-install --connect qemu:///system --vcpus 32 --memory 65536 --disk size=1000 --network network=default --cdrom ubuntu-26.04-live-server-amd64.iso
+virt-install --connect qemu:///system --name sandbox-amd64 --vcpus 32 --memory 65536 --disk size=1000 --network network=default --cdrom ubuntu-26.04-live-server-amd64.iso
 ```
 
 As a heads up, at time of writing, the only reason Ubuntu 26.04 works for me here is because I'm using an [unreleased osinfo-db patch](https://gitlab.com/libosinfo/osinfo-db/-/commit/6f01a968803a30c7e5da631b0205c5982b20b842) that adds support for it. You may need to use an image of an older OS instead.
@@ -109,6 +109,7 @@ As a heads up, at time of writing, the only reason Ubuntu 26.04 works for me her
 That aside, here's what all the flags mean:
 
 - the `--connect` setting makes the `default` network visible
+- the explicit `--name` is used by the `libvirt_guest` NSS module for SSH
 - `--vcpus` allows the VM to use all the cores instead of just two
 - `--memory` is in MiB
 - `--disk size` is in GB
@@ -124,16 +125,10 @@ When installing Ubuntu, in the "Storage configuration" step, increase the size o
 
 Check the "Install OpenSSH server" box in the "SSH configuration" step. Then once installation is finished, ignore the message saying to remove the installation medium, and just hit ENTER to reboot.
 
-After rebooting, log in and take note of the IP address, which should look something like this:
-
-```
-IPv4 address for enp1s0: 192.168.122.133
-```
-
-Now you can close the virt-viewer window; you won't need it again. Reconnect using SSH:
+After rebooting, you can close the virt-viewer window; you won't need it again. Reconnect using SSH:
 
 ```sh
-ssh agent-amd64@192.168.122.133
+ssh agent-amd64@sandbox-amd64
 ```
 
 The only reason for choosing a password at all was because the Ubuntu installer forces you to; first step after installation is to enable passwordless `sudo`:
