@@ -104,13 +104,9 @@ Download an OS ISO like [Ubuntu 26.04](https://releases.ubuntu.com/26.04/) and r
 virt-install --connect qemu:///system --vcpus 32 --memory 65536 --disk size=1000 --network network=default --cdrom ubuntu-26.04-live-server-amd64.iso
 ```
 
-If you're using Ubuntu 26.04 specifically then you may also need to add the following at the end of the command, since osinfo-db didn't add Ubuntu 26.04 [until after its release](https://gitlab.com/libosinfo/osinfo-db/-/commit/6f01a968803a30c7e5da631b0205c5982b20b842):
+As a heads up, at time of writing, the only reason Ubuntu 26.04 works for me here is because I'm using an [unreleased osinfo-db patch](https://gitlab.com/libosinfo/osinfo-db/-/commit/6f01a968803a30c7e5da631b0205c5982b20b842) that adds support for it. You may need to use an image of an older OS instead.
 
-```
---osinfo detect=on,require=off
-```
-
-Here's what the other flags mean:
+That aside, here's what all the flags mean:
 
 - the `--connect` setting makes the `default` network visible
 - `--vcpus` allows the VM to use all the cores instead of just two
