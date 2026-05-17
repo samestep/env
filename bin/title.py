@@ -5,10 +5,10 @@ import sys
 def main() -> None:
     description = "set the title of the terminal"
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("title")
+    parser.add_argument("title", nargs="+")
     args = parser.parse_args()
 
-    sys.stdout.write(f"\033]0;{args.title}\a")
+    sys.stdout.write(f"\033]0;{' '.join(args.title)}\a")
     sys.stdout.flush()
 
 
