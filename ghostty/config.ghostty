@@ -1,2 +1,4 @@
 font-feature = -calt, -liga, -dlig
 shell-integration-features = no-cursor,ssh-env,ssh-terminfo
+window-height = 40
+window-width = 120
