@@ -2,5 +2,8 @@
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
+[notice]
+hide_rate_limit_model_nudge = true
+
 [tui.model_availability_nux]
 "gpt-5.5" = 4

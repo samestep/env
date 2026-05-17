@@ -2,5 +2,8 @@
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
+[notice]
+hide_rate_limit_model_nudge = true
+
 [tui.model_availability_nux]
 "gpt-5.5" = 4
