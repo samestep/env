@@ -19,6 +19,7 @@
 [push]
 	autoSetupRemote = true
 [remote "origin"]
+	fetch = +refs/tags/*:refs/tags/*
 	tagOpt = --tags
 [sendemail]
 	smtpEncryption = tls
