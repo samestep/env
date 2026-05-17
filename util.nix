@@ -36,6 +36,7 @@ rec {
         (pkgs.writers.writePython3Bin "ghcode" { } ./bin/ghcode.py)
         (pkgs.writers.writePython3Bin "scratch" { } ./bin/scratch.py)
         (pkgs.writers.writePython3Bin "shell" { } ./bin/shell.py)
+        (pkgs.writers.writePython3Bin "title" { } ./bin/title.py)
         (pkgs.writers.writePython3Bin "worktree" { } ./bin/worktree.py)
       ];
     })
