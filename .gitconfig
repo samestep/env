@@ -10,6 +10,7 @@
 [fetch]
 	all = true
 	prune = true
+	pruneTags = true
 [init]
 	defaultBranch = main
 [merge]
@@ -18,9 +19,6 @@
 	ff = only
 [push]
 	autoSetupRemote = true
-[remote "origin"]
-	fetch = +refs/tags/*:refs/tags/*
-	tagOpt = --tags
 [sendemail]
 	smtpEncryption = tls
 	smtpServer = smtp.gmail.com
