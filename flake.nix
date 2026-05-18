@@ -105,7 +105,7 @@
                   wrapProgram $out/bin/$cmd \
                     --unset NIX_PATH \
                     --set COMMA_CACHING 1 \
-                    --set COMMA_NIXPKGS_FLAKE nixpkgs/${nixpkgs.rev}
+                    --set COMMA_NIXPKGS_FLAKE path:${nixpkgs}
                 done
               '';
             };
