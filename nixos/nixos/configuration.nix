@@ -141,6 +141,10 @@
   # Build virt-install with Ubuntu 26.04 support.
   nixpkgs.overlays = [
     (final: prev: {
+      nix = prev.nix.appendPatches [
+        ./nix-error-status.patch
+      ];
+
       osinfo-db = prev.osinfo-db.overrideAttrs (old: {
         src = final.fetchFromGitLab {
           owner = "libosinfo";

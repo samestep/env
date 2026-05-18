@@ -1,0 +1,141 @@
+diff --git a/src/libstore/daemon.cc b/src/libstore/daemon.cc
+index 71d5bc81c..867c87fe7 100644
+--- a/src/libstore/daemon.cc
++++ b/src/libstore/daemon.cc
+@@ -57,10 +57,12 @@ struct TunnelLogger : public Logger
+     Sync<State> state_;
+ 
+     WorkerProto::Version clientVersion;
++    WorkerProto::FeatureSet clientFeatures;
+ 
+-    TunnelLogger(FdSink & to, WorkerProto::Version clientVersion)
++    TunnelLogger(FdSink & to, WorkerProto::Version clientVersion, WorkerProto::FeatureSet clientFeatures)
+         : to(to)
+         , clientVersion(clientVersion)
++        , clientFeatures(std::move(clientFeatures))
+     {
+     }
+ 
+@@ -134,6 +136,8 @@ struct TunnelLogger : public Logger
+         else {
+             if (GET_PROTOCOL_MINOR(clientVersion) >= 26) {
+                 to << STDERR_ERROR << *ex;
++                if (clientFeatures.contains(WorkerProto::featureErrorStatus))
++                    to << ex->info().status;
+             } else {
+                 to << STDERR_ERROR << ex->what() << ex->info().status;
+             }
+@@ -1072,7 +1076,7 @@ void processConnection(ref<Store> store, FdSource && from, FdSink && to, Trusted
+     conn.protoVersion = protoVersion;
+     conn.features = features;
+ 
+-    auto tunnelLogger_ = std::make_unique<TunnelLogger>(conn.to, protoVersion);
++    auto tunnelLogger_ = std::make_unique<TunnelLogger>(conn.to, protoVersion, features);
+     auto tunnelLogger = tunnelLogger_.get();
+     std::unique_ptr<Logger> prevLogger_;
+     auto prevLogger = logger.get();
+diff --git a/src/libstore/include/nix/store/worker-protocol.hh b/src/libstore/include/nix/store/worker-protocol.hh
+index c7f8d5891..8c16b0204 100644
+--- a/src/libstore/include/nix/store/worker-protocol.hh
++++ b/src/libstore/include/nix/store/worker-protocol.hh
+@@ -135,6 +135,11 @@ struct WorkerProto
+     using Feature = std::string;
+     using FeatureSet = std::set<Feature, std::less<>>;
+ 
++    /**
++     * Feature for preserving `ErrorInfo::status` in daemon errors.
++     */
++    static constexpr std::string_view featureErrorStatus = "error-status";
++
+     static const FeatureSet allFeatures;
+ };
+ 
+diff --git a/src/libstore/worker-protocol-connection.cc b/src/libstore/worker-protocol-connection.cc
+index 987d0c8dd..97ab41aab 100644
+--- a/src/libstore/worker-protocol-connection.cc
++++ b/src/libstore/worker-protocol-connection.cc
+@@ -5,7 +5,9 @@
+ 
+ namespace nix {
+ 
+-const WorkerProto::FeatureSet WorkerProto::allFeatures{};
++const WorkerProto::FeatureSet WorkerProto::allFeatures{
++    std::string{WorkerProto::featureErrorStatus},
++};
+ 
+ WorkerProto::BasicClientConnection::~BasicClientConnection()
+ {
+@@ -65,7 +67,10 @@ WorkerProto::BasicClientConnection::processStderrReturn(Sink * sink, Source * so
+ 
+         else if (msg == STDERR_ERROR) {
+             if (GET_PROTOCOL_MINOR(protoVersion) >= 26) {
+-                ex = std::make_exception_ptr(readError(from));
++                auto error = readError(from);
++                if (features.contains(WorkerProto::featureErrorStatus))
++                    error.withExitStatus(readInt(from));
++                ex = std::make_exception_ptr(std::move(error));
+             } else {
+                 auto error = readString(from);
+                 unsigned int status = readInt(from);
+diff --git a/tests/functional/check.sh b/tests/functional/check.sh
+index 260506138..0143881d7 100755
+--- a/tests/functional/check.sh
++++ b/tests/functional/check.sh
+@@ -2,9 +2,6 @@
+ 
+ source common.sh
+ 
+-# XXX: This shouldn’t be, but #4813 cause this test to fail
+-buggyNeedLocalStore "see #4813"
+-
+ checkBuildTempDirRemoved ()
+ {
+     buildDir=$(sed -n 's/CHECK_TMPDIR=//p' "$1" | head -1)
+diff --git a/tests/functional/dyn-drv/failing-outer.sh b/tests/functional/dyn-drv/failing-outer.sh
+index 3feda74fb..26175f17c 100644
+--- a/tests/functional/dyn-drv/failing-outer.sh
++++ b/tests/functional/dyn-drv/failing-outer.sh
+@@ -5,8 +5,5 @@ source common.sh
+ # Store layer needs bugfix
+ requireDaemonNewerThan "2.30pre20250515"
+ 
+-expected=100
+-if [[ -v NIX_DAEMON_PACKAGE ]]; then expected=1; fi # work around the daemon not returning a 100 status correctly
+-
+-expectStderr "$expected" nix-build ./text-hashed-output.nix -A failingWrapper --no-out-link \
++expectStderr 100 nix-build ./text-hashed-output.nix -A failingWrapper --no-out-link \
+     | grepQuiet "build of '.*use-dynamic-drv-in-non-dynamic-drv-wrong.drv' failed"
+diff --git a/tests/functional/fetchurl.sh b/tests/functional/fetchurl.sh
+index c25ac3216..426310123 100755
+--- a/tests/functional/fetchurl.sh
++++ b/tests/functional/fetchurl.sh
+@@ -85,6 +85,4 @@ test -L "$outPath/symlink"
+ 
+ # Make sure that *not* passing a outputHash fails.
+ requireDaemonNewerThan "2.20"
+-expected=100
+-if [[ -v NIX_DAEMON_PACKAGE ]]; then expected=1; fi # work around the daemon not returning a 100 status correctly
+-expectStderr $expected nix-build --expr '{ url }: builtins.derivation { name = "nix-cache-info"; system = "x86_64-linux"; builder = "builtin:fetchurl"; inherit url; outputHashMode = "flat"; }' --argstr url "file://$narxz" 2>&1 | grep 'must be a fixed-output or impure derivation'
++expectStderr 100 nix-build --expr '{ url }: builtins.derivation { name = "nix-cache-info"; system = "x86_64-linux"; builder = "builtin:fetchurl"; inherit url; outputHashMode = "flat"; }' --argstr url "file://$narxz" 2>&1 | grep 'must be a fixed-output or impure derivation'
+diff --git a/tests/functional/timeout.sh b/tests/functional/timeout.sh
+index ae47fdc96..f1c8ea330 100755
+--- a/tests/functional/timeout.sh
++++ b/tests/functional/timeout.sh
+@@ -4,17 +4,11 @@
+ 
+ source common.sh
+ 
+-# XXX: This shouldn’t be, but #4813 cause this test to fail
+-needLocalStore "see #4813"
+-
+ messages=$(nix-build -Q timeout.nix -A infiniteLoop --timeout 2 2>&1) && status=0 || status=$?
+ 
+ if [ "$status" -ne 101 ]; then
+     echo "error: 'nix-store' exited with '$status'; should have exited 101"
+ 
+-    # FIXME: https://github.com/NixOS/nix/issues/4813
+-    skipTest "Do not block CI until fixed"
+-
+     exit 1
+ fi
+ 
