@@ -1,4 +1,5 @@
 font-feature = -calt, -liga, -dlig
+gtk-tab-overview-live-thumbnails = true
 shell-integration-features = no-cursor,ssh-env,ssh-terminfo
 window-height = 40
 window-width = 120
