@@ -10,11 +10,6 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixgl = {
-      # https://github.com/nix-community/nixGL/pull/195
-      url = "github:jinluchang/nixGL";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,7 +32,6 @@
       nixpkgs,
       home-manager,
       nix-index-database,
-      nixgl,
       rust-overlay,
       npc,
       moss,
