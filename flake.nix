@@ -140,21 +140,6 @@
               ./macos/home-manager/home.nix
             ];
           };
-          "saestep" = home-manager.lib.homeManagerConfiguration {
-            pkgs = import nixpkgs {
-              system = "x86_64-linux";
-              overlays = [
-                commaOverlay
-                nixgl.overlay
-                npc.overlays.default
-                moss.overlays.default
-              ];
-            };
-            modules = [
-              nix-index-database.homeModules.default
-              ./ubuntu/home-manager/home.nix
-            ];
-          };
           "agent-amd64" = home-manager.lib.homeManagerConfiguration {
             pkgs = import nixpkgs {
               system = "x86_64-linux";
