@@ -1,21 +1,21 @@
 diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
-index 0c8dfaa7c..a05be1fa3 100644
+index c01cad618..d476519e3 100644
 --- a/src/apprt/gtk/class/window.zig
 +++ b/src/apprt/gtk/class/window.zig
 @@ -465,6 +465,7 @@ pub const Window = extern struct {
  
          // Add the page and select it
          const page = tab_view.insert(tab.as(gtk.Widget), position);
-+        self.setTabPageLiveThumbnail(page, config.@"gtk-tab-overview-live-thumbnails");
++        setTabPageLiveThumbnail(page);
          tab_view.setSelectedPage(page);
  
          // Create some property bindings
-@@ -503,6 +504,33 @@ pub const Window = extern struct {
+@@ -503,6 +504,17 @@ pub const Window = extern struct {
          return page;
      }
  
-+    fn setTabPageLiveThumbnail(_: *Self, page: *adw.TabPage, live: bool) void {
-+        var value = gobject.ext.Value.newFrom(live);
++    fn setTabPageLiveThumbnail(page: *adw.TabPage) void {
++        var value = gobject.ext.Value.newFrom(true);
 +        defer value.unset();
 +
 +        gobject.Object.setProperty(
@@ -25,50 +25,6 @@ index 0c8dfaa7c..a05be1fa3 100644
 +        );
 +    }
 +
-+    fn syncTabOverviewLiveThumbnails(self: *Self) void {
-+        const priv = self.private();
-+        const config = if (priv.config) |v| v.get() else return;
-+
-+        const n = priv.tab_view.getNPages();
-+        assert(n >= 0);
-+
-+        for (0..@intCast(n)) |i| {
-+            const page = priv.tab_view.getNthPage(@intCast(i));
-+            self.setTabPageLiveThumbnail(
-+                page,
-+                config.@"gtk-tab-overview-live-thumbnails",
-+            );
-+        }
-+    }
-+
      pub const SelectTab = union(enum) {
          previous,
          next,
-@@ -677,6 +705,7 @@ pub const Window = extern struct {
- 
-         // Remainder uses the config
-         const config = if (priv.config) |v| v.get() else return;
-+        self.syncTabOverviewLiveThumbnails();
- 
-         // Only add a solid background if we're opaque.
-         self.toggleCssClass(
-diff --git a/src/config/Config.zig b/src/config/Config.zig
-index 9e6e5629c..aefd422f7 100644
---- a/src/config/Config.zig
-+++ b/src/config/Config.zig
-@@ -3619,6 +3619,15 @@ else
- /// with keybinds.
- @"gtk-tabs-location": GtkTabsLocation = .top,
- 
-+/// If true, tab overview thumbnails will update in real-time.
-+///
-+/// By default, libadwaita updates the thumbnail for the selected tab while
-+/// keeping other tab thumbnails static until they are selected. Enabling this
-+/// makes all thumbnails live, which is useful for monitoring multiple active
-+/// terminals from the tab overview, but may increase CPU/GPU usage with many
-+/// busy tabs.
-+@"gtk-tab-overview-live-thumbnails": bool = false,
-+
- /// If this is `true`, the titlebar will be hidden when the window is maximized,
- /// and shown when the titlebar is unmaximized. GTK only.
- ///
