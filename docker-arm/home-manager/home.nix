@@ -20,6 +20,7 @@ in
     packages = util.packages;
 
     file = util.file // {
+      ".claude/settings.json" = util.symlink "claude/yolo.json";
       ".codex/config.toml" = util.symlink "codex/yolo.toml";
     };
   };
