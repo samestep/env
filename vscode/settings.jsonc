@@ -53,6 +53,7 @@
   "git.openRepositoryInParentFolders": "never",
   "python.terminal.activateEnvironment": false, // Don't print on every command.
   "rust-analyzer.check.command": "clippy",
+  "search.followSymlinks": false, // Prevent runaway ripgrep.
   "terminal.integrated.allowChords": false,
   "terminal.integrated.inheritEnv": false, // Weird stuff happens otherwise.
   "terminal.integrated.suggest.enabled": false,
