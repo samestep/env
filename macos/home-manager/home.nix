@@ -22,6 +22,7 @@ in
     homeDirectory = "/Users/samueles";
 
     packages = util.packages ++ [
+      pkgs.gh
       pkgs.tart
     ];
 

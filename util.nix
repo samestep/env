@@ -16,7 +16,6 @@ rec {
     pkgs.claude-code
     pkgs.cloc
     pkgs.comma
-    pkgs.gh
     pkgs.git
     pkgs.nixfmt
     pkgs.npc
