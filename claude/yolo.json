@@ -1,6 +1,7 @@
 {
-  "autoMemoryEnabled": false,
   "permissions": {
     "defaultMode": "bypassPermissions"
-  }
+  },
+  "autoMemoryEnabled": false,
+  "skipDangerousModePermissionPrompt": true
 }
