@@ -82,7 +82,6 @@ rec {
           vscode.ms-azuretools.vscode-docker
           vscode.ms-python.python
           vscode.ms-python.vscode-pylance
-          vscode.ms-toolsai.jupyter
           vscode.ms-vscode-remote.remote-containers
           vscode.ms-vscode-remote.remote-ssh
           vscode.ms-vscode.cmake-tools
