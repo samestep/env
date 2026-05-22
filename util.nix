@@ -13,6 +13,7 @@ rec {
   };
 
   packages = [
+    pkgs.claude-code
     pkgs.cloc
     pkgs.comma
     pkgs.gh
