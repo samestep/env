@@ -2,5 +2,6 @@
   "permissions": {
     "defaultMode": "acceptEdits"
   },
+  "model": "claude-opus-4-6",
   "autoMemoryEnabled": false
 }
