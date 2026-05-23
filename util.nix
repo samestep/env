@@ -32,6 +32,7 @@ rec {
             (lib.makeBinPath [ pkgs.codex ])
           ];
         } ./bin/codex.py)
+        (pkgs.writers.writePython3Bin "doing" { } ./bin/doing.py)
         (pkgs.writers.writePython3Bin "flake" { } ./bin/flake.py)
         (pkgs.writers.writePython3Bin "ghcode" { } ./bin/ghcode.py)
         (pkgs.writers.writePython3Bin "scratch" { } ./bin/scratch.py)
