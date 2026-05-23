@@ -24,6 +24,7 @@ rec {
       name = "samestep";
       paths = [
         (pkgs.writeTextDir "template.nix" (builtins.readFile ./template.nix))
+        (pkgs.writers.writePython3Bin "claude-title" { } ./bin/claude-title.py)
         (pkgs.writers.writePython3Bin "codex" {
           makeWrapperArgs = [
             "--prefix"
