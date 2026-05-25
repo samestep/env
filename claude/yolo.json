@@ -3,6 +3,5 @@
     "defaultMode": "bypassPermissions"
   },
   "autoMemoryEnabled": false,
-  "autoInstallIdeExtension": false,
   "skipDangerousModePermissionPrompt": true
 }

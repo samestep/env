@@ -2,6 +2,5 @@
   "permissions": {
     "defaultMode": "acceptEdits"
   },
-  "autoMemoryEnabled": false,
-  "autoInstallIdeExtension": false
+  "autoMemoryEnabled": false
 }

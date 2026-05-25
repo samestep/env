@@ -13,7 +13,10 @@ rec {
   };
 
   packages = [
-    pkgs.claude-code
+    (pkgs.writeShellScriptBin "claude" ''
+      export CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL=1
+      exec ${pkgs.claude-code}/bin/claude "$@"
+    '')
     pkgs.cloc
     pkgs.comma
     pkgs.git
