@@ -3,5 +3,5 @@
     "defaultMode": "acceptEdits"
   },
   "autoMemoryEnabled": false,
-  "autoInstallIdeExtension": true
+  "autoInstallIdeExtension": false
 }
