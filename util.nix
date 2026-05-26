@@ -53,6 +53,23 @@ rec {
     ".gitconfig" = symlink ".gitconfig";
   };
 
+  shellInit = ''
+    ghcd() {
+      local regex='^((https://)?github\.com/)?([A-Za-z0-9._-]+/[A-Za-z0-9._-]+)'
+      local repo
+      repo=$(printf '%s' "''${1-}" | sed -nE "s|''${regex}.*|\3|p")
+      if [ -z "$repo" ]; then
+        printf 'must match this regex: %s\n' "$regex" >&2
+        return 1
+      fi
+      local dir="$HOME/github/$repo"
+      if [ ! -e "$dir" ]; then
+        git clone --recurse-submodules "https://github.com/$repo.git" "$dir" || return $?
+      fi
+      cd "$dir"
+    }
+  '';
+
   programs = {
     eza.enable = true;
 

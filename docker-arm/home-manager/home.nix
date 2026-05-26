@@ -26,7 +26,10 @@ in
   };
 
   programs = util.programs // {
-    bash.enable = true; # Necessary for aliases and Starship to work.
+    bash = {
+      enable = true; # Necessary for aliases and Starship to work.
+      initExtra = util.shellInit;
+    };
   };
 
   assertions = util.assertions;
