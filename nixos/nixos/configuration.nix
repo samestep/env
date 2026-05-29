@@ -165,6 +165,9 @@
     dedicatedServer.openFirewall = true;
   };
 
+  # https://wiki.nixos.org/wiki/OpenRGB#Basic
+  services.hardware.openrgb.enable = true;
+
   # Use Ghostty instead of muscle memory.
   environment.gnome.excludePackages = [
     pkgs.gnome-console
