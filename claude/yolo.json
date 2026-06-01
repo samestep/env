@@ -3,5 +3,6 @@
     "defaultMode": "bypassPermissions"
   },
   "autoMemoryEnabled": false,
+  "agentPushNotifEnabled": true,
   "skipDangerousModePermissionPrompt": true
 }
