@@ -26,7 +26,10 @@ in
   };
 
   programs = util.programs // {
-    zsh.enable = true; # Necessary for aliases and Starship to work.
+    zsh = {
+      enable = true; # Necessary for aliases and Starship to work.
+      initContent = util.shellInit;
+    };
   };
 
   assertions = util.assertions;
