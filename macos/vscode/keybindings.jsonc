@@ -109,4 +109,12 @@
     "key": "ctrl+cmd+up",
     "command": "workbench.action.positionPanelTop",
   },
+
+  // Claude Code
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "\u001b\r" },
+    "when": "terminalFocus",
+  },
 ]

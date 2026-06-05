@@ -39,4 +39,12 @@
     "key": "ctrl+e",
     "command": "-workbench.action.quickOpen",
   },
+
+  // Claude Code
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "\u001b\r" },
+    "when": "terminalFocus",
+  },
 ]
