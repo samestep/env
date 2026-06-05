@@ -51,7 +51,7 @@ in
               "/System/Applications/Utilities/Activity Monitor.app"
               "${pkgs.ghostty-bin}/Applications/Ghostty.app"
               "/Applications/Firefox.app"
-              "${pkgs.discord}/Applications/Discord.app"
+              "/Applications/Discord.app"
               "${pkgs.slack}/Applications/Slack.app"
               "/Applications/zoom.us.app"
               "${pkgs.obsidian}/Applications/Obsidian.app"
