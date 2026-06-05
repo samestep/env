@@ -37,33 +37,11 @@
       moss,
     }:
     {
-      packages =
-        let
-          hm =
-            system:
-            let
-              pkgs = import nixpkgs { inherit system; };
-            in
-            pkgs.writeShellApplication {
-              name = "hm";
-              runtimeInputs = [
-                pkgs.nix-output-monitor
-                home-manager.packages.${system}.default
-              ];
-              text = ''
-                nom build "$HOME/.config/home-manager#homeConfigurations.$USER.activationPackage"
-                home-manager switch
-              '';
-            };
-        in
-        {
-          x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
-          aarch64-linux.home-manager = home-manager.packages.aarch64-linux.default;
-          aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
-          x86_64-linux.hm = hm "x86_64-linux";
-          aarch64-linux.hm = hm "aarch64-linux";
-          aarch64-darwin.hm = hm "aarch64-darwin";
-        };
+      packages = {
+        x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
+        aarch64-linux.home-manager = home-manager.packages.aarch64-linux.default;
+        aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
+      };
       nixosConfigurations = {
         "nixos" = nixpkgs-stable.lib.nixosSystem {
           modules = [ ./nixos/nixos/configuration.nix ];

@@ -20,6 +20,7 @@ rec {
     pkgs.cloc
     pkgs.comma
     pkgs.git
+    pkgs.nh # https://github.com/nix-community/nix-index/issues/317
     pkgs.nixfmt
     pkgs.npc
 
