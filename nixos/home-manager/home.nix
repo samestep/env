@@ -2,14 +2,10 @@
   config,
   lib,
   pkgs,
+  symlink,
   ...
 }:
-let
-  util = import ../../util.nix { inherit config lib pkgs; };
-in
 {
-  nixpkgs = util.nixpkgs;
-
   home = {
     # https://nix-community.github.io/home-manager/release-notes.xhtml
     stateVersion = "25.11";
@@ -17,7 +13,7 @@ in
     username = "sam";
     homeDirectory = "/home/sam";
 
-    packages = util.packages ++ [
+    packages = [
       pkgs.discord
       pkgs.gh
       pkgs.obsidian
@@ -27,10 +23,8 @@ in
       pkgs.xsel # Used by the VS Code "Open In GitHub" extension.
     ];
 
-    file = util.file // {
-      ".config/Code/User/keybindings.json" = util.symlink "vscode/keybindings.jsonc";
-      ".config/Code/User/settings.json" = util.symlink "vscode/settings.jsonc";
-      ".config/ghostty/config.ghostty" = util.symlink "ghostty/config.ghostty";
+    file = {
+      ".config/ghostty/config.ghostty" = symlink "ghostty/config.ghostty";
     };
   };
 
@@ -48,7 +42,7 @@ in
     };
   };
 
-  programs = util.programs // {
+  programs = {
     bash.enable = true; # Necessary for aliases and Starship to work.
 
     firefox = {
@@ -66,6 +60,4 @@ in
       });
     };
   };
-
-  assertions = util.assertions;
 }

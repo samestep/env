@@ -1,15 +1,10 @@
 {
-  config,
   lib,
   pkgs,
+  symlink,
   ...
 }:
-let
-  util = import ../../util.nix { inherit config lib pkgs; };
-in
 {
-  nixpkgs = util.nixpkgs;
-
   # Enabling this causes permission issues:
   # https://github.com/nix-community/home-manager/pull/8031
   targets.darwin.copyApps.enable = false;
@@ -21,7 +16,7 @@ in
     username = "samueles";
     homeDirectory = "/Users/samueles";
 
-    packages = util.packages ++ [
+    packages = [
       pkgs.gh
       pkgs.tart
     ];
@@ -32,12 +27,9 @@ in
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
     };
 
-    file = util.file // {
-      "Library/Application Support/Code/User/keybindings.json" =
-        util.symlink "macos/vscode/keybindings.jsonc";
-      "Library/Application Support/Code/User/settings.json" = util.symlink "vscode/settings.jsonc";
+    file = {
       "Library/Application Support/com.mitchellh.ghostty/config.ghostty" =
-        util.symlink "ghostty/config.ghostty";
+        symlink "ghostty/config.ghostty";
     };
 
     activation = {
@@ -68,9 +60,5 @@ in
     };
   };
 
-  programs = util.programs // {
-    zsh.enable = true; # Necessary for aliases and Starship to work.
-  };
-
-  assertions = util.assertions;
+  programs.zsh.enable = true; # Necessary for aliases and Starship to work.
 }
