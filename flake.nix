@@ -95,6 +95,10 @@
             };
             modules = [
               nix-index-database.homeModules.default
+              ./modules/base.nix
+              ./modules/safe.nix
+              ./modules/vscode.nix
+              ./modules/vscode-linux.nix
               ./nixos/home-manager/home.nix
             ];
           };
@@ -109,6 +113,10 @@
             };
             modules = [
               nix-index-database.homeModules.default
+              ./modules/base.nix
+              ./modules/safe.nix
+              ./modules/vscode.nix
+              ./modules/vscode-darwin.nix
               ./macos/home-manager/home.nix
             ];
           };
@@ -123,6 +131,8 @@
             };
             modules = [
               nix-index-database.homeModules.default
+              ./modules/base.nix
+              ./modules/yolo.nix
               ./docker-x86/home-manager/home.nix
             ];
           };
@@ -137,6 +147,8 @@
             };
             modules = [
               nix-index-database.homeModules.default
+              ./modules/base.nix
+              ./modules/yolo.nix
               ./docker-arm/home-manager/home.nix
             ];
           };
@@ -151,6 +163,8 @@
             };
             modules = [
               nix-index-database.homeModules.default
+              ./modules/base.nix
+              ./modules/yolo.nix
               ./tart/home-manager/home.nix
             ];
           };
