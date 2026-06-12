@@ -102,7 +102,13 @@ When installing Ubuntu, in the "Storage configuration" step, increase the size o
 
 Check the "Install OpenSSH server" box in the "SSH configuration" step. Then once installation is finished, ignore the message saying to remove the installation medium, and just hit ENTER to reboot.
 
-After rebooting, you can close the virt-viewer window; you won't need it again. Reconnect using SSH:
+After rebooting, you can close the virt-viewer window; you won't need it again. Next, give the VM your public SSH key so you don't need to type the password when connecting:
+
+```sh
+ssh-copy-id agent-amd64@sandbox-amd64
+```
+
+Now connect using SSH:
 
 ```sh
 ssh agent-amd64@sandbox-amd64
@@ -215,13 +221,19 @@ Now shut down the VM again and reboot it once more, this time without graphics:
 tart run --no-graphics tahoe-vanilla
 ```
 
-Leave that running and SSH into the VM from a different terminal:
+Leave that running and, in a different terminal, give the VM your public SSH key give the VM your public SSH key so you don't need to type the password each time you connect:
+
+```sh
+ssh-copy-id admin@$(tart ip tahoe-vanilla)
+```
+
+While adding the SSH key, you will need to type the password, which is `admin`. Then SSH into the VM:
 
 ```sh
 ssh admin@$(tart ip tahoe-vanilla)
 ```
 
-The password is `admin`. [Install Nix](https://github.com/DeterminateSystems/nix-installer/tree/v3.20.0#install-determinate-nix):
+[Install Nix](https://github.com/DeterminateSystems/nix-installer/tree/v3.20.0#install-determinate-nix):
 
 ```sh
 curl -fsSL https://install.determinate.systems/nix | sh -s -- install
