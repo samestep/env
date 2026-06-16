@@ -24,6 +24,7 @@
         vscode.ms-vscode-remote.remote-ssh
         vscode.ms-vscode.cmake-tools
         vscode.myriad-dreamin.tinymist
+        vscode.ocamllabs.ocaml-platform
         vscode.rust-lang.rust-analyzer
         vscode.stkb.rewrap
         vscode.tamasfe.even-better-toml
