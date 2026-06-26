@@ -9,3 +9,5 @@ The `~/github` directory holds clones of GitHub repositories. Anytime it would b
 ```sh
 git clone --recursive https://github.com/$OWNER/$REPO ~/github/$OWNER/$REPO
 ```
+
+Don't try to save time or space by e.g. using a shallow clone: even if you don't need history information right now, it may be useful for some other purpose in the future, and disk space is plentiful.
