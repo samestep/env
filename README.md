@@ -166,10 +166,10 @@ This config can be used for macOS VMs created with [Tart](https://tart.run/), wh
 tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:latest tahoe-vanilla
 ```
 
-By default, Tart gives the VM only 50 GB of disk space and access to half the CPU cores, so adjust those as appropriate:
+By default, Tart doesn't give the VM all CPU cores, and only gives 8 GiB of RAM and 50 GB of disk space, so adjust those as appropriate:
 
 ```sh
-tart set tahoe-vanilla --cpu 18 --disk-size 1000
+tart set tahoe-vanilla --cpu 18 --memory 16384 --disk-size 1000
 ```
 
 Next follow the [steps to finish resizing the disk of a macOS Tart VM](https://tart.run/faq/#disk-resizing), starting by booting in recovery mode:
