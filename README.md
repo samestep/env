@@ -309,4 +309,75 @@ And finally activate the Home Manager config:
 nix run ~/github/samestep/env#home-manager switch
 ```
 
+## Tailscale
+
+The three VMs above (`sandbox-amd64`, `sandbox-arm64`, `tahoe-vanilla`) span two physical machines, and each sits behind its host's NAT, so there's no flat network on which one can reach another directly. [Tailscale](https://tailscale.com/) fixes this: it's a mesh VPN that does NAT traversal automatically, giving every VM a stable [MagicDNS](https://tailscale.com/kb/1081/magicdns/) name reachable from the others regardless of which host it runs on. With [Tailscale SSH](https://tailscale.com/kb/1193/tailscale-ssh/) enabled, any VM can `ssh` into any other with no key management, so a coding agent on any one of them can build and test across all three platforms (`x86_64-linux`, `aarch64-linux`, `aarch64-darwin`). The network mesh is symmetric — any VM is reachable from any other — but in this setup the two Linux VMs act as controllers while the macOS VM is only reachable, not a controller (see its section below for why).
+
+The SSH host aliases (`sandbox-amd64`, `sandbox-arm64`, `tahoe-vanilla`, each with the right username) live in [`ssh/config`](ssh/config), symlinked into place for the three agent VMs by [`modules/yolo.nix`](modules/yolo.nix). That file pins each alias to the VM's full MagicDNS name, but the tailnet's MagicDNS suffix is tailnet-specific (and this repo is public), so it isn't committed: `ssh/config` instead includes `~/.ssh/tailnet`, generated locally by the `tailnet` command (see [SSH between the VMs](#ssh-between-the-vms)). The `tailscaled` daemon has to run as root, which standalone Home Manager can't manage, so it's installed out-of-band per OS as below.
+
+### Account
+
+Signing in puts each VM into one Tailscale [tailnet](https://tailscale.com/kb/1136/tailnet/). Since these are autonomous agent VMs and a tailnet's default [ACL](https://tailscale.com/kb/1018/acls/) lets every device reach every other, consider giving them a dedicated Tailscale account (a separate, isolated tailnet) rather than your personal one — unless you specifically want to drive the VMs from your own machines too, in which case use one tailnet and tighten the ACL.
+
+### Linux VMs (`sandbox-amd64`, `sandbox-arm64`)
+
+Install Tailscale via its official installer, which sets up and enables the `tailscaled` systemd service plus a matching CLI:
+
+```sh
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
+Then bring the VM onto the tailnet with Tailscale SSH enabled (use the VM's own name):
+
+```sh
+sudo tailscale up --ssh --hostname=sandbox-amd64
+```
+
+### macOS VM (`tahoe-vanilla`)
+
+Tailscale SSH's server only works on macOS with the open-source `tailscaled` variant, not the Mac App Store or standard GUI build — and that open-source variant is exactly the `tailscale` package this repo's config installs (see [`tart/home-manager/home.nix`](tart/home-manager/home.nix)). Register it as a launchd system daemon (the full path is needed because `sudo` doesn't inherit the Nix profile on `PATH`):
+
+```sh
+sudo "$(command -v tailscaled)" install-system-daemon
+```
+
+That copies the binary to `/usr/local/bin` and installs `/Library/LaunchDaemons/com.tailscale.tailscaled.plist`; since it's a copy, re-run it after a Home Manager upgrade to pick up a new Tailscale version. Then:
+
+```sh
+sudo tailscale up --ssh --hostname=tahoe-vanilla
+```
+
+One caveat with this variant: it doesn't point the system resolver at Tailscale's MagicDNS, so this VM can't resolve the other VMs' names. That's left as-is on purpose — this VM only needs to be *reachable from* the Linux VMs (which works regardless of DNS), not to drive them. So don't run the `tailnet` step below on it, and the `ssh <alias>` shortcuts won't work *from* here (you could still reach the others by Tailscale IP in a pinch). Making it a controller too would mean routing the tailnet's MagicDNS suffix to `100.100.100.100` via an [`/etc/resolver`](https://www.manpagez.com/man/5/resolver/) file and restarting `mDNSResponder`, which is omitted here.
+
+### SSH between the VMs
+
+Tailscale SSH needs an explicit policy rule even though the default ACL is allow-all. To let any of your devices SSH into any other as its non-root login user, set the `ssh` block of your [policy file](https://login.tailscale.com/admin/acls) to:
+
+```json
+"ssh": [
+  {
+    "action": "accept",
+    "src": ["autogroup:member"],
+    "dst": ["autogroup:self"],
+    "users": ["autogroup:nonroot"]
+  }
+]
+```
+
+Use `"action": "accept"`, not the default `"check"`, which forces a periodic browser re-auth that would block an unattended agent.
+
+Then, on each Linux VM, generate the `~/.ssh/tailnet` include that [`ssh/config`](ssh/config) expects — `tailnet` ([`bin/tailnet.py`](bin/tailnet.py)) fills in this tailnet's MagicDNS suffix from `tailscale status`:
+
+```sh
+tailnet
+```
+
+Once that's in place, from either Linux VM:
+
+```sh
+ssh sandbox-amd64   # x86_64-linux
+ssh sandbox-arm64   # aarch64-linux
+ssh tahoe-vanilla   # aarch64-darwin
+```
+
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager

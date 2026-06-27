@@ -1,0 +1,16 @@
+# Reach the other agent VMs over Tailscale by short name. Bare names can
+# misresolve when a VM's DHCP hands out its own search domains, so we pin each
+# to its full MagicDNS name via HostName. The tailnet's MagicDNS suffix is
+# tailnet-specific, so it isn't committed to this public repo: it lives in
+# ~/.ssh/tailnet (generated locally per VM, see README). A missing Include is
+# harmless, so this file still works before that's set up.
+Include tailnet
+
+Host sandbox-amd64
+  User agent-amd64
+
+Host sandbox-arm64
+  User agent-arm64
+
+Host tahoe-vanilla
+  User admin
