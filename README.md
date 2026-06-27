@@ -33,7 +33,7 @@ You may need to log out and back in to see everything installed in the GNOME app
 
 ## [macOS](macos)
 
-This machine has an Apple M1 chip and runs macOS.
+This machine has an Apple Silicon chip and runs macOS.
 
 [Enable flakes][flakes] by making sure this line is present in `/etc/nix/nix.conf`:
 
@@ -44,8 +44,7 @@ experimental-features = nix-command flakes
 Then run these commands to setup the Home Manager configuration:
 
 ```sh
-nix run ~/github/samestep/env#home-manager switch
-rm -r ~/.config/home-manager
+rm -rf ~/.config/home-manager
 ln -s ~/github/samestep/env ~/.config/home-manager
 nix run ~/github/samestep/env#home-manager switch
 ```
@@ -170,7 +169,7 @@ tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:latest tahoe-vanilla
 By default, Tart gives the VM only 50 GB of disk space and access to half the CPU cores, so adjust those as appropriate:
 
 ```sh
-tart set tahoe-vanilla --cpu 8 --disk-size 250
+tart set tahoe-vanilla --cpu 18 --disk-size 1000
 ```
 
 Next follow the [steps to finish resizing the disk of a macOS Tart VM](https://tart.run/faq/#disk-resizing), starting by booting in recovery mode:
