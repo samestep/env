@@ -158,6 +158,59 @@ And finally set up the Home Manager config itself:
 nix run ~/github/samestep/env#home-manager -- switch -b backup
 ```
 
+## [Lima](docker-arm)
+
+Similarly, the ARM Linux config can be used for a Linux virtual machine on macOS, via [Lima](https://lima-vm.io/) which comes with the host-side macOS config in this repo. First create the VM:
+
+- The username and home directory location must be set to match what this Home Manager config expects.
+- Lima mounts the host-side home directory to the same path in the VM by default, so we disable that for security purposes.
+
+```sh
+limactl start --name sandbox-arm64 --cpus 18 --memory 32 --disk 2000 --set '.user.name = "agent-arm64" | .user.home = "/home/agent-arm64" | .mounts = []' template:ubuntu
+```
+
+Then configure it to start automatically in the background:
+
+```sh
+limactl start-at-login sandbox-arm64
+```
+
+Enable Lima's SSH setup:
+
+```sh
+echo 'Include ~/.lima/*/ssh.config' >> ~/.ssh/config
+```
+
+Then SSH into the new VM:
+
+```sh
+ssh lima-sandbox-arm64
+```
+
+Install Nix:
+
+```sh
+sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
+```
+
+Clone this repo:
+
+```sh
+git clone https://github.com/samestep/env.git ~/github/samestep/env
+```
+
+Make a symlink for Home Manager:
+
+```sh
+ln -fsT ~/github/samestep/env ~/.config/home-manager
+```
+
+And activate the config:
+
+```sh
+nix run ~/github/samestep/env#home-manager -- switch -b backup
+```
+
 ## [Tart](tart)
 
 This config can be used for macOS VMs created with [Tart](https://tart.run/), which comes with the host-side macOS config in this repo. First, download a macOS image:
