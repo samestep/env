@@ -194,13 +194,25 @@ Then configure it to start automatically in the background:
 limactl start-at-login sandbox-arm64
 ```
 
-Then SSH into the new VM. The VM advertises itself over mDNS as `lima-sandbox-arm64.local` (Lima enables `MulticastDNS` in the guest, and the `vzNAT` interface inherits it), so you can connect directly to its `vmnet` address without hardcoding its DHCP-assigned IP. This bypasses Lima's user-mode port forward, whose per-packet latency makes interactive typing lag:
+Enable Lima's SSH setup:
+
+```sh
+echo 'Include ~/.lima/*/ssh.config' >> ~/.ssh/config
+```
+
+Then SSH into the new VM. The `lima-sandbox-arm64` alias enabled by the previous command is fine for things like Git remotes, but laggy for interactive SSH, so use the following command instead:
 
 ```sh
 ssh -i ~/.lima/_config/user agent-arm64@lima-sandbox-arm64.local
 ```
 
-Install Nix:
+That command will start squawking after a reboot unless you run the following in the VM:
+
+```sh
+echo 'ssh_deletekeys: false' | sudo tee /etc/cloud/cloud.cfg.d/99-keep-ssh-host-keys.cfg
+```
+
+Next, install Nix:
 
 ```sh
 sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
