@@ -182,9 +182,10 @@ Similarly, the ARM Linux config can be used for a Linux virtual machine on macOS
 
 - The username and home directory location must be set to match what this Home Manager config expects.
 - Lima mounts the host-side home directory to the same path in the VM by default, so we disable that for security purposes.
+- By default Lima only gives the VM [user-mode networking](https://lima-vm.io/docs/config/network/user-v2/) (a userspace TCP/IP stack on the host), and SSH reaches the VM via a port forward through that stack, which adds enough per-packet latency to make interactive SSH typing lag. We add a [`vzNAT`](https://lima-vm.io/docs/config/network/vmnet/) interface so the VM also gets a real IP on Apple's `vmnet` network (the same `192.168.64.0/24` network, and mechanism, that Tart uses), reachable directly from the host. SSH straight to that IP to get the low-latency path. This requires `vmType: vz`, which is the default on Apple Silicon.
 
 ```sh
-limactl start --name sandbox-arm64 --cpus 18 --memory 32 --disk 2000 --set '.user.name = "agent-arm64" | .user.home = "/home/agent-arm64" | .mounts = []' template:ubuntu
+limactl start --name sandbox-arm64 --cpus 18 --memory 32 --disk 2000 --set '.user.name = "agent-arm64" | .user.home = "/home/agent-arm64" | .mounts = [] | .networks = [{"vzNAT": true}]' template:ubuntu
 ```
 
 Then configure it to start automatically in the background:
@@ -193,16 +194,10 @@ Then configure it to start automatically in the background:
 limactl start-at-login sandbox-arm64
 ```
 
-Enable Lima's SSH setup:
+Then SSH into the new VM. The VM advertises itself over mDNS as `lima-sandbox-arm64.local` (Lima enables `MulticastDNS` in the guest, and the `vzNAT` interface inherits it), so you can connect directly to its `vmnet` address without hardcoding its DHCP-assigned IP. This bypasses Lima's user-mode port forward, whose per-packet latency makes interactive typing lag:
 
 ```sh
-echo 'Include ~/.lima/*/ssh.config' >> ~/.ssh/config
-```
-
-Then SSH into the new VM:
-
-```sh
-ssh lima-sandbox-arm64
+ssh -i ~/.lima/_config/user agent-arm64@lima-sandbox-arm64.local
 ```
 
 Install Nix:
