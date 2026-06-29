@@ -14,7 +14,7 @@ The `~/github` directory holds clones of GitHub repositories. Anytime it would b
 git clone --recursive https://github.com/$OWNER/$REPO ~/github/$OWNER/$REPO
 ```
 
-Don't try to save time or space by e.g. using a shallow clone: even if you don't need history information right now, it may be useful for some other purpose in the future, and disk space is plentiful.
+Always do a complete clone, with full history and all blobs. Don't try to save time or space with a shallow clone (`--depth`), a partial clone (`--filter=blob:none` or `--filter=tree:0`), or a sparse checkout: information you don't need right now may be useful for some other purpose in the future, and disk space is plentiful.
 
 ## Tailscale
 
