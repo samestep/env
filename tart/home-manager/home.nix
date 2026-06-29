@@ -6,6 +6,10 @@
 
     username = "admin";
     homeDirectory = "/Users/admin";
+
+    packages = [
+      pkgs.tailscale
+    ];
   };
 
   programs.zsh.enable = true; # Necessary for aliases and Starship to work.

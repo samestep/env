@@ -15,3 +15,25 @@ git clone --recursive https://github.com/$OWNER/$REPO ~/github/$OWNER/$REPO
 ```
 
 Don't try to save time or space by e.g. using a shallow clone: even if you don't need history information right now, it may be useful for some other purpose in the future, and disk space is plentiful.
+
+## Tailscale
+
+There are two other virtual machines on the same tailnet. If you are in one of the Linux VMs, and you need to test something on a different architecture or on macOS, you can SSH into any of the other VMs. (The macOS VM cannot currently do this.) If a VM you want to use is offline, you'd need to ask the human to turn it on before you can use it.
+
+For the `x86_64-linux` VM:
+
+```sh
+ssh sandbox-amd64
+```
+
+For the `aarch64-linux` VM:
+
+```sh
+ssh sandbox-arm64
+```
+
+For the `aarch64-darwin` VM:
+
+```sh
+ssh tahoe-vanilla
+```

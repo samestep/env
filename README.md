@@ -158,6 +158,24 @@ And finally set up the Home Manager config itself:
 nix run ~/github/samestep/env#home-manager -- switch -b backup
 ```
 
+As an optional followup step, install Tailscale to be able to talk to other VMs; installing via Home Manager doesn't work properly on Ubuntu, so just use the official installer:
+
+```sh
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
+Connect to the tailnet:
+
+```sh
+sudo tailscale up --ssh --hostname=sandbox-amd64
+```
+
+And run this repo's script to generate `~/.ssh/tailnet`:
+
+```sh
+tailnet
+```
+
 ## [Lima](docker-arm)
 
 Similarly, the ARM Linux config can be used for a Linux virtual machine on macOS, via [Lima](https://lima-vm.io/) which comes with the host-side macOS config in this repo. First create the VM:
@@ -209,6 +227,24 @@ And activate the config:
 
 ```sh
 nix run ~/github/samestep/env#home-manager -- switch -b backup
+```
+
+As an optional followup step, install Tailscale to be able to talk to other VMs; installing via Home Manager doesn't work properly on Ubuntu, so just use the official installer:
+
+```sh
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
+Connect to the tailnet:
+
+```sh
+sudo tailscale up --ssh --hostname=sandbox-arm64
+```
+
+And run this repo's script to generate `~/.ssh/tailnet`:
+
+```sh
+tailnet
 ```
 
 ## [Tart](tart)
@@ -308,5 +344,19 @@ And finally activate the Home Manager config:
 ```sh
 nix run ~/github/samestep/env#home-manager switch
 ```
+
+As an optional followup step, activate Tailscale to let other VMs connect to this one; the Home Manager config provides the open-source tailscaled variant since that's the only macOS one with an SSH server, but it still needs to be registered with launchd:
+
+```sh
+sudo "$(command -v tailscaled)" install-system-daemon
+```
+
+Connect to the tailnet:
+
+```sh
+sudo tailscale up --ssh --hostname=tahoe-vanilla
+```
+
+Note that, without additional setup, this VM can only receive Tailscale SSH connections, and cannot SSH into other VMs on the tailnet.
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
