@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 {
   home = {
     # https://nix-community.github.io/home-manager/release-notes.xhtml
