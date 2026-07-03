@@ -191,7 +191,7 @@ limactl start --name sandbox-arm64 --cpus 18 --memory 32 --disk 2000 --set '.use
 Then configure it to start automatically in the background:
 
 ```sh
-limactl start-at-login sandbox-arm64
+limactl autostart enable sandbox-arm64
 ```
 
 Enable Lima's SSH setup:
