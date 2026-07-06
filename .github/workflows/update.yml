@@ -53,7 +53,11 @@ jobs:
       - name: Build updated closure
         run: echo "NEW=$(nix build --print-build-logs --no-link --print-out-paths '.#${{ matrix.attr }}')" >> "$GITHUB_ENV"
       - name: Diff closures
-        run: nix store diff-closures "$OLD" "$NEW" | tee "${{ matrix.name }}.diff"
+        # Use dix (the same tool `nh` uses) so the diff matches what
+        # `nh {os,home} switch` shows. `--color never` keeps ANSI escape codes
+        # out of the artifact; `nix store diff-closures` emits them even to a
+        # pipe (https://github.com/NixOS/nix/blob/master/src/nix/diff-closures.cc).
+        run: nix run nixpkgs#dix -- --color never "$OLD" "$NEW" | tee "${{ matrix.name }}.diff"
       - uses: actions/upload-artifact@v7
         with:
           name: diff-${{ matrix.name }}
