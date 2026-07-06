@@ -183,9 +183,10 @@ Similarly, the ARM Linux config can be used for a Linux virtual machine on macOS
 - The username and home directory location must be set to match what this Home Manager config expects.
 - Lima mounts the host-side home directory to the same path in the VM by default, so we disable that for security purposes.
 - By default Lima only gives the VM [user-mode networking](https://lima-vm.io/docs/config/network/user-v2/) (a userspace TCP/IP stack on the host), and SSH reaches the VM via a port forward through that stack, which adds enough per-packet latency to make interactive SSH typing lag. We add a [`vzNAT`](https://lima-vm.io/docs/config/network/vmnet/) interface so the VM also gets a real IP on Apple's `vmnet` network (the same `192.168.64.0/24` network, and mechanism, that Tart uses), reachable directly from the host. SSH straight to that IP to get the low-latency path. This requires `vmType: vz`, which is the default on Apple Silicon.
+- Nested virtualization is necessary for KVM to be available inside the VM.
 
 ```sh
-limactl start --name sandbox-arm64 --cpus 18 --memory 32 --disk 2000 --set '.user.name = "agent-arm64" | .user.home = "/home/agent-arm64" | .mounts = [] | .networks = [{"vzNAT": true}]' template:ubuntu
+limactl start --name sandbox-arm64 --cpus 18 --memory 32 --disk 2000 --set '.user.name = "agent-arm64" | .user.home = "/home/agent-arm64" | .mounts = [] | .networks = [{"vzNAT": true}] | .nestedVirtualization = true' template:ubuntu
 ```
 
 Then configure it to start automatically in the background:
