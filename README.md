@@ -255,6 +255,46 @@ And run this repo's script to generate `~/.ssh/tailnet`:
 tailnet
 ```
 
+### Cellular hotspot MTU
+
+When the Mac is connected to the Internet through a cellular hotspot, the end-to-end path may not support the 1500-byte MTU that the `vzNAT` interface advertises, causing a [path MTU black hole](https://en.wikipedia.org/wiki/Path_MTU_Discovery#Problems): DNS, `ping`, and TCP handshakes all work, but HTTPS connections hang right after sending the TLS ClientHello, so tools like `apt` (against HTTPS repos) and Claude Code time out while small-packet traffic looks healthy.
+
+The `vzNAT` interface is normally named `lima0`, and it takes priority over Lima's user-mode `eth0` because of its lower route metric. Confirm that Internet traffic uses it:
+
+```sh
+ip route get 8.8.8.8
+```
+
+Then lower its MTU (use 1280 instead if 1400 still fails):
+
+```sh
+sudo ip link set dev lima0 mtu 1400
+```
+
+To make that persist across reboots, create a Netplan override, substituting the MAC address reported by `ip link show lima0`:
+
+```sh
+sudo tee /etc/netplan/99-lima-mtu.yaml >/dev/null <<'EOF'
+network:
+  version: 2
+  ethernets:
+    lima0:
+      match:
+        macaddress: "52:55:55:25:b0:2c"
+      mtu: 1400
+EOF
+sudo chmod 600 /etc/netplan/99-lima-mtu.yaml
+sudo netplan generate
+sudo netplan try
+```
+
+After rebooting, verify the setting and HTTPS connectivity:
+
+```sh
+ip link show lima0
+curl -fsS https://download.docker.com/ >/dev/null
+```
+
 ## [Tart](tart)
 
 This config can be used for macOS VMs created with [Tart](https://tart.run/), which comes with the host-side macOS config in this repo. First, download a macOS image:
