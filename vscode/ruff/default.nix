@@ -39,6 +39,15 @@ buildNpmPackage rec {
   # `npm run package` == webpack --mode production -> dist/extension.js
   npmBuildScript = "package";
 
+  # home-manager's vscode module reads these off each extension (unconditionally,
+  # via nixpkgs' vscode-utils `toExtensionJsonEntry`) to write extensions.json.
+  # nixpkgs' marketplace builder attaches them; a bare buildNpmPackage does not.
+  passthru = {
+    vscodeExtPublisher = "charliermarsh";
+    vscodeExtName = "ruff";
+    vscodeExtUniqueId = "charliermarsh.ruff";
+  };
+
   installPhase = ''
     runHook preInstall
 
