@@ -1,0 +1,21 @@
+diff --git a/src/common/server.ts b/src/common/server.ts
+index aba6275..9d02aae 100644
+--- a/src/common/server.ts
++++ b/src/common/server.ts
+@@ -203,16 +203,6 @@ export async function findRuffBinaryPath(
+         ]);
+         ruffBinaryPath = stdout.trim();
+       } catch (err) {
+-        vscode.window
+-          .showErrorMessage(
+-            "Unexpected error while trying to find the Ruff binary. See the logs for more details.",
+-            "Show Logs",
+-          )
+-          .then((selection) => {
+-            if (selection) {
+-              logger.channel.show();
+-            }
+-          });
+         logger.error(`Error while trying to find the Ruff binary: ${err}`);
+       }
+     } else {

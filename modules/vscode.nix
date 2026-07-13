@@ -7,7 +7,9 @@
         vscode = pkgs.vscode-extensions;
       in
       [
-        vscode.charliermarsh.ruff
+        # Built from source (see vscode/ruff) to drop the spurious binary-lookup
+        # modal; nixpkgs' prebuilt `vscode.charliermarsh.ruff` shows it.
+        (pkgs.callPackage ../vscode/ruff { })
         vscode.esbenp.prettier-vscode
         vscode.github.vscode-github-actions
         vscode.gplane.wasm-language-tools
