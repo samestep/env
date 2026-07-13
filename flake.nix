@@ -122,6 +122,12 @@
                         hash = "sha256-eyvz7XbZKUVQZdSVmDmYlHQSCKFE23OeIH4N4hNDg3M=";
                       };
                       vendorHash = "sha256-nwNDuE76fVncegDKI/Fztpc30NX8/shNbSfzkrwTPDk=";
+
+                      # until https://github.com/NixOS/nixpkgs/issues/536365
+                      nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+                        final.llvmPackages.lld
+                      ];
+                      NIX_CFLAGS_LINK = "-fuse-ld=lld";
                     });
                 })
               ];
