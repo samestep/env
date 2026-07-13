@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: "0 9 * * *"
   workflow_dispatch:
+  # Preview scaffolding: run on PRs that touch this workflow so the rendered
+  # Markdown can be inspected in the step summary before merging.
+  pull_request:
+    paths:
+      - .github/workflows/update.yml
 
 permissions:
   contents: write
@@ -22,99 +27,94 @@ jobs:
             flake.lock
             nix-flake-update.txt
 
-  nixos:
+  build:
     needs: lock
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: nixos, os: ubuntu-24.04, attr: nixosConfigurations.nixos.config.system.build.toplevel }
+          - { name: sam, os: ubuntu-24.04, attr: homeConfigurations.sam.activationPackage }
+          - { name: samueles, os: macos-26, attr: homeConfigurations.samueles.activationPackage }
+          - { name: agent-amd64, os: ubuntu-24.04, attr: homeConfigurations.agent-amd64.activationPackage }
+          - { name: agent-arm64, os: ubuntu-24.04-arm, attr: homeConfigurations.agent-arm64.activationPackage }
+          - { name: admin, os: macos-26, attr: homeConfigurations.admin.activationPackage }
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: cachix/install-nix-action@v31
       - uses: actions/checkout@v6
+      # Build the current closure first, while the checked-out flake.lock is
+      # still the one from the base branch.
+      - name: Build current closure
+        run: echo "OLD=$(nix build --print-build-logs --no-link --print-out-paths '.#${{ matrix.attr }}')" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v8
         with:
           name: flake.lock
-      - run: nix build --print-build-logs .#nixosConfigurations.nixos.config.system.build.toplevel
-
-  hm-nixos:
-    needs: lock
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: cachix/install-nix-action@v31
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v8
+      - name: Build updated closure
+        run: echo "NEW=$(nix build --print-build-logs --no-link --print-out-paths '.#${{ matrix.attr }}')" >> "$GITHUB_ENV"
+      - name: Diff closures
+        # Use dix (the same tool `nh` uses) so the diff matches what
+        # `nh {os,home} switch` shows. `--color never` keeps ANSI escape codes
+        # out of the artifact; `nix store diff-closures` emits them even to a
+        # pipe (https://github.com/NixOS/nix/blob/master/src/nix/diff-closures.cc).
+        run: nix run nixpkgs#dix -- --color never "$OLD" "$NEW" | tee "${{ matrix.name }}.diff"
+      - uses: actions/upload-artifact@v7
         with:
-          name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.sam.activationPackage
-
-  hm-macos:
-    needs: lock
-    runs-on: macos-26
-    steps:
-      - uses: cachix/install-nix-action@v31
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v8
-        with:
-          name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
-
-  hm-docker-x86:
-    needs: lock
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: cachix/install-nix-action@v31
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v8
-        with:
-          name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.agent-amd64.activationPackage
-
-  hm-docker-arm:
-    needs: lock
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: cachix/install-nix-action@v31
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v8
-        with:
-          name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.agent-arm64.activationPackage
-
-  hm-tart:
-    needs: lock
-    runs-on: macos-26
-    steps:
-      - uses: cachix/install-nix-action@v31
-      - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v8
-        with:
-          name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.admin.activationPackage
+          name: diff-${{ matrix.name }}
+          path: ${{ matrix.name }}.diff
 
   pr:
     needs:
       - lock
-      - nixos
-      - hm-nixos
-      - hm-macos
-      - hm-docker-x86
-      - hm-docker-arm
-      - hm-tart
+      - build
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
         with:
           name: flake.lock
+          path: ${{ runner.temp }}/lock
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: diff-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/diffs
       - name: Generate pull request body
         id: body
         run: |
+          cp "$RUNNER_TEMP/lock/flake.lock" flake.lock
+          {
+            echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo '## Flake input changes'
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/lock/nix-flake-update.txt"
+            echo '```'
+            echo
+            echo '## Package changes'
+            for f in "$RUNNER_TEMP"/diffs/*.diff; do
+              name="$(basename "$f" .diff)"
+              echo
+              echo "<details><summary><code>$name</code></summary>"
+              echo
+              echo '```'
+              if [ -s "$f" ]; then cat "$f"; else echo 'No changes.'; fi
+              echo '```'
+              echo
+              echo '</details>'
+            done
+          } > "$RUNNER_TEMP/body.md"
+          cat "$RUNNER_TEMP/body.md" >> "$GITHUB_STEP_SUMMARY"
           {
             echo 'body<<EOF'
-            echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-            echo '```'
-            cat nix-flake-update.txt
-            echo '```'
+            cat "$RUNNER_TEMP/body.md"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
-      - uses: peter-evans/create-pull-request@v8
+      # On real (scheduled / manual) runs, open the update PR with the same body
+      # that was just written to the step summary. Skipped for PR previews.
+      - if: github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: Update `flake.lock`
           branch: update
