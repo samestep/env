@@ -1,0 +1,24 @@
+diff --git a/pkg/autostart/launchd/io.lima-vm.autostart.INSTANCE.plist b/pkg/autostart/launchd/io.lima-vm.autostart.INSTANCE.plist
+index 0e777962..15c62d29 100644
+--- a/pkg/autostart/launchd/io.lima-vm.autostart.INSTANCE.plist
++++ b/pkg/autostart/launchd/io.lima-vm.autostart.INSTANCE.plist
+@@ -25,5 +25,7 @@
+ 	<string>{{ .WorkDir }}</string>
+ 	<key>ProcessType</key>
+ 	<string>Background</string>
++	<key>ExitTimeOut</key>
++	<integer>60</integer>
+ </dict>
+ </plist>
+diff --git a/pkg/autostart/launchd/io.lima-vm.daemon.INSTANCE.plist b/pkg/autostart/launchd/io.lima-vm.daemon.INSTANCE.plist
+index 2da849eb..5af817c9 100644
+--- a/pkg/autostart/launchd/io.lima-vm.daemon.INSTANCE.plist
++++ b/pkg/autostart/launchd/io.lima-vm.daemon.INSTANCE.plist
+@@ -27,5 +27,7 @@
+ 	<string>{{ .WorkDir }}</string>
+ 	<key>ProcessType</key>
+ 	<string>Background</string>
++	<key>ExitTimeOut</key>
++	<integer>60</integer>
+ </dict>
+ </plist>

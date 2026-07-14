@@ -122,6 +122,13 @@
                         hash = "sha256-eyvz7XbZKUVQZdSVmDmYlHQSCKFE23OeIH4N4hNDg3M=";
                       };
                       vendorHash = "sha256-nwNDuE76fVncegDKI/Fztpc30NX8/shNbSfzkrwTPDk=";
+                      # On SIGTERM, Lima's hostagent gracefully powers off the guest and
+                      # waits up to 30s for it to halt (pkg/driver/vz/vz_driver_darwin.go).
+                      # But its autostart plists set no ExitTimeOut, so launchd's 5s default
+                      # SIGKILLs the hostagent when the Mac shuts down --- force-killing the
+                      # guest mid-flush, which corrupts Git repos and drops recent writes.
+                      # Give the graceful stop room to finish (>= the driver's 30s timeout).
+                      patches = (old.patches or [ ]) ++ [ ./lima-exit-timeout.patch ];
                     });
                 })
               ];
