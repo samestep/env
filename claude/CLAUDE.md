@@ -6,6 +6,14 @@ You are in a virtual machine with passwordless `sudo`, a lot of RAM and disk spa
 
 Anytime you make a claim, think about whether it'd be possible to include a clickable URL that would make it easier for a human to verify that claim. If it is, do so.
 
+## Temporary files
+
+Never put scratch work in a directory like `/tmp` that will get deleted whenever the VM reboots. Instead, do something like this:
+
+```sh
+mkdir -p ./scratch && echo '*' > ./scratch/.gitignore
+```
+
 ## GitHub repositories
 
 The `~/github` directory holds clones of GitHub repositories. Anytime it would be useful to get any information about `github.com/$OWNER/$REPO`, use a clone of that repo in `~/github/$OWNER/$REPO`. Never use any other method to fetch information from GitHub unless the information does not exist in the Git repository itself. If the clone already exists, you may need to `git pull` if the commit you're interested in is more recent. If the clone does not already exist, simply create it and then use that. Since this VM doesn't have GitHub credentials, you need to clone via HTTPS:
