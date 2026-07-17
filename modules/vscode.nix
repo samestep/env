@@ -8,6 +8,7 @@
       in
       [
         vscode.charliermarsh.ruff
+        vscode.editorconfig.editorconfig
         vscode.esbenp.prettier-vscode
         vscode.github.vscode-github-actions
         vscode.gplane.wasm-language-tools
