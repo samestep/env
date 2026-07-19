@@ -367,4 +367,62 @@ sudo tailscale up --ssh --hostname=tahoe-vanilla
 
 Note that, without additional setup, this VM can only receive Tailscale SSH connections, and cannot SSH into other VMs on the tailnet.
 
+## Local DERP relay
+
+All three VMs are on a [Tailscale](https://tailscale.com/) tailnet, but each one sits behind its own layer of NAT (libvirt's `virbr0`, Lima's `vzNAT`, Tart's `vmnet`), and both physical machines are behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT) on T-Mobile 5G home internet. Tailscale therefore can't establish a [direct connection](https://tailscale.com/kb/1257/connection-types) between any two of them, and instead relays all their traffic through a [DERP](https://tailscale.com/kb/1232/derp-servers) server in the cloud — up over the slow 5G _upload_ and back down. The upshot is that copying a file between two of my own VMs (say a `nix copy` between build machines) crawls at ~1 MB/s, slower than downloading the same file from the internet.
+
+The fix is to run my own DERP relay on the always-on NixOS machine, so relayed traffic stays on the local network instead of hairpinning through the internet. It's configured in [`nixos/nixos/configuration.nix`](nixos/nixos/configuration.nix): a `derper` service, the firewall ports it needs, and `networking.networkmanager.wifi.powersave = false`. That last line is load-bearing — Tailscale chooses a relay purely by measured latency, and with Wi-Fi power saving on, this box's LAN round-trip was ~60–110 ms, no better than the cloud DERP, so Tailscale ignored the local one; with it off the hop is ~5 ms and the local relay wins. The NixOS machine does **not** join the tailnet: `derper` only forwards already-encrypted WireGuard packets, so it can neither read the traffic nor reach the VMs, and the point of keeping the hosts off the tailnet stands.
+
+No domain or ACME certificate is involved. Given an IP address for its `-hostname`, `derper` mints its own self-signed certificate, and the tailnet [DERP map](https://tailscale.com/kb/1118/custom-derp-servers) pins it by SHA256 hash. After the config is in place, a few manual steps finish the wiring:
+
+1. Pin the NixOS machine's IP, so the address `derper`'s certificate is issued for — and pinned to — doesn't drift. This gateway (an Arcadyan TMO-G4AR) exposes no DHCP settings at all, so rather than a reservation the box just holds a static address _below_ the gateway's DHCP pool (which hands out from the high end), set once on its Wi-Fi connection:
+
+   ```sh
+   nmcli -t -f NAME,TYPE con show --active | grep wireless  # find the connection name
+   sudo nmcli con mod "$CONN" ipv4.method manual \
+     ipv4.addresses 192.168.12.10/24 ipv4.gateway 192.168.12.1 ipv4.dns 192.168.12.1
+   sudo nmcli con up "$CONN"
+   ```
+
+   This modifies the existing connection in place, so the Wi-Fi PSK stays on the box — nothing secret lands in this repo. (On Ethernet it could instead be declared with `networking.interfaces`, no secret involved.)
+
+2. Rebuild, then read the ready-to-paste DERP node JSON (including the `sha256-raw:` certificate pin) that `derper` logs on first start:
+
+   ```sh
+   journalctl -u derper | grep -A1 'Configure it in DERPMap'
+   ```
+
+3. Add it to the tailnet policy under Access Controls, wrapped in a custom region. `OmitDefaultRegions` must stay `false` so the cloud DERPs remain a fallback when I'm away from home:
+
+   ```json
+   "derpMap": {
+     "OmitDefaultRegions": false,
+     "Regions": {
+       "900": {
+         "RegionID": 900,
+         "RegionCode": "home",
+         "RegionName": "Home LAN",
+         "Nodes": [
+           {
+             "Name": "home1",
+             "RegionID": 900,
+             "HostName": "192.168.12.10",
+             "IPv4": "192.168.12.10",
+             "IPv6": "none",
+             "DERPPort": 443,
+             "CertName": "sha256-raw:..."
+           }
+         ]
+       }
+     }
+   }
+   ```
+
+4. Confirm the VMs pick it up:
+
+   ```sh
+   tailscale netcheck            # "Home LAN" should be the nearest DERP, at ~5 ms
+   tailscale ping sandbox-amd64  # should report "via DERP(home)", not DERP(iad)
+   ```
+
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager

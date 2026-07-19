@@ -24,6 +24,12 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
+  # Disable Wi-Fi power saving. The default lets the card sleep between packets,
+  # which added ~60-110 ms to every LAN round-trip here — enough that Tailscale
+  # rated this box's local DERP (below) as no faster than its cloud DERP and
+  # refused to use it. Off, the LAN hop is ~5 ms and the local DERP wins.
+  networking.networkmanager.wifi.powersave = false;
+
   # Set your time zone.
   time.timeZone = "America/New_York";
 
@@ -105,11 +111,40 @@
   # Enable the OpenSSH daemon.
   # services.openssh.enable = true;
 
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
+  # Local Tailscale DERP relay. My sandbox VMs are on the tailnet but each sits
+  # behind per-VM NAT, and both physical machines are behind T-Mobile 5G CGNAT,
+  # so Tailscale can never punch a direct path and relays everything through a
+  # distant cloud DERP — up over the slow 5G uplink and back (~1 MB/s). Running a
+  # DERP here, on the always-on LAN box, keeps that relay on the local network:
+  # the VMs prefer it (lowest latency) at home and fall back to Tailscale's cloud
+  # DERPs when away. This host does NOT join the tailnet — derper only forwards
+  # already-encrypted WireGuard traffic, so it can neither read nor reach the VMs.
+  #
+  # Self-signed and cert-pinned in the tailnet DERP map, so no domain or ACME is
+  # involved. Given an IP-address -hostname, derper mints its own cert on first
+  # start and logs the exact DERPMap node JSON (including the `sha256-raw:` pin)
+  # to paste into the tailnet policy. Read it after deploying with:
+  #   journalctl -u derper | grep -A1 'Configure it in DERPMap'
+  #
+  # NB: the pinned IP below must stay put, or the cert/DERP-map pin will drift.
+  # This gateway (Arcadyan TMO-G4AR) has no DHCP settings to reserve one, so the
+  # box holds 192.168.12.10 as a static IP on its Wi-Fi connection (set once with
+  # `nmcli con mod`, below the gateway's DHCP pool so it can never collide).
+  networking.firewall.allowedTCPPorts = [ 443 ]; # derper HTTPS (the DERP itself)
+  networking.firewall.allowedUDPPorts = [ 3478 ]; # derper STUN (netcheck latency probe)
+  systemd.services.derper = {
+    description = "Tailscale DERP relay (self-signed, LAN-only)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.tailscale.derper}/bin/derper -a :443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
+      DynamicUser = true;
+      StateDirectory = "derper"; # persists the self-signed cert, so the pin is stable
+      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ]; # bind :443 as the dynamic user
+      Restart = "on-failure";
+    };
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
