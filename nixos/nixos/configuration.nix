@@ -138,7 +138,9 @@
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.tailscale.derper}/bin/derper -a :443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
+      # -c holds derper's own private key (created on first start). derper only
+      # defaults this path when run as root; under DynamicUser it must be explicit.
+      ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -a :443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
       DynamicUser = true;
       StateDirectory = "derper"; # persists the self-signed cert, so the pin is stable
       AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ]; # bind :443 as the dynamic user
