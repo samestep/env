@@ -43,7 +43,13 @@ Once installed, from the host machine over the tailnet:
   ssh -p 2222 agent@localhost      # into the Windows guest -> PowerShell
   ```
 
-  or as a one-liner: `ssh -J sandbox-amd64 -p 2222 agent@localhost`.
+  or, as a single command, `ssh win-amd64` (alias in [`ssh/config`](../ssh/config); run
+  `tailnet` once so `~/.ssh/tailnet` picks up its hostname). The alias uses `RemoteCommand`
+  to run the inner `ssh` *on* `sandbox-amd64`, so it authenticates with that host's key.
+  Note that `ssh -J sandbox-amd64 -p 2222 agent@localhost` does **not** work passwordlessly:
+  `-J` authenticates end-to-end, so the guest would need your local machine's key installed,
+  not sandbox-amd64's. (Because of `RemoteCommand`, `ssh win-amd64` is interactive-only — it
+  can't also take an ad-hoc command or be used for `scp`.)
 
 ## Enabling SSH → PowerShell
 
