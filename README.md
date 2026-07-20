@@ -230,7 +230,7 @@ curl -fsSL https://tailscale.com/install.sh | sh
 Connect to the tailnet:
 
 ```sh
-sudo tailscale up --ssh --hostname=sandbox-arm64
+sudo tailscale up --ssh --hostname=ubuntu
 ```
 
 And run this repo's script to generate `~/.ssh/tailnet`:
