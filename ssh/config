@@ -3,8 +3,8 @@ Include tailnet
 Host sandbox-amd64
   User agent-amd64
 
-Host sandbox-arm64
-  User agent-arm64
+Host ubuntu
+  User ubuntu
 
 Host tahoe-vanilla
   User admin

@@ -3,7 +3,7 @@ import json
 import subprocess
 from pathlib import Path
 
-HOSTS = ["sandbox-amd64", "sandbox-arm64", "tahoe-vanilla"]
+HOSTS = ["sandbox-amd64", "ubuntu", "tahoe-vanilla"]
 
 
 def main():

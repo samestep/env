@@ -17,12 +17,8 @@
         vscode.llvm-vs-code-extensions.vscode-clangd
         vscode.mkhl.direnv
         vscode.moss-lang.moss-vscode
-        vscode.ms-azuretools.vscode-containers
-        vscode.ms-azuretools.vscode-docker
         vscode.ms-python.python
         vscode.ms-python.vscode-pylance
-        vscode.ms-vscode-remote.remote-containers
-        vscode.ms-vscode-remote.remote-ssh
         vscode.ms-vscode.cmake-tools
         vscode.myriad-dreamin.tinymist
         vscode.ocamllabs.ocaml-platform
