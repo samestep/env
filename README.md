@@ -197,6 +197,12 @@ While adding the SSH key, you will need to type the password, which is `admin`. 
 ssh admin@$(tart ip ubuntu)
 ```
 
+Avoid ten-second hangs by enabling Ubuntu to resolve the local hostname:
+
+```sh
+echo "127.0.1.1 $(hostname)" | sudo tee -a /etc/hosts
+```
+
 Next, install Nix:
 
 ```sh
