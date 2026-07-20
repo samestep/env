@@ -179,10 +179,10 @@ By default, Tart doesn't give the VM all CPU cores, and only gives 8 GiB of RAM 
 tart set ubuntu --cpu 18 --memory 32768 --disk-size 2000
 ```
 
-Start up the VM:
+Start up the VM, optionally using the [`--nested`](https://tart.run/faq/#nested-virtualization-support) flag to enable KVM:
 
 ```sh
-tart run --no-graphics ubuntu
+tart run --no-graphics --nested ubuntu
 ```
 
 Leave that running and, in a different terminal, give the VM your public SSH key give the VM your public SSH key so you don't need to type the password each time you connect:
