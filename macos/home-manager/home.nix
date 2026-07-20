@@ -18,7 +18,6 @@
 
     packages = [
       pkgs.gh
-      pkgs.lima
       pkgs.tart
     ];
 

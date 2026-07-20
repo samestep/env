@@ -1,7 +1,7 @@
 { ... }:
 {
   home = {
-    # # https://nix-community.github.io/home-manager/release-notes.xhtml
+    # https://nix-community.github.io/home-manager/release-notes.xhtml
     stateVersion = "25.11";
 
     username = "agent-amd64";

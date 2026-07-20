@@ -49,20 +49,9 @@ ln -s ~/github/samestep/env ~/.config/home-manager
 nix run ~/github/samestep/env#home-manager switch
 ```
 
-## Docker ([x86](docker-x86) and [ARM](docker-arm))
+## [libvirt](sandbox-amd64)
 
-This repo also contains dedicated Home Manager configs for use in an Ubuntu Docker container; for instance:
-
-```sh
-docker build . -t agent
-docker create agent sleep infinity
-```
-
-Then in VS Code, start the container and [attach to it](https://code.visualstudio.com/docs/devcontainers/attach-container).
-
-## [libvirt](docker-x86)
-
-The Docker configs can also be used for virtual machines. First make sure you have [virt-manager](https://virt-manager.org/), virt-viewer, and the [libvirt NSS module](https://libvirt.org/nss.html) installed, as they are in this repo's NixOS config. Then make sure you've started the `default` network:
+This config can also be used for x86 Linux virtual machines on Linux. First make sure you have [virt-manager](https://virt-manager.org/), virt-viewer, and the [libvirt NSS module](https://libvirt.org/nss.html) installed, as they are in this repo's NixOS config. Then make sure you've started the `default` network:
 
 ```sh
 virsh -c qemu:///system net-start default
@@ -176,41 +165,36 @@ And run this repo's script to generate `~/.ssh/tailnet`:
 tailnet
 ```
 
-## [Lima](docker-arm)
+## [Tart (Linux)](ubuntu)
 
-Similarly, the ARM Linux config can be used for a Linux virtual machine on macOS, via [Lima](https://lima-vm.io/) which comes with the host-side macOS config in this repo. First create the VM:
-
-- The username and home directory location must be set to match what this Home Manager config expects.
-- Lima mounts the host-side home directory to the same path in the VM by default, so we disable that for security purposes.
-- By default Lima only gives the VM [user-mode networking](https://lima-vm.io/docs/config/network/user-v2/) (a userspace TCP/IP stack on the host), and SSH reaches the VM via a port forward through that stack, which adds enough per-packet latency to make interactive SSH typing lag. We add a [`vzNAT`](https://lima-vm.io/docs/config/network/vmnet/) interface so the VM also gets a real IP on Apple's `vmnet` network (the same `192.168.64.0/24` network, and mechanism, that Tart uses), reachable directly from the host. SSH straight to that IP to get the low-latency path. This requires `vmType: vz`, which is the default on Apple Silicon.
-- Nested virtualization is necessary for KVM to be available inside the VM.
+This config can be used for ARM Linux virtual machines on macOS, via [Tart](https://tart.run/) which comes with the host-side macOS config in this repo. First, download an Ubuntu image:
 
 ```sh
-limactl start --name sandbox-arm64 --cpus 18 --memory 32 --disk 2000 --set '.user.name = "agent-arm64" | .user.home = "/home/agent-arm64" | .mounts = [] | .networks = [{"vzNAT": true}] | .nestedVirtualization = true' template:ubuntu
+tart clone ghcr.io/cirruslabs/ubuntu:latest ubuntu
 ```
 
-Then configure it to start automatically in the background:
+By default, Tart doesn't give the VM all CPU cores, and only gives 8 GiB of RAM and 50 GB of disk space, so adjust those as appropriate:
 
 ```sh
-limactl autostart enable sandbox-arm64
+tart set ubuntu --cpu 18 --memory 32768 --disk-size 2000
 ```
 
-Enable Lima's SSH setup:
+Start up the VM:
 
 ```sh
-echo 'Include ~/.lima/*/ssh.config' >> ~/.ssh/config
+tart run --no-graphics ubuntu
 ```
 
-Then SSH into the new VM. The `lima-sandbox-arm64` alias enabled by the previous command is fine for things like Git remotes, but laggy for interactive SSH, so use the following command instead:
+Leave that running and, in a different terminal, give the VM your public SSH key give the VM your public SSH key so you don't need to type the password each time you connect:
 
 ```sh
-ssh -i ~/.lima/_config/user agent-arm64@lima-sandbox-arm64.local
+ssh-copy-id admin@$(tart ip ubuntu)
 ```
 
-That command will start squawking after a reboot unless you run the following in the VM:
+While adding the SSH key, you will need to type the password, which is `admin`. Then SSH into the VM:
 
 ```sh
-echo 'ssh_deletekeys: false' | sudo tee /etc/cloud/cloud.cfg.d/99-keep-ssh-host-keys.cfg
+ssh admin@$(tart ip ubuntu)
 ```
 
 Next, install Nix:
@@ -255,15 +239,15 @@ And run this repo's script to generate `~/.ssh/tailnet`:
 tailnet
 ```
 
-## [Tart](tart)
+## [Tart (macOS)](tahoe-vanilla)
 
-This config can be used for macOS VMs created with [Tart](https://tart.run/), which comes with the host-side macOS config in this repo. First, download a macOS image:
+This config can be used for macOS VMs, again using [Tart](https://tart.run/). First, download a macOS image:
 
 ```sh
 tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:latest tahoe-vanilla
 ```
 
-By default, Tart doesn't give the VM all CPU cores, and only gives 8 GiB of RAM and 50 GB of disk space, so adjust those as appropriate:
+Expand the provided CPU cores, RAM, and disk space:
 
 ```sh
 tart set tahoe-vanilla --cpu 18 --memory 16384 --disk-size 1000
@@ -317,13 +301,13 @@ Now shut down the VM again and reboot it once more, this time without graphics:
 tart run --no-graphics tahoe-vanilla
 ```
 
-Leave that running and, in a different terminal, give the VM your public SSH key give the VM your public SSH key so you don't need to type the password each time you connect:
+In a different terminal, give the VM your public SSH key, using the password `admin`:
 
 ```sh
 ssh-copy-id admin@$(tart ip tahoe-vanilla)
 ```
 
-While adding the SSH key, you will need to type the password, which is `admin`. Then SSH into the VM:
+Then SSH into the VM:
 
 ```sh
 ssh admin@$(tart ip tahoe-vanilla)
