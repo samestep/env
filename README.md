@@ -178,6 +178,8 @@ tailnet
 
 ## [Lima](docker-arm)
 
+> **Superseded:** the `aarch64-linux` VM now runs under Tart, not Lima, so it can share a vmnet bridge with the macOS VM — see [Fast VM-to-VM networking](#fast-vm-to-vm-networking-tart--softnet). These Lima steps are kept for reference.
+
 Similarly, the ARM Linux config can be used for a Linux virtual machine on macOS, via [Lima](https://lima-vm.io/) which comes with the host-side macOS config in this repo. First create the VM:
 
 - The username and home directory location must be set to match what this Home Manager config expects.
@@ -366,5 +368,27 @@ sudo tailscale up --ssh --hostname=tahoe-vanilla
 ```
 
 Note that, without additional setup, this VM can only receive Tailscale SSH connections, and cannot SSH into other VMs on the tailnet.
+
+## Fast VM-to-VM networking (Tart + softnet)
+
+Both sandbox VMs are on a [Tailscale](https://tailscale.com/) tailnet, but two VMs on the **same** Mac can't reach each other directly, so Tailscale relays their traffic through a [DERP](https://tailscale.com/kb/1232/derp-servers) server instead of taking the local path. The cause: Lima (`vzNAT`) and Tart (default) each put their guest behind Apple's per-VM NAT ([`VZNATNetworkDeviceAttachment`](https://developer.apple.com/documentation/virtualization/vznatnetworkdeviceattachment)), which turns on vmnet **bridge isolation** and blocks cross-VM traffic. There is no way to clear that isolation on the shared `bridge100`, and each tool's _non_-isolating mode (Lima's `socket_vmnet`, Tart's `softnet`) builds its own separate bridge — so a Lima guest and a Tart guest can never share one.
+
+The fix is to run **both** VMs under **Tart**, each on [softnet](https://github.com/cirruslabs/softnet) with isolation disabled:
+
+```sh
+tart run --no-graphics --net-softnet --net-softnet-allow=0.0.0.0/0 <vm>
+```
+
+`--net-softnet-allow=0.0.0.0/0` disables softnet's bridge isolation, so both VMs land on one shared vmnet (`192.168.2.0/24`) and reach each other directly — so Tailscale connects them directly instead of relaying. Verified: two softnet VMs land on `192.168.2.2`/`192.168.2.3` and ping each other at ~0.5 ms. This means the `aarch64-linux` VM moves from Lima to Tart — create it with `tart clone ghcr.io/cirruslabs/ubuntu:latest sandbox-arm64` and provision it with the [docker-arm](docker-arm) Home Manager config, exactly as the Lima VM was.
+
+Both VMs are autostarted by the LaunchAgents in [`macos/home-manager/home.nix`](macos/home-manager/home.nix). Two things Home Manager can't do for you:
+
+1. **softnet must be setuid root** to drive vmnet. After `home-manager switch` puts the `softnet` package on `PATH`, do the one-time privileged install (repeat whenever the `softnet` version changes):
+
+   ```sh
+   sudo install -o root -g wheel -m 4755 "$(command -v softnet)" /usr/local/bin/softnet
+   ```
+
+2. **The VMs start at login, not at boot.** A Virtualization.framework VM needs a user GUI session, so a boot-time `LaunchDaemon` can't run one — enable auto-login for a headless restart to bring the VMs back. (Tart + launchd autostart is new here and likely needs iteration; some of the startup/shutdown pain is macOS-intrinsic — the same session and DHCP-lease issues Lima had.)
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
