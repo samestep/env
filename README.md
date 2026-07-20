@@ -203,7 +203,13 @@ Next, install Nix:
 sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
 ```
 
-Clone this repo:
+Enable [flakes][]:
+
+```sh
+echo 'experimental-features = nix-command flakes' | sudo tee -a /etc/nix/nix.conf
+```
+
+After installing Nix you'll need to log back out and back in. Then clone this repo:
 
 ```sh
 git clone https://github.com/samestep/env.git ~/github/samestep/env
