@@ -218,7 +218,7 @@ git clone https://github.com/samestep/env.git ~/github/samestep/env
 Make a symlink for Home Manager:
 
 ```sh
-ln -fsT ~/github/samestep/env ~/.config/home-manager
+mkdir -p ~/.config && ln -fsT ~/github/samestep/env ~/.config/home-manager
 ```
 
 And activate the config:
