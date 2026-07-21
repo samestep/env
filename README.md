@@ -363,4 +363,95 @@ sudo tailscale up --ssh --hostname=tahoe-vanilla
 
 Note that, without additional setup, this VM can only receive Tailscale SSH connections, and cannot SSH into other VMs on the tailnet.
 
+## Nix remote builders
+
+The `ubuntu` VM (`aarch64-linux`) coordinates builds across the tailnet,
+offloading `x86_64-linux` to `sandbox-amd64` and `aarch64-darwin` to
+`tahoe-vanilla` over Tailscale SSH. This is what `npd -s x86_64-linux -s
+aarch64-linux -s aarch64-darwin` relies on. Beyond the SSH setup above, there are
+two non-obvious gotchas: declaring each builder's capabilities, and Ubuntu's
+AppArmor user-namespace restriction.
+
+### Declaring the builders
+
+On the coordinator, point `/etc/nix/nix.conf` at a machines file:
+
+```
+builders = @/etc/nix/machines
+builders-use-substitutes = false
+```
+
+and list one builder per line in `/etc/nix/machines`:
+
+```
+ssh://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - <base64 host key>
+ssh://agent-amd64@sandbox-amd64.tail1a09f6.ts.net x86_64-linux - 8 1 big-parallel,benchmark,kvm,nixos-test,uid-range - <base64 host key>
+```
+
+The fields are `URI system ssh-key max-jobs speed-factor features
+mandatory-features base64-host-key`. SSH goes through the `~/.ssh/tailnet` config
+(from the `tailnet` script), connecting as the user in each URI; because the
+nix-daemon runs builds as root, root — not just your user — must be able to reach
+each builder.
+
+The **features** field (6th) is the gotcha. Nix only dispatches a derivation to a
+builder whose line advertises **every** feature in the derivation's
+`requiredSystemFeatures`. NixOS VM tests — e.g. `lixPackageSets.*.lix.tests.misc`
+and `.lix.tests.installer` — set `requiredSystemFeatures = [ "kvm" "nixos-test" ]`,
+so the `x86_64-linux` line must advertise both (plus `uid-range`, used by some
+sandbox tests). If it doesn't, those derivations have no eligible builder and npd
+reports them as `❔` ("couldn't try to build") — even though `sandbox-amd64` fully
+supports them. Match the list to what the builder actually offers, which you can
+read on the builder itself:
+
+```sh
+ssh sandbox-amd64 'nix show-config | grep system-features'
+# system-features = benchmark big-parallel kvm nixos-test uid-range
+```
+
+The `tahoe-vanilla` line deliberately omits `kvm`/`nixos-test`: it can't run Linux
+VM tests. After editing `/etc/nix/machines`, restart the daemon so it re-reads the
+file:
+
+```sh
+sudo systemctl restart nix-daemon
+```
+
+### AppArmor user namespaces (Ubuntu builders)
+
+Ubuntu 23.10+ blocks unprivileged user namespaces by default
+(`kernel.apparmor_restrict_unprivileged_userns = 1`). Builds that create nested
+user namespaces — notably nix's and lix's own functional test suites — then fail:
+`unshare --user --map-root-user true` reports `Operation not permitted`, and e.g.
+lix's `installcheck` suite goes from `Fail: 0` to `Fail: 14`. Because the failure
+depends on the host's LSM policy rather than the derivation, it's effectively an
+impurity, and it shows up as a spurious build failure on these VMs while the same
+derivation builds fine on Hydra.
+
+NixOS and macOS are unaffected; the two Ubuntu VMs (`ubuntu` and `sandbox-amd64`)
+need the restriction disabled persistently:
+
+```sh
+echo 'kernel.apparmor_restrict_unprivileged_userns = 0' | sudo tee /etc/sysctl.d/99-nix-userns.conf
+sudo sysctl --system
+```
+
+Verify with `unshare --user --map-root-user echo ok`.
+
+### Known wart: shared `/tmp` on the macOS builder
+
+`tahoe-vanilla` runs with `sandbox = false`, so builds share the host's real
+`/tmp`. Tests that hardcode `/tmp` paths can then collide across builds: a
+directory created by one `_nixbld` user persists and blocks a later build running
+as a different `_nixbld` user (`PermissionError`). The concrete case seen so far
+is nixpkgs' `nixos-rebuild-ng` `test_make_tmpdir`, which uses `/tmp/not-too-long`
+and `/tmp/long…`. Clear the leftovers to unblock:
+
+```sh
+ssh tahoe-vanilla 'sudo rm -rf /tmp/not-too-long /tmp/long*'
+```
+
+The real fix is upstream (the test shouldn't hardcode shared `/tmp` paths); this
+is unrelated to whatever change triggered the rebuild.
+
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
