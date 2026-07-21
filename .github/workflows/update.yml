@@ -86,7 +86,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations."admin@tahoe-vanilla".activationPackage
+      - run: nix build --print-build-logs .#homeConfigurations."admin@Manageds-Virtual-Machine".activationPackage
 
   pr:
     needs:

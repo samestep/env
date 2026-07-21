@@ -162,7 +162,7 @@
               ./ubuntu/home-manager/home.nix
             ];
           };
-          "admin@tahoe-vanilla" = home-manager.lib.homeManagerConfiguration {
+          "admin@Manageds-Virtual-Machine" = home-manager.lib.homeManagerConfiguration {
             pkgs = import nixpkgs {
               system = "aarch64-darwin";
               overlays = [
