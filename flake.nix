@@ -19,6 +19,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-overlay.follows = "rust-overlay";
     };
+    npd = {
+      url = "github:samestep/npd";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
     moss = {
       url = "github:moss-lang/moss";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -34,6 +39,7 @@
       nix-index-database,
       rust-overlay,
       npc,
+      npd,
       moss,
     }:
     {
@@ -90,6 +96,7 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npd.overlays.default
                 moss.overlays.default
               ];
             };
@@ -108,6 +115,7 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npd.overlays.default
                 moss.overlays.default
               ];
             };
@@ -126,6 +134,7 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npd.overlays.default
                 moss.overlays.default
               ];
             };
@@ -142,6 +151,7 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npd.overlays.default
                 moss.overlays.default
               ];
             };
@@ -158,6 +168,7 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npd.overlays.default
                 moss.overlays.default
               ];
             };
