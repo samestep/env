@@ -236,11 +236,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784715559,
-        "narHash": "sha256-+qZnxKD/jgIlyTYVJYr59uahtr0I5Q9Aj4EDg00lOas=",
+        "lastModified": 1784815153,
+        "narHash": "sha256-RpslYw1KmnNj0dbnyKxvmZ2IOJnFrj8VBas+ygaKJzs=",
         "owner": "samestep",
         "repo": "npb",
-        "rev": "6e63b71d61cbc36feff3cf25b5cca781d4507d1a",
+        "rev": "3c9d37de0eed98ece06a0c6fa03ac852a38d1b13",
         "type": "github"
       },
       "original": {
