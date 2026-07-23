@@ -417,6 +417,67 @@ file:
 sudo systemctl restart nix-daemon
 ```
 
+### Capping build parallelism for memory
+
+Each builder runs with `cores = 0`, i.e. one compile job per core (nixpkgs hands
+`make`/`ninja` `-j$NIX_BUILD_CORES` = every core). That silently assumes each
+compile fits in roughly a gigabyte, which holds for almost everything — but a few
+packages are far heavier. `foundationdb` is the worst offender seen so far: its
+Flow actor compiler expands each source file into an enormous single translation
+unit, and with `-O3` (plus `-DUSE_LTO=ON` on Linux) a single `cc1plus` peaks at
+3–4 GiB. One job per core then asks for several times the RAM the machine has, and
+the result is OOM-killed compilers on Linux (`g++: fatal error: Killed signal
+terminated program cc1plus`, visible in `dmesg` as `Out of memory: Killed process
+… (cc1plus)`) and a thrashing, glacially slow build on macOS (the memory
+compressor swaps instead of killing, so it survives but crawls).
+
+The scarce resource is **RAM per core**, not total RAM or total cores — and all
+three builders are high-core / modest-RAM boxes, the worst shape for this:
+
+| builder         | system        | RAM    | cores | RAM/core |
+| --------------- | ------------- | ------ | ----- | -------- |
+| `ubuntu`        | aarch64-linux | 31 GiB | 18    | 1.7 GiB  |
+| `sandbox-amd64` | x86_64-linux  | 60 GiB | 32    | 1.9 GiB  |
+| `tahoe-vanilla` | aarch64-darwin | 16 GiB | 18   | 0.9 GiB  |
+
+Cap `cores` on each builder to about `RAM ÷ 4 GiB`, leaving headroom for the OS
+(and, on Linux, the serial LTO link step). The value lives in each machine's own
+`nix.conf`, so it belongs on the machine, not in the `npd` invocation (which has
+no flag to forward it):
+
+```sh
+# ubuntu (aarch64-linux, 31 GiB)
+echo 'cores = 6'  | sudo tee -a /etc/nix/nix.conf
+
+# sandbox-amd64 (x86_64-linux, 60 GiB)
+ssh sandbox-amd64 "echo 'cores = 12' | sudo tee -a /etc/nix/nix.conf"
+
+# tahoe-vanilla (aarch64-darwin, 16 GiB) — /etc/nix/nix.conf is
+# Determinate-managed, so append to the user include it already sources
+ssh tahoe-vanilla "echo 'cores = 3' | sudo tee -a /etc/nix/nix.custom.conf"
+```
+
+Because the builders above are `ssh://` (legacy `nix-store --serve`, not
+`ssh-ng://`), the coordinator does **not** forward its own `cores` to them — each
+build uses the remote machine's value — and a fresh serve process per SSH
+connection re-reads `nix.conf`, so no daemon restart is needed; the coordinator's
+local `aarch64-linux` builds pick it up from its own `nix.conf` the same way.
+Verify:
+
+```sh
+nix show-config | grep '^cores'
+ssh sandbox-amd64 nix show-config | grep '^cores'
+ssh tahoe-vanilla nix show-config | grep '^cores'
+```
+
+`cores` bounds parallelism **within** one derivation; the `max-jobs` field in
+`/etc/nix/machines` bounds how many derivations run on a builder at once. Peak
+memory is roughly `max-jobs × cores × per-job`, so keep both modest on the 16 GiB
+macOS box. This cap is coarse — it throttles every build, not just the hungry
+ones — but a machine-wide `cores` value is the only place a *machine's* RAM/core
+limit can be expressed today; see the note below on where a per-package or
+memory-aware fix would truly belong.
+
 ### AppArmor user namespaces (Ubuntu builders)
 
 Ubuntu 23.10+ blocks unprivileged user namespaces by default
@@ -453,5 +514,35 @@ ssh tahoe-vanilla 'sudo rm -rf /tmp/not-too-long /tmp/long*'
 
 The real fix is upstream (the test shouldn't hardcode shared `/tmp` paths); this
 is unrelated to whatever change triggered the rebuild.
+
+### Where the parallelism fix really belongs
+
+The per-machine `cores` cap above is the right place for a *machine's* RAM/core
+limit, but it's coarse: it throttles every build, not the handful that actually
+overcommit memory. A complete fix needs two facts that live in two different
+places — a package's peak memory per compile job, and a machine's RAM per core —
+and no layer combines them today:
+
+- **Per package, in nixpkgs.** A known-heavy derivation can pin its own compile
+  parallelism regardless of the builder, which spares every downstream user
+  (especially low-RAM CI) rather than just this tailnet. The established idiom is
+  `env.NIX_BUILD_CORES = <n>;` — e.g. `pkgs/applications/emulators/libretro/cores/mame2015.nix`
+  sets `8` for exactly this reason. A conservative cap on
+  [`foundationdb`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/fo/foundationdb/package.nix)
+  would prevent the OOM class while being invisible on Hydra's high-RAM builders
+  (the serial LTO link dominates its wall-clock anyway). The still-cleaner version
+  is an upstream CMake compile job pool (`CMAKE_JOB_POOL_COMPILE`), but the
+  one-line nixpkgs cap is the lowest-friction PR.
+- **In Nix itself.** Both `cores` and `max-jobs` are memory-blind — the scheduler
+  treats every job as equal cost. The only quantitative-ish hook that exists,
+  `requiredSystemFeatures = [ "big-parallel" ]`, is a boolean opt-in, not a memory
+  budget. The truly general fix is memory-aware scheduling: let a derivation
+  declare an expected footprint and have Nix bound concurrency by available RAM.
+  That's a long-standing gap, and it's where an everyone-benefits fix ultimately
+  lives.
+
+Until then: the machine-wide `cores` cap here is the pragmatic floor, and a
+package-level `env.NIX_BUILD_CORES` in nixpkgs is the highest-leverage thing to
+upstream.
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
