@@ -18,7 +18,18 @@
 
     packages = [
       pkgs.gh
-      pkgs.tart
+
+      # Shadows `tart` itself so that Ctrl-C on `tart run` asks the guest to
+      # shut down instead of cutting its power; `pkgs.tart` comes first on the
+      # wrapper's own PATH, so every other subcommand passes straight through.
+      (pkgs.writers.writePython3Bin "tart" {
+        makeWrapperArgs = [
+          "--prefix"
+          "PATH"
+          ":"
+          (lib.makeBinPath [ pkgs.tart ])
+        ];
+      } ../../bin/tart.py)
     ];
 
     # Necessary for `git send-email` to work.
