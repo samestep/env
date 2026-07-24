@@ -19,6 +19,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-overlay.follows = "rust-overlay";
     };
+    npb = {
+      url = "github:samestep/npb";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
     moss = {
       url = "github:moss-lang/moss";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -34,6 +39,7 @@
       nix-index-database,
       rust-overlay,
       npc,
+      npb,
       moss,
     }:
     {
@@ -90,6 +96,7 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -108,22 +115,8 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npb.overlays.default
                 moss.overlays.default
-                (final: prev: {
-                  lima =
-                    assert final.lib.assertMsg (final.lib.versionOlder prev.lima.version "2.2.0")
-                      "Nixpkgs now ships Lima ${prev.lima.version} (>= 2.2.0); check if this fix is merged: https://github.com/lima-vm/lima/pull/5088";
-                    prev.lima.overrideAttrs (old: {
-                      version = "2.2.0-unstable-2026-07-02";
-                      src = final.fetchFromGitHub {
-                        owner = "resker";
-                        repo = "lima";
-                        rev = "f14b343a14f38490a76b9bac144fce1a3cf43d0b";
-                        hash = "sha256-eyvz7XbZKUVQZdSVmDmYlHQSCKFE23OeIH4N4hNDg3M=";
-                      };
-                      vendorHash = "sha256-nwNDuE76fVncegDKI/Fztpc30NX8/shNbSfzkrwTPDk=";
-                    });
-                })
               ];
             };
             modules = [
@@ -141,6 +134,7 @@
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -148,15 +142,16 @@
               nix-index-database.homeModules.default
               ./modules/base.nix
               ./modules/yolo.nix
-              ./docker-x86/home-manager/home.nix
+              ./sandbox-amd64/home-manager/home.nix
             ];
           };
-          "agent-arm64" = home-manager.lib.homeManagerConfiguration {
+          "admin@ubuntu" = home-manager.lib.homeManagerConfiguration {
             pkgs = import nixpkgs {
               system = "aarch64-linux";
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -164,15 +159,16 @@
               nix-index-database.homeModules.default
               ./modules/base.nix
               ./modules/yolo.nix
-              ./docker-arm/home-manager/home.nix
+              ./ubuntu/home-manager/home.nix
             ];
           };
-          "admin" = home-manager.lib.homeManagerConfiguration {
+          "admin@Manageds-Virtual-Machine" = home-manager.lib.homeManagerConfiguration {
             pkgs = import nixpkgs {
               system = "aarch64-darwin";
               overlays = [
                 commaOverlay
                 npc.overlays.default
+                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -180,7 +176,7 @@
               nix-index-database.homeModules.default
               ./modules/base.nix
               ./modules/yolo.nix
-              ./tart/home-manager/home.nix
+              ./tahoe-vanilla/home-manager/home.nix
             ];
           };
         };

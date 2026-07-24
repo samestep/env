@@ -37,7 +37,7 @@ ssh sandbox-amd64
 For the `aarch64-linux` VM:
 
 ```sh
-ssh sandbox-arm64
+ssh ubuntu
 ```
 
 For the `aarch64-darwin` VM:

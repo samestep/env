@@ -55,7 +55,7 @@ jobs:
           name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.samueles.activationPackage
 
-  hm-docker-x86:
+  hm-sandbox-amd64:
     needs: lock
     runs-on: ubuntu-24.04
     steps:
@@ -66,7 +66,7 @@ jobs:
           name: flake.lock
       - run: nix build --print-build-logs .#homeConfigurations.agent-amd64.activationPackage
 
-  hm-docker-arm:
+  hm-ubuntu:
     needs: lock
     runs-on: ubuntu-24.04-arm
     steps:
@@ -75,9 +75,9 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.agent-arm64.activationPackage
+      - run: nix build --print-build-logs .#homeConfigurations."admin@ubuntu".activationPackage
 
-  hm-tart:
+  hm-tahoe-vanilla:
     needs: lock
     runs-on: macos-26
     steps:
@@ -86,7 +86,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: flake.lock
-      - run: nix build --print-build-logs .#homeConfigurations.admin.activationPackage
+      - run: nix build --print-build-logs .#homeConfigurations."admin@Manageds-Virtual-Machine".activationPackage
 
   pr:
     needs:
@@ -94,9 +94,9 @@ jobs:
       - nixos
       - hm-nixos
       - hm-macos
-      - hm-docker-x86
-      - hm-docker-arm
-      - hm-tart
+      - hm-sandbox-amd64
+      - hm-ubuntu
+      - hm-tahoe-vanilla
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
