@@ -24,7 +24,7 @@ ESCALATION = [
 DARWIN_HINT = """\
 tart: macOS guests only surface this as a dialog, which you cannot answer
 tart: while headless. Shut it down from inside the guest instead:
-tart:     ssh {name} sudo shutdown -h now"""
+tart:     ssh admin@$(tart ip {name}) sudo shutdown -h now"""
 
 
 def find_vm(args: list[str]) -> tuple[str, str] | None:
