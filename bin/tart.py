@@ -1,3 +1,4 @@
+import json
 import os
 import signal
 import subprocess
@@ -17,12 +18,45 @@ ESCALATION = [
     (signal.SIGKILL, "killing tart"),
 ]
 
+# On macOS guests requestStop() only raises a confirmation dialog, which
+# nobody can answer while the VM is headless, so the request hangs there
+# forever. Say so, rather than letting Ctrl-C look like it did nothing.
+DARWIN_HINT = """\
+tart: macOS guests only surface this as a dialog, which you cannot answer
+tart: while headless. Shut it down from inside the guest instead:
+tart:     ssh {name} sudo shutdown -h now"""
+
+
+def find_vm(args: list[str]) -> tuple[str, str] | None:
+    """Return the (name, OS) of whichever argument names a VM."""
+    for arg in args:
+        if arg.startswith("-"):
+            continue
+        try:
+            probe = subprocess.run(
+                ["tart", "get", arg, "--format", "json"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if probe.returncode == 0:
+            try:
+                return arg, json.loads(probe.stdout)["OS"]
+            except (json.JSONDecodeError, KeyError):
+                return None
+    return None
+
 
 def main() -> None:
     args = sys.argv[1:]
     # Every other subcommand is left alone; PATH puts the real tart first.
     if not args or args[0] != "run":
         os.execvp("tart", ["tart", *args])
+
+    vm = find_vm(args[1:])
+    hint = DARWIN_HINT.format(name=vm[0]) if vm and vm[1] == "darwin" else None
 
     proc: subprocess.Popen[bytes] | None = None
     stage = 0
@@ -34,6 +68,8 @@ def main() -> None:
         sig, message = ESCALATION[stage]
         stage += 1
         print(f"tart: {message}", file=sys.stderr)
+        if stage == 1 and hint is not None:
+            print(hint, file=sys.stderr)
         proc.send_signal(sig)
 
     # Handle SIGTERM the same way: macOS sends it to surviving processes at
