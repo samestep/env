@@ -18,7 +18,15 @@
 
     packages = [
       pkgs.gh
-      pkgs.tart
+
+      (pkgs.writers.writePython3Bin "tart" {
+        makeWrapperArgs = [
+          "--prefix"
+          "PATH"
+          ":"
+          (lib.makeBinPath [ pkgs.tart ])
+        ];
+      } ../../bin/tart.py)
     ];
 
     # Necessary for `git send-email` to work.
