@@ -18,9 +18,6 @@ def main() -> None:
         if proc is None:
             return
         elif ask_nicely:
-            print()
-            print("asking the guest to shut down; ^C again to force")
-            print("(for macOS guests this won't work; use SSH instead)")
             proc.send_signal(signal.SIGUSR2)
             ask_nicely = False
         else:
