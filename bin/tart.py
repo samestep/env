@@ -11,7 +11,7 @@ def main() -> None:
         os.execvp("tart", ["tart", *args])
 
     proc: subprocess.Popen[bytes] | None = None
-    ask_nicely = False
+    ask_nicely = True
 
     def interrupt(signalnum: int, frame: FrameType | None) -> None:
         nonlocal ask_nicely
