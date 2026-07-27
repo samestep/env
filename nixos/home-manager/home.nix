@@ -51,13 +51,6 @@
       configPath = "${config.xdg.configHome}/mozilla/firefox";
     };
 
-    ghostty = {
-      enable = true;
-      package = pkgs.ghostty.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [
-          ./ghostty-gtk-tab-overview-live-thumbnails.patch
-        ];
-      });
-    };
+    ghostty.enable = true;
   };
 }
