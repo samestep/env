@@ -394,6 +394,17 @@ mandatory-features base64-host-key`. SSH goes through the `~/.ssh/tailnet` confi
 nix-daemon runs builds as root, root — not just your user — must be able to reach
 each builder.
 
+The 4th field is the **coordinator's** slot count for that builder — how many
+derivations it will keep in flight there — and is unrelated to that builder's
+own `max-jobs` in its `nix.conf`, which governs only builds the machine starts
+for itself. The coordinator's own system gets no line in `machines`; its local
+parallelism comes from its own `max-jobs`, and **Nix defaults that to 1**. So a
+coordinator that never sets it builds its own architecture strictly serially
+while fanning 6 and 8 jobs out to the two remotes. In `npb` that shows up as the
+local system apparently having far more work left than the others, long after
+both remotes have gone idle — the queues are the same size, the local one just
+drains one derivation at a time.
+
 The **features** field (6th) is the gotcha. Nix only dispatches a derivation to a
 builder whose line advertises **every** feature in the derivation's
 `requiredSystemFeatures`. NixOS VM tests — e.g. `lixPackageSets.*.lix.tests.misc`
@@ -440,21 +451,53 @@ three builders are high-core / modest-RAM boxes, the worst shape for this:
 | `sandbox-amd64` | x86_64-linux  | 60 GiB | 32    | 1.9 GiB  |
 | `tahoe-vanilla` | aarch64-darwin | 16 GiB | 18   | 0.9 GiB  |
 
-Cap `cores` on each builder to about `RAM ÷ 4 GiB`, leaving headroom for the OS
-(and, on Linux, the serial LTO link step). The value lives in each machine's own
-`nix.conf`, so it belongs on the machine, not in the `npd` invocation (which has
-no flag to forward it):
+Capping `cores` is what that incident called for, but `cores` bounds only
+**one** job. The real budget is `max-jobs × cores`, so sizing `cores` to `RAM ÷
+4 GiB` while leaving `max-jobs` alone quietly assumes `max-jobs = 1`. On the
+coordinator that happened to be true, because 1 is Nix's default and nothing had
+ever set it; on `sandbox-amd64`, `max-jobs = 8` with `cores = 12` meant up to 96
+concurrent compilers on 32 CPUs. Budget the two together, against each machine's
+CPU count:
+
+| machine         | CPU | RAM    | `cores` | jobs | compile slots              |
+| --------------- | --- | ------ | ------- | ---- | -------------------------- |
+| `ubuntu`        | 18  | 31 GiB | 4       | 4    | 16 (2 left for the driver) |
+| `sandbox-amd64` | 32  | 60 GiB | 4       | 8    | 32                         |
+| `tahoe-vanilla` | 18  | 16 GiB | 3       | 6    | 18                         |
+
+`jobs × cores ≈ CPU count` is the whole rule. Overshooting it isn't more
+concurrency, just more contention — a machine cannot run more compilers than it
+has cores, and oversubscription spends cache locality and RAM headroom for
+nothing. Keeping `cores` near 4 lets a lone heavy package still parallelize
+while leaving room for several packages in flight, which is what a mass rebuild
+actually wants. `ubuntu` stops two CPUs short because it is also the driver:
+`npb`, `nix-eval-jobs`, `nom`, and NAR decompression for both remotes' outputs
+all run there.
+
+The RAM tail is deliberately **not** budgeted for. Per-job memory is nowhere
+near normally distributed — nearly everything fits in well under a gigabyte, and
+a handful of packages want 3–4 GiB per compiler — so a budget that survived a
+concurrent pair of `foundationdb`-class builds would have to throttle the other
+99.9% to match, and no setting can tell the two apart in advance. Run at CPU
+width and accept the occasional OOM instead. In `npb` that costs a sticky
+`Failed` observation plus `DepFailed` on its dependents, cleared by re-running
+with `--retry` or by the drv building out of band — recoverable and rare, where
+the throttle would be permanent and universal.
+
+`cores` lives in each machine's own `nix.conf`, so it belongs on the machine,
+not in the `npb` invocation (which has no flag to forward it):
 
 ```sh
-# ubuntu (aarch64-linux, 31 GiB)
-echo 'cores = 6'  | sudo tee -a /etc/nix/nix.conf
+# ubuntu (aarch64-linux, 18 CPU / 31 GiB) — the driver, so leave 2 CPUs idle
+printf 'cores = 4\nmax-jobs = 4\n' | sudo tee -a /etc/nix/nix.conf
 
-# sandbox-amd64 (x86_64-linux, 60 GiB)
-ssh sandbox-amd64 "echo 'cores = 12' | sudo tee -a /etc/nix/nix.conf"
+# sandbox-amd64 (x86_64-linux, 32 CPU / 60 GiB) — its max-jobs was already 8
+ssh sandbox-amd64 "echo 'cores = 4' | sudo tee -a /etc/nix/nix.conf"
 
-# tahoe-vanilla (aarch64-darwin, 16 GiB) — /etc/nix/nix.conf is
-# Determinate-managed, so append to the user include it already sources
-ssh tahoe-vanilla "echo 'cores = 3' | sudo tee -a /etc/nix/nix.custom.conf"
+# tahoe-vanilla (aarch64-darwin, 18 CPU / 16 GiB) — /etc/nix/nix.conf is
+# Determinate-managed (and sets max-jobs = auto), so append to the user include
+# it already sources, which is read after and overrides it
+ssh tahoe-vanilla "printf 'cores = 3\nmax-jobs = 6\n' | sudo tee -a /etc/nix/nix.custom.conf"
 ```
 
 Because the builders above are `ssh://` (legacy `nix-store --serve`, not
@@ -465,18 +508,58 @@ local `aarch64-linux` builds pick it up from its own `nix.conf` the same way.
 Verify:
 
 ```sh
-nix show-config | grep '^cores'
-ssh sandbox-amd64 nix show-config | grep '^cores'
-ssh tahoe-vanilla nix show-config | grep '^cores'
+nix config show | grep -E '^(cores|max-jobs) '
+ssh sandbox-amd64 nix config show | grep -E '^(cores|max-jobs) '
+ssh tahoe-vanilla nix config show | grep -E '^(cores|max-jobs) '
 ```
 
-`cores` bounds parallelism **within** one derivation; the `max-jobs` field in
-`/etc/nix/machines` bounds how many derivations run on a builder at once. Peak
-memory is roughly `max-jobs × cores × per-job`, so keep both modest on the 16 GiB
-macOS box. This cap is coarse — it throttles every build, not just the hungry
-ones — but a machine-wide `cores` value is the only place a *machine's* RAM/core
+The cap is still coarse — it throttles every build, not just the hungry ones —
+but a machine-wide `cores` value is the only place a *machine's* RAM-per-core
 limit can be expressed today; see the note below on where a per-package or
 memory-aware fix would truly belong.
+
+### Building from `sandbox-amd64` instead
+
+`ubuntu` is the usual coordinator, but `sandbox-amd64` has its own
+`/etc/nix/machines` and can drive all three systems too. Two things to know.
+
+Its `aarch64-linux` line originally pointed at
+`ssh://agent-arm64@sandbox-arm64`, a VM since deleted and replaced by `ubuntu` —
+a stale entry costs you a hang against a host that no longer answers rather than
+an error, so repoint it (and give each builder the slot count its own `cores`
+implies, so both coordinators agree):
+
+```
+ssh://admin@ubuntu.tail1a09f6.ts.net aarch64-linux - 4 1 big-parallel,benchmark,kvm,nixos-test,uid-range - -
+ssh://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - -
+```
+
+Both key fields are `-`: Tailscale SSH handles authentication, so no identity
+file is needed, and host verification falls to root's `known_hosts` rather than a
+key pinned in the line.
+
+Second, the direction matters for **trust**. A remote builder imports store
+paths into the target, so the user in the URI must appear in the *target's*
+`trusted-users`. `sandbox-amd64` already lists `agent-amd64` for connections
+from `ubuntu`; `ubuntu` had only the default `root`, so builds arriving from
+`sandbox-amd64` as `admin` failed with `error: you are not privileged to build
+input-addressed derivations`. Grant it (no real escalation — `admin` already has
+passwordless `sudo`):
+
+```sh
+echo 'trusted-users = root admin' | sudo tee -a /etc/nix/nix.conf
+sudo systemctl restart nix-daemon
+```
+
+Unlike `cores` and `max-jobs`, which every new client re-reads from `nix.conf`,
+`trusted-users` is read once when the daemon starts — so this one **does** need
+the restart, and the restart kills in-flight builds, so do it when nothing is
+building. Verify from the other side:
+
+```sh
+ssh sandbox-amd64 'nix build --no-link --impure --expr \
+  "(import <nixpkgs> { system = \"aarch64-linux\"; }).runCommand \"probe\" {} \"echo hi > \$out\""'
+```
 
 ### AppArmor user namespaces (Ubuntu builders)
 
