@@ -23,7 +23,6 @@ in
     pkgs.cloc
     pkgs.comma
     pkgs.git
-    pkgs.nh # https://github.com/nix-community/nix-index/issues/317
     pkgs.nixfmt
     pkgs.npc
     pkgs.npb
@@ -43,6 +42,17 @@ in
         (pkgs.writers.writePython3Bin "doing" { } ../bin/doing.py)
         (pkgs.writers.writePython3Bin "flake" { } ../bin/flake.py)
         (pkgs.writers.writePython3Bin "ghcode" { } ../bin/ghcode.py)
+        # https://github.com/nix-community/nix-index/issues/317
+        # The wrapper gives `nh clean` a progress line while it collects
+        # garbage; the PATH prefix is what `nh` resolves to inside it.
+        (pkgs.writers.writePython3Bin "nh" {
+          makeWrapperArgs = [
+            "--prefix"
+            "PATH"
+            ":"
+            (lib.makeBinPath [ pkgs.nh ])
+          ];
+        } ../bin/nh.py)
         (pkgs.writers.writePython3Bin "scratch" { } ../bin/scratch.py)
         (pkgs.writers.writePython3Bin "shell" { } ../bin/shell.py)
         (pkgs.writers.writePython3Bin "title" { } ../bin/title.py)
