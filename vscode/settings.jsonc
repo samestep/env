@@ -56,6 +56,7 @@
   "terminal.integrated.allowChords": false,
   "terminal.integrated.inheritEnv": false, // Weird stuff happens otherwise.
   "terminal.integrated.suggest.enabled": false,
+  "vsrocq.proof.mode": 1, // Don't gate LSP facilities behind keybinds.
   "window.customTitleBarVisibility": "never",
   "window.titleBarStyle": "native", // Necessary to hide the title bar.
   "window.zoomLevel": 1,
