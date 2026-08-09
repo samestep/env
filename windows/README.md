@@ -81,16 +81,27 @@ New-ItemProperty 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell `
 On this image the normal `sshd` **Windows service crashes** when run as `LocalSystem`
 (`get_passwd: lookup_sid() failed: 1332` — an account/SID-mapping quirk of the minimal
 dockur image). Running `sshd.exe` as the `agent` user works instead, so run it from a
-**scheduled task at logon** (dockur auto-logs-in `agent`, so this starts sshd on every
-boot):
+**scheduled task at startup**, with an `S4U` principal so it runs whether or not anyone is
+logged on:
 
 ```powershell
 Set-Service sshd -StartupType Disabled                     # don't let the broken service fight for :22
 $a = New-ScheduledTaskAction -Execute C:\OpenSSH-Win64\sshd.exe
-$t = New-ScheduledTaskTrigger -AtLogOn
-$p = New-ScheduledTaskPrincipal -UserId agent -RunLevel Highest
-Register-ScheduledTask sshd-agent -Action $a -Trigger $t -Principal $p -Force
+$t = New-ScheduledTaskTrigger -AtStartup
+$p = New-ScheduledTaskPrincipal -UserId agent -LogonType S4U -RunLevel Highest
+$s = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) `
+  -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+Register-ScheduledTask sshd-boot -Action $a -Trigger $t -Principal $p -Settings $s -Force
 ```
+
+> [!IMPORTANT]
+> Use `-AtStartup` with `-LogonType S4U`, **not** `-AtLogOn` with the default `Interactive`
+> logon type. An interactive task inherits a console, and since Windows Terminal is the
+> default console host, `sshd` ends up parented to a `WindowsTerminal.exe` that then sits
+> there rendering forever — about 8% of a host CPU core, for nothing. Worse, it couples the
+> two: closing that Terminal window kills `sshd` and locks you out of the guest. With `S4U`,
+> `sshd` runs in session 0 with no console and no Terminal, and it no longer needs anyone
+> logged in — which is what makes [Idle CPU cost](#idle-cpu-cost) below possible.
 
 But a non-`SYSTEM` sshd authenticates fine and then **can't create the login session**
 (the SSH channel closes right after "Authenticated") because a normal admin lacks the
@@ -121,6 +132,57 @@ icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant S
 
 With `sandbox-amd64`'s key installed this way, the whole chain
 (you → `sandbox-amd64` via Tailscale SSH → guest via key) is passwordless.
+
+## Idle CPU cost
+
+This guest is meant to stay running continuously, so its **idle** cost matters. An idle
+Windows guest is never free here: it's doubly nested (bare metal → Linux VM → Windows), so
+every VM exit is handled by a KVM that is itself running in a VM, and there's no invariant
+TSC to lean on — `/proc/cpuinfo` on the Linux VM has neither `constant_tsc` nor
+`nonstop_tsc`, and QEMU warns `host doesn't support requested feature: ... invtsc` once per
+vCPU at every boot. The vCPUs sit halted ~80% of the time and still cost real host cycles.
+
+Measured on `sandbox-amd64` (steady state, nobody connected, as a percentage of one core of
+the host's Ryzen 9 9950X):
+
+| Configuration | Host CPU |
+| --- | --- |
+| 4 vCPUs, autologon + Terminal window left open | 71% |
+| 4 vCPUs, `sshd` decoupled from Windows Terminal | 60% |
+| **2 vCPUs, `sshd` via S4U task, no interactive logon** | **32%** |
+
+Three things get you from 71% to 32%:
+
+1. **`CPU_CORES: "2"`** in [`compose.yml`](compose.yml). Most of the idle cost is per-vCPU
+   ticking, so fewer vCPUs is the single biggest lever. (It doesn't halve cleanly — a
+   chunk of the work is fixed per-VM and just redistributes onto the remaining vCPUs.)
+2. **The S4U `sshd` task** above, which eliminates the always-on `WindowsTerminal.exe`.
+3. **Turning off autologon**, so no interactive session exists at all — no `explorer`, no
+   `dwm` compositing a real desktop, and no taskbar weather widget quietly running an
+   `msedgewebview2` process. This is only safe *because* of the S4U task; with the old
+   `-AtLogOn` task, no logon meant no `sshd`.
+
+   ```powershell
+   Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' `
+     -Name AutoAdminLogon -Value '0' -Type String
+   ```
+
+   You still get a desktop on demand — just log in as `agent` through RDP or the web viewer.
+
+Two things that are **not** worth chasing: Hyper-V enlightenments are already fully enabled
+(`hv_passthrough` resolves correctly even nested — `hv-synic`, `hv-stimer`,
+`hv-stimer-direct`, `hv-tlbflush`, `hv-ipi` et al. all come back `true` via `qom-get`), and
+KVM halt-polling is negligible here (under 0.1% of a core). The residual ~32% is the
+nesting itself; the only way to get to zero is `docker stop windows`.
+
+### Poking at a running guest without SSH
+
+If you break SSH (easy to do — see the warning above), you can still drive the guest from
+the Linux VM through QEMU's monitor socket, which dockur leaves at `/dev/shm/monitor.sock`
+inside the container. From the host side that's `/proc/<qemu-pid>/root/dev/shm/monitor.sock`,
+and it speaks HMP: `screendump /storage/shot.ppm` writes a screenshot into `storage/`, and
+`sendkey` types for you (`sendkey meta_l-r` for Win+R, then `sendkey s`, `sendkey c`, …,
+`sendkey ret`). That's enough to log in and re-run a scheduled task blind.
 
 ## ARM64 doesn't work
 
