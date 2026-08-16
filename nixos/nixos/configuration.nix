@@ -196,6 +196,24 @@
         timeout = 20;
       };
 
+      # The conversation agent's system prompt lives in Home Assistant's
+      # storage, not here, so it is not captured by a rebuild. The wording that
+      # actually works, after several that did not:
+      #
+      #   Your training data is out of date and your memory of current facts is
+      #   wrong.
+      #   Call GetDateTimeTool for the current date or time.
+      #   Call GetLiveContext for the state of anything in this house,
+      #   including the weather.
+      #   Call search_the_web for news, current events, prices, sports, or who
+      #   currently holds any office or title.
+      #   If you find yourself recalling a name, number or event from memory for
+      #   such a question, that recollection is stale: search instead.
+      #   Never say you lack access to current information. Only say you do not
+      #   know if a tool returned nothing useful.
+      #
+      # The last two lines matter most: an earlier version told it to say it did
+      # not know, which made it decline rather than reach for the tool.
       script.search_the_web = {
         alias = "Search the web";
         # This description is the tool description the model sees.
