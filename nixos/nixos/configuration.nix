@@ -199,10 +199,13 @@
   };
 
   # Wake word. Models are picked per-pipeline in the UI; `preloadModels` was
-  # removed in wyoming-openwakeword 2.0.
+  # removed in wyoming-openwakeword 2.0. Unlike the faster-whisper and piper
+  # modules this one has no `zeroconf` option, so Home Assistant never discovers
+  # it; upstream does support the flag, so pass it directly.
   services.wyoming.openwakeword = {
     enable = true;
     uri = "tcp://127.0.0.1:10400";
+    extraArgs = [ "--zeroconf" ];
   };
 
   # Only needed to build custom satellite firmware; the Voice PE works without it.
