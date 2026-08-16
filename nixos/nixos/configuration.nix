@@ -298,11 +298,30 @@
     device = "cpu";
   };
 
-  # Text to speech.
+  # Text to speech. Piper was archived upstream on 2025-10-06 and sounds every
+  # bit its age; kept only to A/B against Kokoro, and worth deleting once that
+  # comparison is settled.
   services.wyoming.piper.servers.en = {
     enable = true;
     uri = "tcp://127.0.0.1:10200";
     voice = "en-us-ryan-medium";
+  };
+
+  # Kokoro is an 82M StyleTTS2 model under Apache 2.0 and markedly more natural
+  # than Piper. Nothing in nixpkgs speaks Wyoming for it, so this is a
+  # third-party container: pinned by digest, loopback only, model baked into the
+  # image so there is no runtime download. Voices are listed at
+  # https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md
+  virtualisation.oci-containers = {
+    backend = "docker";
+    containers.kokoro-tts = {
+      image = "ghcr.io/relvacode/kokoro-wyoming@sha256:ff15cfb276045bd61662162d9f70c2596c1cb5acd345c3f62835b2aea397ba69";
+      ports = [ "127.0.0.1:10210:10210" ];
+      cmd = [
+        "--voice"
+        "af_heart"
+      ];
+    };
   };
 
   # Wake word. Models are picked per-pipeline in the UI; `preloadModels` was
