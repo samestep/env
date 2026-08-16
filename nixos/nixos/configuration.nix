@@ -205,8 +205,19 @@
   services.wyoming.openwakeword = {
     enable = true;
     uri = "tcp://127.0.0.1:10400";
+    # The package has no optional-dependencies to splice the way the
+    # faster-whisper module does, so take the extra from the wyoming library
+    # itself; `--zeroconf` is an ImportError without it.
+    package = pkgs.wyoming-openwakeword.overridePythonAttrs (old: {
+      dependencies = old.dependencies ++ pkgs.python3Packages.wyoming.optional-dependencies.zeroconf;
+    });
     extraArgs = [ "--zeroconf" ];
   };
+  # Zeroconf enumerates network interfaces, which needs netlink. The piper and
+  # faster-whisper modules add this themselves when their zeroconf option is on.
+  systemd.services.wyoming-openwakeword.serviceConfig.RestrictAddressFamilies = [
+    "AF_NETLINK"
+  ];
 
   # Only needed to build custom satellite firmware; the Voice PE works without it.
   services.esphome.enable = true;
