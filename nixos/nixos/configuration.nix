@@ -312,13 +312,17 @@
   # third-party container: pinned by digest, loopback only, model baked into the
   # image so there is no runtime download. Voices are listed at
   # https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md
+  # CUDA build, because synthesis on the CPU costs ~0.4 s of every reply. Only
+  # the nordwestt fork publishes a CUDA image; it reads voices from the model
+  # the same way, so Home Assistant still offers the full list.
+  hardware.nvidia-container-toolkit.enable = true;
   virtualisation.oci-containers = {
     backend = "docker";
     containers.kokoro-tts = {
-      image = "ghcr.io/relvacode/kokoro-wyoming@sha256:ff15cfb276045bd61662162d9f70c2596c1cb5acd345c3f62835b2aea397ba69";
+      image = "docker.io/nordwestt/kokoro-wyoming@sha256:fe2e5dd974a2e6f529b36f6d715feb81969e1addcb53931530b60174d6ab0ec3";
       ports = [ "127.0.0.1:10210:10210" ];
-      # This fork takes only --host/--port/--uri/--debug; the voice is chosen
-      # per request by Home Assistant rather than pinned on the command line.
+      environment.ONNX_PROVIDER = "CUDAExecutionProvider";
+      extraOptions = [ "--device=nvidia.com/gpu=all" ];
       cmd = [
         "--uri"
         "tcp://0.0.0.0:10210"
