@@ -13,6 +13,7 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ./kokoro.nix
   ];
 
   # Bootloader.
@@ -323,40 +324,10 @@
     voice = "en-us-ryan-medium";
   };
 
-  # Kokoro is an 82M StyleTTS2 model under Apache 2.0 and markedly more natural
-  # than Piper. Nothing in nixpkgs speaks Wyoming for it, so this is a
-  # third-party container: pinned by digest, loopback only, model baked into the
-  # image so there is no runtime download. Voices are listed at
-  # https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md
-  # This runs on the CPU, costing ~0.4 s per reply, and that is the best trade
-  # available. The published `cuda` image ships a CPU-only onnxruntime, so it
-  # cannot use the GPU at all; nixpkgs does have python3Packages.kokoro, but it
-  # is the torch build, and a CUDA torch is a multi-hour compile made
-  # uncacheable by the cudaCapabilities pin above. Neither is worth 0.3 s.
-  #
-  # pullImage rather than a registry pull so the image is a build input: it
-  # downloads during the rebuild instead of afterwards on first service start,
-  # and the unit no longer needs network-online.target.
-  virtualisation.oci-containers = {
-    backend = "docker";
-    containers.kokoro-tts = {
-      image = "ghcr.io/relvacode/kokoro-wyoming:v2025.1.1";
-      imageFile = pkgs.dockerTools.pullImage {
-        imageName = "ghcr.io/relvacode/kokoro-wyoming";
-        imageDigest = "sha256:ff15cfb276045bd61662162d9f70c2596c1cb5acd345c3f62835b2aea397ba69";
-        finalImageName = "ghcr.io/relvacode/kokoro-wyoming";
-        finalImageTag = "v2025.1.1";
-        os = "linux";
-        arch = "amd64";
-        hash = "sha256-SD5MMlMUkUKQtTOIUe9+r7NjuOTbFEdc3Xx7E2koa9Q=";
-      };
-      ports = [ "127.0.0.1:10210:10210" ];
-      cmd = [
-        "--uri"
-        "tcp://0.0.0.0:10210"
-      ];
-    };
-  };
+  # Kokoro, the other text to speech engine, is big enough to live in
+  # ./kokoro.nix: it is packaged there rather than pulled as a container, so
+  # that it can run on the GPU. It listens on 127.0.0.1:10210, as the container
+  # did, so Home Assistant's Wyoming entry for it does not change.
 
   # Wake word. Models are picked per-pipeline in the UI; `preloadModels` was
   # removed in wyoming-openwakeword 2.0. Unlike the faster-whisper and piper
