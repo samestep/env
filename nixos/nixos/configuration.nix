@@ -234,9 +234,12 @@
   # the world-readable Nix store, so mint one on first boot. This has to be its
   # own unit: systemd reads EnvironmentFile before any ExecStartPre of the
   # service that uses it.
+  # Order against searx-init, not searx: the module gives searx-init the same
+  # EnvironmentFile and searx.service requires it, so searx-init is what reads
+  # the file first and what fails if it is missing.
   systemd.services.searx-secret = {
-    wantedBy = [ "searx.service" ];
-    before = [ "searx.service" ];
+    wantedBy = [ "searx-init.service" ];
+    before = [ "searx-init.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
