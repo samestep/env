@@ -230,9 +230,30 @@
 
   # Private metasearch, so the assistant can look things up without handing the
   # query to Google. Loopback only; Home Assistant is the only client.
+  # SearXNG refuses to start on the stock secret key, and it shouldn't live in
+  # the world-readable Nix store, so mint one on first boot. This has to be its
+  # own unit: systemd reads EnvironmentFile before any ExecStartPre of the
+  # service that uses it.
+  systemd.services.searx-secret = {
+    wantedBy = [ "searx.service" ];
+    before = [ "searx.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      StateDirectory = "searx";
+      UMask = "0077";
+    };
+    script = ''
+      if [ ! -s /var/lib/searx/secret.env ]; then
+        printf 'SEARX_SECRET_KEY=%s\n' "$(head -c 32 /dev/urandom | base64)" \
+          > /var/lib/searx/secret.env
+      fi
+    '';
+  };
+
   services.searx = {
     enable = true; # Built-in HTTP server: configureUwsgi is for public instances.
-    environmentFile = "/var/lib/searx/secret.env"; # SEARX_SECRET_KEY=...
+    environmentFile = "/var/lib/searx/secret.env";
     settings = {
       server = {
         bind_address = "127.0.0.1";
