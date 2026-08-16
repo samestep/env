@@ -186,6 +186,64 @@
     config = {
       default_config = { };
       homeassistant.time_zone = config.time.timeZone;
+
+      # Queries the local SearXNG. Exposing the script below to Assist turns it
+      # into a tool the model can call, and ActionTool hands the response back,
+      # so this is how the assistant learns anything after its training cutoff.
+      rest_command.web_search = {
+        url = "http://127.0.0.1:${toString config.services.searx.settings.server.port}/search?q={{ query | urlencode }}&format=json";
+        method = "GET";
+        timeout = 20;
+      };
+
+      script.search_the_web = {
+        alias = "Search the web";
+        # This description is the tool description the model sees.
+        description = "Search the web for current information. Use this for news, current events, prices, or any question whose answer may have changed since training.";
+        fields.query = {
+          description = "What to search for";
+          example = "current president of the united states";
+          required = true;
+          selector.text = { };
+        };
+        sequence = [
+          {
+            action = "rest_command.web_search";
+            data.query = "{{ query }}";
+            response_variable = "raw";
+          }
+          {
+            # A script response has to be a dict: ServiceResponse is
+            # JsonObjectType | None, so returning a bare list would fail.
+            variables.results.snippets = ''
+              {{ (raw.content.results | default([]))[:5]
+                 | map(attribute='content') | select('string') | list }}'';
+          }
+          {
+            stop = "done";
+            response_variable = "results";
+          }
+        ];
+      };
+    };
+  };
+
+  # Private metasearch, so the assistant can look things up without handing the
+  # query to Google. Loopback only; Home Assistant is the only client.
+  services.searx = {
+    enable = true; # Built-in HTTP server: configureUwsgi is for public instances.
+    environmentFile = "/var/lib/searx/secret.env"; # SEARX_SECRET_KEY=...
+    settings = {
+      server = {
+        bind_address = "127.0.0.1";
+        port = 8888;
+        secret_key = "$SEARX_SECRET_KEY";
+        limiter = false; # Bot detection would reject Home Assistant's requests.
+      };
+      search.formats = [
+        "html"
+        "json"
+      ];
     };
   };
 
