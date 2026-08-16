@@ -317,9 +317,11 @@
     containers.kokoro-tts = {
       image = "ghcr.io/relvacode/kokoro-wyoming@sha256:ff15cfb276045bd61662162d9f70c2596c1cb5acd345c3f62835b2aea397ba69";
       ports = [ "127.0.0.1:10210:10210" ];
+      # This fork takes only --host/--port/--uri/--debug; the voice is chosen
+      # per request by Home Assistant rather than pinned on the command line.
       cmd = [
-        "--voice"
-        "af_heart"
+        "--uri"
+        "tcp://0.0.0.0:10210"
       ];
     };
   };
