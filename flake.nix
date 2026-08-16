@@ -1,7 +1,10 @@
 {
   inputs = {
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # nixos-unstable rather than nixpkgs-unstable: it gates on the NixOS test
+    # suite, and it runs ahead often enough to matter (it carried ollama 0.32.13
+    # while nixpkgs-unstable was still two days back on 0.32.7).
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
