@@ -182,6 +182,7 @@
     openFirewall = true; # Satellites and phones live on the LAN, not virbr0.
     extraComponents = [
       "assist_pipeline"
+      "demo" # Fake lights etc, so assistant evaluations have something to control.
       "esphome" # Voice Preview Edition and any other satellites.
       "met"
       "ollama"
@@ -191,6 +192,14 @@
     config = {
       default_config = { };
       homeassistant.time_zone = config.time.timeZone;
+
+      # Gives lights, switches, fans and covers with realistic names, which lets
+      # an evaluation grade "turn on the kitchen light" against actual state
+      # rather than against the wording of a refusal. Only a chosen handful are
+      # exposed to Assist — every exposed entity lands in the system prompt, so
+      # exposing all of them would inflate prefill and change what is measured.
+      # ("expose new entities" is off for the conversation assistant.)
+      demo = { };
 
       # Queries the local SearXNG. Exposing the script below to Assist turns it
       # into a tool the model can call, and ActionTool hands the response back,
