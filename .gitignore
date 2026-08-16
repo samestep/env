@@ -3,3 +3,4 @@ __pycache__/
 /.direnv/
 /nix-flake-update.txt
 /result*
+/.claude/

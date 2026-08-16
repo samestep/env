@@ -44,6 +44,8 @@
       };
       nixosConfigurations = {
         "nixos" = nixpkgs-stable.lib.nixosSystem {
+          # So the host can take individual packages from unstable.
+          specialArgs.nixpkgsUnstable = nixpkgs;
           modules = [ ./nixos/nixos/configuration.nix ];
         };
       };

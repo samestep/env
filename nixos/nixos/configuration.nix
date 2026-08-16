@@ -2,7 +2,12 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  nixpkgsUnstable,
+  ...
+}:
 
 {
   imports = [
@@ -391,8 +396,23 @@
   virtualisation.libvirtd.nss.enable = true;
   virtualisation.libvirtd.onShutdown = "shutdown"; # Else DHCP leases disappear.
 
-  # Build virt-install with Ubuntu 26.04 support.
   nixpkgs.overlays = [
+    # 26.05 ships ollama 0.32.3, which predates the Muse Glimmer architecture
+    # (added in 0.32.7). The unstable input is already pinned at exactly 0.32.7,
+    # so take it from there rather than overriding a buildGoModule by hand.
+    # Instantiating with `final.config` carries over allowUnfree and the
+    # cudaCapabilities pin, so this is still an sm_89-only build.
+    (final: prev: {
+      inherit
+        (import nixpkgsUnstable {
+          inherit (final.stdenv.hostPlatform) system;
+          inherit (final) config;
+        })
+        ollama-cuda
+        ;
+    })
+
+    # Build virt-install with Ubuntu 26.04 support.
     (final: prev: {
       osinfo-db = prev.osinfo-db.overrideAttrs (old: {
         src = final.fetchFromGitLab {
