@@ -157,12 +157,14 @@
     ];
   };
 
-  # Voice assistant. The wiring is deliberately split: Home Assistant's own
-  # intent matcher answers "turn off the kitchen light" in milliseconds without
-  # touching a model, and only unmatched utterances fall through to ollama.
-  # Routing everything through the LLM would be slower than the Alexa it's
-  # replacing. Pipelines and wake words are chosen in the UI, not here — these
-  # services announce themselves over zeroconf and Home Assistant discovers them.
+  # Voice assistant. Note that once ollama is given "Control Home Assistant",
+  # every command routes through it: assist_pipeline only handles GET_STATE and
+  # media search locally, and only when `prefer_local_intents` is on (it is off
+  # by default). So the LLM is on the critical path for "turn off the kitchen
+  # light", not just for open-ended questions — which is why the model here is
+  # the 3B-active one and why keeping its prompt prefix cached matters.
+  # Pipelines and wake words are chosen in the UI, not here; these services
+  # announce themselves over zeroconf and Home Assistant discovers them.
   services.home-assistant = {
     enable = true;
     openFirewall = true; # Satellites and phones live on the LAN, not virbr0.
