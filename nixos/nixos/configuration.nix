@@ -169,12 +169,14 @@
     ];
   };
 
-  # Voice assistant. Note that once ollama is given "Control Home Assistant",
-  # every command routes through it: assist_pipeline only handles GET_STATE and
-  # media search locally, and only when `prefer_local_intents` is on (it is off
-  # by default). So the LLM is on the critical path for "turn off the kitchen
-  # light", not just for open-ended questions — which is why the model here is
-  # the 3B-active one and why keeping its prompt prefix cached matters.
+  # Voice assistant. With `prefer_local_intents` on (a per-pipeline setting,
+  # off by default) the built-in sentence matcher answers anything it
+  # recognises without involving the model, so "turn off the kitchen light"
+  # comes back in milliseconds. The exceptions are GET_STATE and media search,
+  # which assist_pipeline deliberately withholds from the local path when the
+  # agent has control, so that state questions go to the model and it answers
+  # them with GetLiveContext. Measured: a matched command is ~0.01 s, anything
+  # reaching the model is ~1-3 s.
   # Pipelines and wake words are chosen in the UI, not here; these services
   # announce themselves over zeroconf and Home Assistant discovers them.
   services.home-assistant = {
