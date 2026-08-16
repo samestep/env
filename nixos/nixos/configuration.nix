@@ -130,6 +130,93 @@
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.nvidia.open = true;
 
+  # Keep the driver loaded so the first request to a cold GPU isn't slow.
+  hardware.nvidia.nvidiaPersistenced = true;
+
+  # The RTX 5880 Ada is compute capability 8.9; only build CUDA kernels for it.
+  nixpkgs.config.cudaCapabilities = [ "8.9" ];
+
+  # Models small enough to sit entirely in VRAM.
+  # https://wiki.nixos.org/wiki/Ollama
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-cuda;
+    host = "0.0.0.0"; # So libvirt guests can reach it at 192.168.122.1.
+    environmentVariables = {
+      OLLAMA_CONTEXT_LENGTH = "32768"; # Otherwise it's tiered off total VRAM.
+      OLLAMA_FLASH_ATTENTION = "1";
+      OLLAMA_KEEP_ALIVE = "30m"; # Don't evict a 30 GB model after five minutes.
+    };
+    # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
+    # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
+    loadModels = [
+      "qwen3.6:27b-mtp-q8_0" # 30 GB, index 38 — best quality that fits.
+      "qwen3.6:35b-a3b-q4_K_M" # 24 GB, index 32 — 3B active, ~3x the speed.
+    ];
+  };
+
+  # DeepSeek-V4-Flash is 284B parameters but only ~13B active, and 97% of it is
+  # expert weights, so `fit = "on"` parks those in system RAM and keeps
+  # attention and the KV cache on the GPU. That buys a much stronger model than
+  # anything that fits in VRAM alone, but measures 5.2 tok/s rather than the ~65
+  # the ollama models get: the CPU-side experts are bound by unpacking 3-bit
+  # weights, not by RAM bandwidth. Needs the sandbox VM shut down for its ~100 GB.
+  services.llama-cpp = {
+    enable = true;
+    package = (pkgs.llama-cpp.override { cudaSupport = true; }).overrideAttrs (
+      finalAttrs: prev: {
+        # nixpkgs ships b9190; DSpark speculative decoding landed in b10231.
+        version = "10448";
+        src = pkgs.fetchFromGitHub {
+          owner = "ggml-org";
+          repo = "llama.cpp";
+          tag = "b${finalAttrs.version}";
+          hash = "sha256-MFfSD/lewA6k7th+sTr0a5qSOEtSG5y2Zr5lP/15XGA=";
+          leaveDotGit = true;
+          postFetch = ''
+            git -C "$out" rev-parse --short HEAD > $out/COMMIT
+            find "$out" -name .git -print0 | xargs -0 rm -rf
+          '';
+        };
+        npmDepsHash = "sha256-2Q7XhaLAArmviOLdQsNbYTfdyDE5pW9lR26cRHEVl9k=";
+      }
+    );
+    host = "0.0.0.0";
+    port = 8081; # 8080 is Open WebUI.
+    # Router mode: nothing is loaded until the first request names the alias,
+    # so this service starting at boot costs nothing.
+    modelsPreset."DeepSeek-V4-Flash" = {
+      hf-repo = "unsloth/DeepSeek-V4-Flash-0731-GGUF";
+      hf-file = "UD-Q3_K_XL/DeepSeek-V4-Flash-0731-UD-Q3_K_XL-00001-of-00004.gguf";
+      alias = "deepseek-v4-flash";
+      fit = "on"; # Works out the CPU/GPU expert split itself.
+      # `fit` can't measure a dspark drafter's memory, so it would hand all the
+      # VRAM to the experts and leave the 10.4 GB draft model with nowhere to go.
+      fit-target = "13312";
+      spec-type = "draft-dspark"; # Also fetches DeepSeek's 11 GB drafter sidecar.
+      ctx-size = "32768";
+      jinja = "on";
+    };
+  };
+
+  # Only the VMs, not the whole LAN.
+  networking.firewall.interfaces."virbr0".allowedTCPPorts = [
+    config.services.ollama.port
+    config.services.llama-cpp.port
+  ];
+
+  # Chat UI at http://localhost:8080
+  services.open-webui = {
+    enable = true;
+    environment = {
+      ANONYMIZED_TELEMETRY = "False";
+      DO_NOT_TRACK = "True";
+      SCARF_NO_ANALYTICS = "True";
+      OLLAMA_API_BASE_URL = "http://127.0.0.1:${toString config.services.ollama.port}";
+      WEBUI_AUTH = "False"; # Single-user machine.
+    };
+  };
+
   # https://wiki.nixos.org/wiki/Virt-manager#Installation
   virtualisation.libvirtd.enable = true;
   programs.virt-manager.enable = true;
