@@ -151,9 +151,16 @@
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
+    # The dense model is the assistant, despite being 5x slower to generate.
+    # ollama 0.32.3 faults with "CUDA error: an illegal memory access was
+    # encountered" when qwen35moe does constrained decoding for tool calls with
+    # array/enum parameters — which is exactly what Home Assistant sends. It is
+    # intermittent, poisons the runner's CUDA context, and does not reproduce on
+    # the dense model. Generation speed is not the binding constraint for voice
+    # anyway: a 30-token reply is under half a second either way.
     loadModels = [
-      "qwen3.6:35b-a3b-q4_K_M" # 24 GB, index 32 — 3B active. The assistant.
-      "qwen3.6:27b-mtp-q8_0" # 30 GB, index 38 — best quality that fits.
+      "qwen3.6:27b-mtp-q8_0" # 30 GB, index 38. The assistant.
+      "qwen3.6:35b-a3b-q4_K_M" # 24 GB, index 32 — faster, but see above.
     ];
   };
 
