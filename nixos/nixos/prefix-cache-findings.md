@@ -497,3 +497,54 @@ compared `think=false` against `think=true` with the thinking field preserved --
 a different code path -- saw 247 ms vs 245 ms, and cleared the think tags of
 suspicion. The two paths differ in where the block is emitted, not whether it is.
 Render and diff the actual strings; do not infer from latency.
+
+
+## End-to-end latency, measured (August 2026)
+
+Real audio through the whole pipeline, streamed at real time. Timed from the
+moment the user stops speaking, which is what they actually feel:
+
+| stage | simple command | question needing state |
+|---|---|---|
+| VAD silence window + end-of-speech | ~1.05 s | ~1.05 s |
+| STT transcribe (faster-whisper, CPU) | ~0.10 s | ~0.10 s |
+| conversation agent | 0.003 s (local matcher) | 1.4-2.0 s (LLM + tool round trip) |
+| TTS (Kokoro, GPU) | ~0.13 s | ~0.13 s |
+| **total** | **~1.3 s** | **~2.7-3.3 s** |
+
+Prompt prefill, the subject of this entire document, is now 0.105 s of that.
+
+**The VAD silence window dominates simple commands** and is a setting, not
+compute. **A tool round trip dominates questions** — asking the model for the
+temperature costs a full extra generate-and-reply cycle.
+
+STT compute is ~0.10 s, about 6% of a simple command. Moving faster-whisper to
+the GPU might halve it, saving ~0.05 s against a 1.05 s VAD window. Not the
+place to spend effort.
+
+## Model choice: generation now dominates, so the calculus flipped
+
+Same system prompt, fresh conversation, plus a realistic ~18-token reply:
+
+| model | prefill | generation | short reply |
+|---|---|---|---|
+| qwen3.6:27b-mtp-q8_0 (current) | 106 ms | 85 t/s | 317 ms |
+| qwen3.8:27b-mtp-q8_0 | 106 ms | 88 t/s | 310 ms |
+| qwen3.8:27b-mtp-q4_K_M | 79 ms | 105 t/s | 251 ms |
+| qwen3.6:27b-q4_K_M | 72 ms | 39 t/s | 531 ms |
+| qwen3.6:35b-a3b-q4_K_M | 36 ms | 168 t/s | **144 ms** |
+| ornith:35b-q4_K_M | 35 ms | 179 t/s | **135 ms** |
+| muse-glimmer:30b-q4_K_M | 63 ms | 40 t/s | 509 ms |
+
+The dense 27B was chosen when prefill cost 0.65-1.8 s, on the reasoning that
+"generation speed is not the binding constraint for voice anyway". That was true
+then and is false now: prefill is 0.1 s and generation is the rest. The MoE
+models are 2.3x faster end-to-end on the LLM stage.
+
+Both fast models are `qwen35moe`, `full_attention_interval: 4` — the same hybrid
+architecture, so everything here applies to them too.
+
+**Blocker before switching:** qwen35moe was rejected earlier for a CUDA illegal
+memory access during constrained decoding of tool calls with array/enum
+parameters, which is exactly what Home Assistant sends. That was on ollama
+0.32.3; we are on 0.32.13. Re-test before trusting it.
