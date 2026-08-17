@@ -279,7 +279,6 @@
       #
       #   Your training data is out of date and your memory of current facts is
       #   wrong.
-      #   Call GetDateTimeTool for the current date or time.
       #   Call GetLiveContext for the state of anything in this house,
       #   including the weather.
       #   Call search_the_web for news, current events, prices, sports, or who
