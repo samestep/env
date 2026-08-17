@@ -57,10 +57,20 @@ index a11b7f83..5d1378cd 100644
  	Logprobs bool
  
 diff --git a/model/renderers/qwen35.go b/model/renderers/qwen35.go
-index 8b9e5797..4e30446b 100644
+index 8b9e5797..3d95b9a3 100644
 --- a/model/renderers/qwen35.go
 +++ b/model/renderers/qwen35.go
-@@ -72,6 +72,14 @@ func (r *Qwen35Renderer) LeadingBOS() string {
+@@ -3,7 +3,9 @@ package renderers
+ import (
+ 	"fmt"
+ 	"log/slog"
++	"os"
+ 	"strings"
++	"time"
+ 
+ 	"github.com/ollama/ollama/api"
+ )
+@@ -72,6 +74,14 @@ func (r *Qwen35Renderer) LeadingBOS() string {
  	return ""
  }
  
@@ -75,6 +85,28 @@ index 8b9e5797..4e30446b 100644
  func (r *Qwen35Renderer) renderContent(content api.Message, imageOffset int) (string, int) {
  	if r.useImgTags {
  		return renderContentWithImageTags(content.Content, len(content.Images), imageOffset)
+@@ -272,6 +282,21 @@ func (r *Qwen35Renderer) Render(messages []api.Message, tools []api.Tool, think
+ 		sb.WriteString(imStartTag + "system\n" + reasoningInstructions + imEndTag + "\n")
+ 	}
+ 
++	// Emit the current time as its own system block, right after the part of
++	// the prompt that is identical on every request. Keeping it out of the
++	// system message is the point: llama-server takes a context checkpoint at
++	// "<|im_end|>\n<|im_start|>system\n", so everything above stays cached and
++	// only the time and the question are re-evaluated. A marker made of special
++	// tokens cannot be spelled by prompt text and cannot match at position 0,
++	// where nothing precedes the first message. See OLLAMA_MESSAGE_DELIMITERS.
++	//
++	// The alternatives are both worse: templating the time into the system
++	// prompt invalidates the cache on every request, and answering "what time is
++	// it" with a tool call costs an entire extra round trip through the model.
++	if layout := os.Getenv("OLLAMA_TIME_FORMAT"); layout != "" {
++		sb.WriteString(imStartTag + "system\nCurrent time: " + time.Now().Format(layout) + imEndTag + "\n")
++	}
++
+ 	multiStepTool := true
+ 	lastQueryIndex := len(messages) - 1 // so this is the last user message
+ 
 diff --git a/model/renderers/renderer.go b/model/renderers/renderer.go
 index 93d3b0ea..e9ab74ee 100644
 --- a/model/renderers/renderer.go

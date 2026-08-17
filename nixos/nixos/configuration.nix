@@ -175,9 +175,6 @@
       # The assistant has to stay resident; a 30 s reload before "turn off the
       # lights" is the difference between usable and infuriating.
       OLLAMA_KEEP_ALIVE = "-1";
-      # ollama passes its own environment through to llama-server, so LLAMA_ARG_*
-      # reaches it with no patch.
-      #
       # qwen35 has full attention only every 4th layer (full_attention_interval
       # = 4); the other three quarters are linear layers holding a recurrent
       # state. A recurrent state cannot be truncated to an arbitrary position,
@@ -186,40 +183,37 @@
       # prefix-reuse mechanism there is. Setting -ctxcp to 0 does not fall back
       # to plain longest-common-prefix reuse, it removes reuse altogether:
       # measured 1.8 s of prefill on every request, even a byte-exact append.
+      # Checkpoints live in host RAM, not VRAM, ~162 MiB each.
       #
-      # What is actually wrong is the default spacing of 8192 tokens. The whole
-      # Home Assistant prompt is 1848 tokens, so after the first checkpoint the
-      # server declines to make another one anywhere useful, and a new
-      # conversation rolls back to a checkpoint near the start of the prefix and
-      # re-prefills ~1000 tokens. 128 puts the worst-case rollback at 128 tokens
-      # (~70 ms) and, with the default of 32 checkpoints, covers 4096 tokens of
-      # history — comfortably more than a voice conversation.
+      # LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT used to be set to 128 here, because
+      # the 8192 default left no checkpoint anywhere near the end of the prefix.
+      # Now that we say where the boundary is, the checkpoint we care about is
+      # the last "user" span in the prompt, and the last one is exempt from the
+      # spacing throttle -- so the default should be fine. Removed on that
+      # reasoning, which the log will confirm or refute.
       #
-      # Checkpoints live in host RAM, not VRAM: ~152 MiB each, so ~4.8 GB of the
-      # 128 GiB at the default count. See prefix-cache-findings.md.
-      LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT = "128";
+      # Where the invariant part of the prompt ends. llama-server takes a
+      # context checkpoint immediately before this string, so it has to sit
+      # after everything that is identical on every request (the instructions,
+      # the tool definitions, the entity list) and before everything that is
+      # not.
+      #
+      # It is made of special tokens on purpose. Matching is on token sequences,
+      # so a plain-text marker only works if it tokenizes the same standalone as
+      # it does in context, and prompt text could contain it by accident. This
+      # cannot be spelled by prompt text, and cannot match at position 0, where
+      # no message precedes the first one.
+      OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "<|im_end|>\n<|im_start|>system\n" ];
 
-      # Where the invariant part of the prompt ends. llama-server puts the
-      # checkpoint immediately before this string, so it has to sit after
-      # everything that is the same on every request (the instructions, the tool
-      # definitions, the entity list) and before everything that is not.
+      # What goes after that boundary: the current time, as its own system
+      # block, emitted by the renderer. A Go time layout; unset disables it.
+      # Minutes are the useful granularity -- seconds would change the prompt
+      # on every request for no benefit.
       #
-      # The renderer's default is the start of the user's message, which is the
-      # right boundary only while nothing before it varies. It does now: the
-      # system prompt ends with the current time, so that the model knows the
-      # time without having to spend a whole extra round trip calling
-      # GetDateTimeTool for it. Naming that line as the boundary keeps the
-      # cacheable part cacheable and costs a re-prefill of the line itself.
-      #
-      # So the Home Assistant prompt must END with, exactly:
-      #
-      #   Current time: {{ now().strftime('%Y-%m-%d %H:%M') }}
-      #
-      # Matching is on token sequences, not text, so a marker only works if it
-      # tokenizes the same alone as it does in context. Verify by measurement
-      # after changing it: a fresh conversation should prefill in ~160 ms, and
-      # jumps to ~1800 ms if the marker stops matching.
-      OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "Current time:" ];
+      # With this set, drop "Call GetDateTimeTool for the current date or time."
+      # from the Home Assistant prompt; the model no longer needs a round trip
+      # to find out what time it is.
+      OLLAMA_TIME_FORMAT = "2006-01-02 15:04";
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.

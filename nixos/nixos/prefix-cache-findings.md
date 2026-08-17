@@ -316,16 +316,30 @@ boundary, and move the delimiter to match. The system prompt ends with
 
     Current time: {{ now().strftime('%Y-%m-%d %H:%M') }}
 
-and `OLLAMA_MESSAGE_DELIMITERS` is `["Current time:"]`. The invariant part —
-instructions, tool definitions, entity list — is cached; the timestamp line and
-the question are re-prefilled, which is a few dozen tokens.
+**A plain-text marker was the wrong call.** Matching is on token sequences
+(`std::equal` over the tokenized delimiter), so a text marker only works if it
+tokenizes the same standalone as in context — and worse, ordinary prompt text
+could contain it by accident. `<|im_start|>` was safe precisely because it is a
+single special token, and that property is the requirement, not an incidental
+detail.
 
-The qwen35 renderer emits system content last (reasoning instructions, then
-tools, then the configured prompt), so a trailing line in Home Assistant's
-prompt really is the last thing before the user's turn.
+So the time is emitted as **its own system block**, by the renderer, right after
+the invariant part:
 
-Note the prompt itself lives in Home Assistant's storage, not in this repo, so
-it is not captured by a rebuild and has to be edited in the UI.
+    ...<entity list><|im_end|>\n<|im_start|>system\nCurrent time: 2026-08-17 03:41<|im_end|>\n<|im_start|>user\n...
+
+with the marker `<|im_end|>\n<|im_start|>system\n`. That cannot be spelled by
+prompt text, and it cannot match at position 0, where no message precedes the
+first one. `OLLAMA_TIME_FORMAT` is a Go time layout and turns the block on;
+unset leaves upstream behaviour.
+
+Putting it in the renderer rather than in Home Assistant's prompt keeps the
+marker and the thing it marks in one repo. Home Assistant's prompt lives in its
+storage, outside any rebuild, which is exactly how the two would drift apart.
+
+Still to verify by measurement: whether `system\n` tokenizes identically before
+`Current` as it does standalone. If not, the fallback is to shorten the marker,
+since the checkpoint lands at the delimiter's *first* token either way.
 
 ## nixpkgs builds a different llama.cpp than ollama pins
 
