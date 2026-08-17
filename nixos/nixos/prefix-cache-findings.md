@@ -1,6 +1,6 @@
 # Why fresh conversations re-prefill the whole system prompt
 
-Status: **root cause found, fix not yet applied or measured.**
+Status: **root cause found; fix 1 applied, measurement pending.**
 
 Every Home Assistant command that starts a new conversation costs ~0.65 s of
 prompt evaluation instead of ~0.19 s, because llama-server discards a cached
@@ -91,10 +91,29 @@ only a system prefix prefilled 9, 10 and 10 tokens.
 - Compare like with like: a prompt without `tools` is ~780 tokens against ~1850
   with them.
 
-## What the priming proxy is for
+## Baselines to compare a fix against
 
-`ollama-primer.py` replays each request with the conversation stripped, leaving
-the slot holding just the prefix, so the next request is a strict extension and
-needs no truncation at all. It works — 0.19 s — and sidesteps the checkpoint
-problem rather than fixing it. If a fix above lands, the proxy, the port shuffle
-and the back-to-back contention all go away together.
+Measured through the primer on `qwen3.6:27b-mtp-q8_0`, which does not affect
+generation:
+
+- **Generation: 77 tok/s median** (with MTP). This is the number fix 1 puts at
+  risk. If it drops toward ~45 tok/s, checkpoints were load-bearing for
+  speculative decoding and fix 2 is the one to take.
+- **Prefill: ~152 ms for a 25-token prompt**, i.e. the fixed per-request
+  overhead. A perfect cache hit cannot read below roughly this.
+
+## What the priming proxy was for
+
+`ollama-primer.py` replayed each request with the conversation stripped, leaving
+the slot holding just the prefix, so the next request was a strict extension and
+needed no truncation at all. It worked — 0.19 s — and sidestepped the checkpoint
+problem rather than fixing it.
+
+It is now **deleted**, along with the port shuffle: ollama is back on 11434,
+bound to 0.0.0.0 so the agent VM can measure it directly. Note that this
+deletion was a precondition for measuring fix 1 honestly, not just cleanup — a
+running primer holds the slot in exactly the state the fix is meant to produce,
+so any measurement taken with it in the path is unfalsifiable (trap 1).
+
+If fix 1 has to be reverted, the proxy is recoverable from git history rather
+than worth rewriting.
