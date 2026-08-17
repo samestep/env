@@ -154,6 +154,19 @@
       # The assistant has to stay resident; a 30 s reload before "turn off the
       # lights" is the difference between usable and infuriating.
       OLLAMA_KEEP_ALIVE = "-1";
+      # ollama only reuses a cached sequence when the new prompt *extends* it,
+      # never on a shared prefix — so every fresh conversation re-runs the whole
+      # system prompt. Measured on this host: 0.65 s against 0.19 s when the
+      # prefix happens to be cached, on every command.
+      #
+      # Two slots is the whole idea: one holds the base prefix, one holds the
+      # conversation in progress, and neither evicts the other. A third would
+      # only earn its keep with two satellites talking at once. Slots multiply
+      # the KV allocation and this host asks for a 32768 context, so they are
+      # not free: KV here is 65 layers x 4 kv heads x 512 dims x 2 bytes, about
+      # 260 KB per token, i.e. ~2.2 GB per slot at the 8192 Home Assistant
+      # requests and ~8.7 GB at the full 32768.
+      OLLAMA_NUM_PARALLEL = "2";
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
