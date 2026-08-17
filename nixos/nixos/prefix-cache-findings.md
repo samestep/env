@@ -238,6 +238,15 @@ Because the fallback window is one `n_ubatch`, shrinking it does buy prefill:
 tunes the granularity of the fallback instead of using the mechanism that exists
 for saying where the checkpoint goes. **Do not set num_batch for this.**
 
+## min_step must be 0, not merely small
+
+`checkpoint_min_step` throttles creation, but it also drives an eviction pass in
+`create_checkpoint` that erases any checkpoint within min_step of an earlier
+one. At the 8192 default every checkpoint in a 3300-token prompt qualifies, so
+the boundary checkpoint was deleted immediately after being made. 0 is
+documented as "no minimum" and is the correct value now that we say where
+checkpoints belong.
+
 ## What is still not solved
 
 **No pinning.** Eviction is FIFO (`erase(checkpoints.begin())`) with no way to
@@ -337,9 +346,42 @@ Putting it in the renderer rather than in Home Assistant's prompt keeps the
 marker and the thing it marks in one repo. Home Assistant's prompt lives in its
 storage, outside any rebuild, which is exactly how the two would drift apart.
 
-Still to verify by measurement: whether `system\n` tokenizes identically before
-`Current` as it does standalone. If not, the fallback is to shorten the marker,
-since the checkpoint lands at the delimiter's *first* token either way.
+### The delimiter must END on a special token
+
+It does not. Measured with `prompt_eval_count` as a tokenizer oracle — for a
+single user message the rendered prompt is a constant plus the content's tokens,
+so `tokens(x)` is recoverable and `tokens(x+y) == tokens(x) + tokens(y)` answers
+"does this junction merge":
+
+    system\n     tokens = 1 + 20  vs together 22   MERGES
+    system\n\n    tokens = 1 + 20  vs together 22   MERGES
+    time\n       tokens = 1 + 20  vs together 22   MERGES
+
+`system\n` is a single token standalone and splits when text follows it, so
+`<|im_end|>\n<|im_start|>system\n` never matched and fresh conversations fell
+back to end-of-prompt checkpoints: 158 ms -> 527 ms.
+
+Special tokens are atomic and merge with nothing on either side, so the marker
+is now `<|im_end|>\n<|im_start|>` — 3 tokens, and additive against every message
+type that can follow it:
+
+    3 + 22 vs 25  CLEAN   + 'system\nCurrent time: ...'
+    3 +  7 vs 10  CLEAN   + 'user\nTurn on the lamp.'
+    3 +  4 vs  7  CLEAN   + 'assistant\nOkay.'
+
+**Any future marker must be checked this way.** Reasoning about BPE is not
+enough; this one looked obviously fine and was not.
+
+### Why matching every boundary is acceptable
+
+`<|im_end|>\n<|im_start|>` matches every message boundary, not just the one we
+want. That is fine because the dedup patch skips re-taking a snapshot where one
+already exists, so boundaries whose content has not changed cost nothing.
+
+The dedup is sound even though the timestamp makes content change under a fixed
+position: on any divergence the server first erases every checkpoint with
+`pos_max > pos_next`, so a checkpoint that survives to be dedup-matched was
+necessarily built from an identical token prefix.
 
 ## nixpkgs builds a different llama.cpp than ollama pins
 

@@ -185,25 +185,28 @@
       # measured 1.8 s of prefill on every request, even a byte-exact append.
       # Checkpoints live in host RAM, not VRAM, ~162 MiB each.
       #
-      # LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT used to be set to 128 here, because
-      # the 8192 default left no checkpoint anywhere near the end of the prefix.
-      # Now that we say where the boundary is, the checkpoint we care about is
-      # the last "user" span in the prompt, and the last one is exempt from the
-      # spacing throttle -- so the default should be fine. Removed on that
-      # reasoning, which the log will confirm or refute.
+      # 0 is "no minimum". This knob throttles checkpoint creation, but it also
+      # drives an eviction pass that erases any checkpoint within min_step of an
+      # earlier one -- and at the 8192 default, every checkpoint in a 3300-token
+      # prompt qualifies, so the boundary checkpoint was being deleted right
+      # after it was made. We want to keep the ones we ask for.
+      LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT = "0";
+
+      # Where llama-server may take a context checkpoint. It scans the prompt
+      # for these token sequences and snapshots immediately before each match.
       #
-      # Where the invariant part of the prompt ends. llama-server takes a
-      # context checkpoint immediately before this string, so it has to sit
-      # after everything that is identical on every request (the instructions,
-      # the tool definitions, the entity list) and before everything that is
-      # not.
+      # This MUST end on a special token. Matching compares token sequences, and
+      # BPE merges across ordinary text: "system\n" is a single token on its own
+      # but splits when text follows, so a marker ending in text never matches.
+      # Measured, after shipping one that did not work. Special tokens are
+      # atomic, and this concatenates cleanly with every message that can follow
+      # it (3 + n tokens, checked against system, user and assistant turns).
       #
-      # It is made of special tokens on purpose. Matching is on token sequences,
-      # so a plain-text marker only works if it tokenizes the same standalone as
-      # it does in context, and prompt text could contain it by accident. This
-      # cannot be spelled by prompt text, and cannot match at position 0, where
-      # no message precedes the first one.
-      OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "<|im_end|>\n<|im_start|>system\n" ];
+      # It therefore matches every message boundary rather than only the one we
+      # care about, which is fine: the checkpoint-dedup patch skips re-taking a
+      # snapshot at a position that already has one, so the boundaries whose
+      # content did not change cost nothing.
+      OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "<|im_end|>\n<|im_start|>" ];
 
       # What goes after that boundary: the current time, as its own system
       # block, emitted by the renderer. A Go time layout; unset disables it.
