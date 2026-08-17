@@ -198,6 +198,28 @@
       # Checkpoints live in host RAM, not VRAM: ~152 MiB each, so ~4.8 GB of the
       # 128 GiB at the default count. See prefix-cache-findings.md.
       LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT = "128";
+
+      # Where the invariant part of the prompt ends. llama-server puts the
+      # checkpoint immediately before this string, so it has to sit after
+      # everything that is the same on every request (the instructions, the tool
+      # definitions, the entity list) and before everything that is not.
+      #
+      # The renderer's default is the start of the user's message, which is the
+      # right boundary only while nothing before it varies. It does now: the
+      # system prompt ends with the current time, so that the model knows the
+      # time without having to spend a whole extra round trip calling
+      # GetDateTimeTool for it. Naming that line as the boundary keeps the
+      # cacheable part cacheable and costs a re-prefill of the line itself.
+      #
+      # So the Home Assistant prompt must END with, exactly:
+      #
+      #   Current time: {{ now().strftime('%Y-%m-%d %H:%M') }}
+      #
+      # Matching is on token sequences, not text, so a marker only works if it
+      # tokenizes the same alone as it does in context. Verify by measurement
+      # after changing it: a fresh conversation should prefill in ~160 ms, and
+      # jumps to ~1800 ms if the marker stops matching.
+      OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "Current time:" ];
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.

@@ -110,7 +110,7 @@ index 93d3b0ea..e9ab74ee 100644
  	if constructor, ok := registry.renderers[name]; ok {
  		return constructor()
 diff --git a/server/routes.go b/server/routes.go
-index 3a027a9e..a414800c 100644
+index 3a027a9e..f6768bb6 100644
 --- a/server/routes.go
 +++ b/server/routes.go
 @@ -667,6 +667,8 @@ func (s *Server) GenerateHandler(c *gin.Context) {
@@ -122,11 +122,36 @@ index 3a027a9e..a414800c 100644
  		}, func(cr llm.CompletionResponse) {
  			res := api.GenerateResponse{
  				Model:     req.Model,
-@@ -2315,6 +2317,14 @@ func leadingBOSForModel(m *Model) string {
+@@ -2315,6 +2317,39 @@ func leadingBOSForModel(m *Model) string {
  	return renderers.LeadingBOSForRenderer(resolveRendererName(m))
  }
  
++// OllamaMessageDelimiters overrides the renderer's delimiters with a JSON array
++// of strings, e.g. ["Current time:"]. llama-server places a context checkpoint
++// immediately before each one, so the right value is whatever marks the end of
++// the part of the prompt that does not change between requests. The renderer's
++// default is the start of the user's message, which is only the right boundary
++// while nothing before it varies -- a per-request timestamp at the end of the
++// system prompt moves the boundary earlier.
++const OllamaMessageDelimiters = "OLLAMA_MESSAGE_DELIMITERS"
++
 +func messageDelimitersForModel(m *Model) []api.MessageDelimiter {
++	if s := strings.TrimSpace(os.Getenv(OllamaMessageDelimiters)); s != "" {
++		var raw []string
++		if err := json.Unmarshal([]byte(s), &raw); err != nil {
++			slog.Warn("ignoring malformed "+OllamaMessageDelimiters, "error", err)
++		} else {
++			delims := make([]api.MessageDelimiter, 0, len(raw))
++			for _, d := range raw {
++				if d != "" {
++					delims = append(delims, api.MessageDelimiter{Role: "user", Delimiter: d})
++				}
++			}
++
++			return delims
++		}
++	}
++
 +	if m == nil || m.Config.Renderer == "" {
 +		return nil
 +	}
@@ -137,7 +162,7 @@ index 3a027a9e..a414800c 100644
  func optionsForPrompt(opts *api.Options, runner llm.LlamaServer) *api.Options {
  	if opts == nil || runner == nil {
  		return opts
-@@ -2763,6 +2773,8 @@ func (s *Server) ChatHandler(c *gin.Context) {
+@@ -2763,6 +2798,8 @@ func (s *Server) ChatHandler(c *gin.Context) {
  				PreservedTokens: preservedTokensForCompletion(builtinParser),
  				ToolCallTag:     toolCallTagForCompletion(toolParser),
  				LeadingBOS:      leadingBOSForModel(m),

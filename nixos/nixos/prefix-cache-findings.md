@@ -207,6 +207,29 @@ through `llm.CompletionRequest` into the request body. Applies cleanly to
 v0.32.13, which is what nixpkgs ships; `go build` and the `renderers` and `llm`
 test packages pass.
 
+### The delimiter is not "the user tag", it is "the end of the invariant part"
+
+`<|im_start|>user\n` is not special here — it was just the string that happened
+to mark the boundary while nothing before it varied. The rule is: **place the
+delimiter wherever the prompt stops being identical between requests.**
+
+Put a per-request timestamp at the end of the system prompt and the boundary
+moves earlier, so the delimiter has to move with it — not the timestamp. Hence
+`OLLAMA_MESSAGE_DELIMITERS`, a JSON array of strings that overrides the
+renderer's default without a recompile.
+
+Declare exactly one. Declaring both the marker and the user tag would put a
+second checkpoint *after* the timestamp, which is invalidated and re-saved every
+request — the ~100 ms this is all trying to avoid.
+
+**Matching is on token sequences, not text** (`std::equal` over the tokenized
+delimiter, `common/chat.cpp`). `<|im_start|>` was safe because a special token
+always tokenizes as one unit. A plain-text marker only works if it tokenizes the
+same standalone as it does in context, and BPE gives no guarantee of that —
+merging with a preceding newline is the obvious hazard. So a marker change must
+be checked by measurement: a fresh conversation prefills in ~160 ms when the
+marker matches and ~1800 ms when it does not.
+
 ### The n_ubatch red herring
 
 Because the fallback window is one `n_ubatch`, shrinking it does buy prefill:
@@ -281,6 +304,28 @@ performance (that checkpoint is exactly what a follow-up restores).
 
 Not worth it at ~65 ms against a 1.4-3.2 s voice interaction. Recorded so the
 next person does not go looking for a config knob that does not exist.
+
+## Date and time
+
+Neither of Home Assistant's built-in options is good. Templating the time into
+the system prompt puts it inside the cached region and invalidates it on every
+request; `GetDateTimeTool` costs an entire extra round trip through the model.
+
+The third option is to state the time in the prompt but put it *after* the cache
+boundary, and move the delimiter to match. The system prompt ends with
+
+    Current time: {{ now().strftime('%Y-%m-%d %H:%M') }}
+
+and `OLLAMA_MESSAGE_DELIMITERS` is `["Current time:"]`. The invariant part —
+instructions, tool definitions, entity list — is cached; the timestamp line and
+the question are re-prefilled, which is a few dozen tokens.
+
+The qwen35 renderer emits system content last (reasoning instructions, then
+tools, then the configured prompt), so a trailing line in Home Assistant's
+prompt really is the last thing before the user's turn.
+
+Note the prompt itself lives in Home Assistant's storage, not in this repo, so
+it is not captured by a rebuild and has to be edited in the UI.
 
 ## nixpkgs builds a different llama.cpp than ollama pins
 
