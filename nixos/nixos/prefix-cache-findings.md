@@ -548,3 +548,40 @@ architecture, so everything here applies to them too.
 memory access during constrained decoding of tool calls with array/enum
 parameters, which is exactly what Home Assistant sends. That was on ollama
 0.32.3; we are on 0.32.13. Re-test before trusting it.
+
+
+## Home Assistant's own overhead is ~3.7 ms
+
+A locally-matched command runs the whole pipeline with no model involved:
+websocket in, sentence matching, service call, events out.
+
+    intent stage (matcher + service call):   2.44 ms
+    whole request, socket to run-end     :   3.67 ms
+
+There is nothing to optimise there. An earlier estimate of "~300 ms of HA
+plumbing" was wrong: it subtracted HA's end-to-end time for the real prompt
+(~1848 tokens, full Assist tool schemas) from a synthetic replication (~250
+tokens, four toy tools). The residual is model work on a bigger prompt, not
+overhead. Do not subtract across measurements with different prompts.
+
+## Tool round trip: 478 ms, measured like for like
+
+Same prompt, same tools, same model, question "Is the bed light on?":
+
+| | prefill | generate | total |
+|---|---|---|---|
+| call 1, emit tool call | 91.7 ms | 327.5 ms (29 tok) | 419 ms |
+| call 2, answer from result | 100.8 ms | 157.5 ms (10 tok) | 258 ms |
+| **two-call total** | | | **677 ms** |
+| single call, state in prompt | 91.5 ms | 107.9 ms (9 tok) | **199 ms** |
+
+The saving is 478 ms, of which 327 ms is generating the tool call itself.
+
+The trade is ~29 generated tokens for ~60 prefilled ones. Generation runs at
+~85 tok/s and prefill at ~1750 tok/s, so a prefilled token is ~20x cheaper --
+twice the tokens for a tenth of the time.
+
+Home Assistant's prompt field is a Jinja template and a `<|fim_pad|>` typed into
+it tokenizes as the special token (verified: +1 token, against +4 for text of
+the same length). So HA can supply the boundary marker and everything after it,
+which is what makes this possible without further patching.
