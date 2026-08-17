@@ -220,7 +220,7 @@
       # The weekday is in there because the model cannot reliably derive it: with
       # a bare date it answered "Sunday, August 17, 2026" and then "Monday,
       # August 17, 2026" for the same question. It is a Monday.
-      OLLAMA_TIME_FORMAT = "Monday, 2006-01-02 15:04";
+      OLLAMA_TIME_FORMAT = "Monday, January 2, 2006 at 3:04 PM MST";
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
