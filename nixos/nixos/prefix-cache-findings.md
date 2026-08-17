@@ -1,6 +1,20 @@
-Status: **fixed, with an ollama patch pending a rebuild.** Fresh-conversation
-prefill went 1770 ms -> 437 ms from checkpoint spacing alone; the patch should
-take it to the ~185 ms floor. Verify after rebuilding.
+Status: **fixed and verified.** Fresh-conversation prefill 1770 ms -> 437 ms
+from checkpoint spacing, then -> 192 ms with the delimiters patch, which is the
+per-request floor. Generation 94.4 tok/s, no regression.
+
+| | original | spacing fix | + delimiters patch |
+|---|---|---|---|
+| fresh conversation | 1770 ms | 437 ms | **192 ms** |
+| follow-up turn | 1831 ms | 185 ms | **275 ms** |
+| generation | 90.7 tok/s | 92.8 | **94.4** |
+
+The follow-up turn got *worse*, 185 -> 275 ms, and that is not yet explained.
+The likely cause is that a new user message now triggers a checkpoint save
+(~162 MiB of state), but that does not obviously square with a fresh
+conversation costing only 192 ms while also starting a user message. The log
+would settle it. It is a good trade either way: a two-turn exchange went
+437 + 185 = 622 ms to 192 + 275 = 467 ms, and voice commands are mostly
+single-turn.
 
 Every Home Assistant command that starts a new conversation costs ~0.65 s of
 prompt evaluation instead of ~0.19 s, because llama-server discards a cached
