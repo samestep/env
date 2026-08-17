@@ -247,72 +247,95 @@ the boundary checkpoint was deleted immediately after being made. 0 is
 documented as "no minimum" and is the correct value now that we say where
 checkpoints belong.
 
-## What is still not solved
+## Where the remaining time went, and how it was closed
 
-**No pinning.** Eviction is FIFO (`erase(checkpoints.begin())`) with no way to
-mark a checkpoint permanent. The ideal -- pin the system prefix forever, keep
-one more for the live conversation -- still has no expression in the API. 32
-checkpoints at 128 minimum spacing is enough headroom that a voice conversation
-never evicts the prefix, but that is headroom, not a guarantee.
+Cost is nearly independent of prompt length. A repeated *identical* request
+diverges nowhere, so it never restores:
 
-## Where the remaining ~190 ms goes
+    identical large request: 57.9 ms / 6326 tok
+    identical small request: 57.3 ms /   45 tok
 
-Not prefill. The cost is nearly independent of prompt length:
+**~57 ms is the irreducible per-request cost.** Everything above that was one
+checkpoint restore plus the genuinely new tokens.
 
-| system prompt | fresh prefill |
-|---|---|
-| 6298 tokens | 198 ms |
-| 568 tokens | 179 ms |
+Earlier versions of this section attributed the gap to checkpoint *saves*
+("~65 ms each, restores single-digit"). That was derived from comparing
+measurements that differed in two things at once and is **withdrawn**. Restores
+were the expensive half.
 
-It is **checkpoint creation**. The recurrent state is a fixed ~162 MiB
-regardless of context length, and saving one means copying that device->host.
-From the log, a fresh conversation restores one checkpoint and creates two; a
-follow-up restores one and creates three, because its prompt contains two user
-delimiters plus a `near_prompt_end`. Solving across the two cases:
+## Keeping the checkpoint in VRAM
 
-- **checkpoint save: ~65 ms** (2 saves = 192 ms fresh, 3 saves = 275 ms follow-up)
-- **checkpoint restore: single-digit ms** — the cheap direction, host->device
-- everything else: ~50 ms
-
-So restores are nearly free and saves dominate. This also means the earlier
-"~0.15 s of fixed per-request overhead" in the traps section was mostly
-misattributed: it was checkpoint saves, not HTTP and tokenization.
-
-### Keeping checkpoints in VRAM
-
-The 65 ms is a device->host copy, and nothing requires that. llama.cpp has the
-flag already, in `include/llama.h`:
+`llama.cpp` has had the flag since #22679 and nothing in the tree used it except
+a test:
 
     // Keeps the tensor data on device buffers (i.e. not accessible in host memory, but faster save/load).
     // Getting the state for a seq_id with this flag invalidates all prior states gotten for that seq_id with this flag.
     #define LLAMA_STATE_SEQ_FLAGS_ON_DEVICE 2
 
-It is a bit flag; the server passes only `PARTIAL_ONLY` (= 1). `grep ON_DEVICE
-tools/server/ common/` returns nothing — implemented in the core, never wired
-up. A save would become a device->device copy via `llama_io_write_device`,
-sub-millisecond instead of 65 ms.
+It is a bit flag; the server passed only `PARTIAL_ONLY` (= 1). Passing both for
+the prompt checkpoint's save and restore keeps the snapshot in device buffers
+instead of copying it across PCIe each way. Measured: **165 ms -> 105 ms** on a
+fresh conversation.
 
-The catch is the second comment line. `mem_storage` is
-`std::map<llama_seq_id, llama_memory_buffers>` and each `get_data` rebuilds the
-entry, so there is exactly **one on-device snapshot per seq_id**. Two
-VRAM-resident checkpoints need two sequence ids — the two-slot design, with a
-real mechanism behind it. ollama passes `-np 1`.
+### It is only safe with exactly one checkpoint
 
-This is an upstream llama.cpp change, not a flag and not an ollama patch: the
-checkpoint deque holds up to 32 entries and would need to know which one gets
-the single on-device slot per sequence. Worth ~130 ms of the 192 ms.
+`mem_storage` is `std::map<llama_seq_id, llama_memory_buffers>` and every save
+resolves to the same entry for a given sequence, silently overwriting the
+previous snapshot's data while the server still holds that checkpoint and will
+still restore from it. ollama runs `-np 1`, so there is one sequence.
 
-### The other lever is architectural
+**The first attempt shipped with this invariant broken.** Suppressing
+end-of-prompt checkpoints only covered mid-prompt batches; the fully-processed
+branch still took one, so two existed (at 3260 and 3300) and the second
+clobbered the first. Both branches are suppressed now.
 
-For single-turn voice, the `near_prompt_end` checkpoint is pure overhead — we
-always restore the user-boundary one. Suppressing it would save ~65 ms per
-command. But `near_prompt_end` has no flag: it is exempt from
-`checkpoint_min_step` and unaffected by `n_ctx_checkpoints`, so this needs a
-llama.cpp patch, not a configuration change, and it would trade away multi-turn
-performance (that checkpoint is exactly what a follow-up restores).
+Verified from the log — five fresh conversations in a six-second window:
 
-Not worth it at ~65 ms against a 1.4-3.2 s voice interaction. Recorded so the
-next person does not go looking for a config knob that does not exist.
+    task 351 | created context checkpoint 1 of 32 (pos_min = 6283)
+    task 369 | restored ... reusing context checkpoint (pos_min = 6283)
+    task 374 | restored ... reusing context checkpoint (pos_min = 6283)
+    task 380 | restored ... reusing context checkpoint (pos_min = 6283)
+    task 388 | restored ... reusing context checkpoint (pos_min = 6283)
+
+One checkpoint, created once on the cold request, reused thereafter.
+
+**Bound that window to known traffic.** A ten-minute window spanning a
+`nixos-rebuild switch` counted 8 creations and looked like a failure, because it
+included the previous build.
+
+### How to check it, and how not to
+
+This failure mode makes latency *better* — the broken build read 99 ms — so no
+timing measurement can detect it. Check, in this order:
+
+1. `journalctl -u ollama --since <exact> --until <exact> | grep "created context
+   checkpoint 2 of"` must be empty.
+2. `prefix-cache-statecheck.py` must still answer *correctly*: eight fresh
+   conversations against a 300-device prompt at temperature 0.
+3. Latency, last.
+
+**Compare the answers, not the digest.** The digest changed when this landed
+(`4c4a1573` -> `1eed9fb1`) and the state was fine: seven of eight answers
+byte-identical, the eighth differing only by markdown emphasis (`**on**` ->
+`on`). Changing checkpoint placement changes batch shapes, hence float
+arithmetic, which can flip a near-tie token with perfectly correct state. A real
+wrong-state restore shows up as wrong *facts*. The digest is a trigger to look,
+not a verdict. The test is deterministic within a build: two consecutive runs
+gave identical digests.
+
+An earlier note here claimed two quoted answers proved corruption. They did not
+— the model reports the minutes field rather than computing minutes since
+midnight, on any build. Retracted.
+
+## What is still not solved
+
+**No pinning.** Eviction is FIFO (`erase(checkpoints.begin())`) with no way to
+mark a checkpoint permanent. It does not bite while exactly one checkpoint
+exists, but nothing enforces that beyond the two suppressions above.
+
+**Follow-up turns still restore rather than purely appending**, landing a few
+tokens short of the boundary. Worth a look if the ~109 ms ever matters.
+
 
 ## Date and time
 
