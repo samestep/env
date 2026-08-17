@@ -154,8 +154,17 @@
     # /completion, leaving the field empty, so llama-server sees an opaque
     # prompt and falls back to checkpointing near the end of it. The patch has
     # renderers report their delimiters and passes them through.
+    #
+    # The second patch is against llama.cpp, not ollama. nixpkgs pre-stages
+    # llama.cpp into $TMPDIR/llama-cpp-src at the end of postPatch so the
+    # CMake FetchContent step does not reach the network, which gives us a
+    # place to patch it. Note that nixpkgs pins b10091 while ollama 0.32.13
+    # asks for b10380, so read b10091 when reasoning about this host.
     package = pkgs.ollama-cuda.overrideAttrs (old: {
       patches = (old.patches or [ ]) ++ [ ./ollama-message-delimiters.patch ];
+      postPatch = (old.postPatch or "") + ''
+        patch -d "$TMPDIR/llama-cpp-src" -p1 < ${./llama-checkpoint-dedup.patch}
+      '';
     });
     # 0.0.0.0 so libvirt guests can reach it at 192.168.122.1; the firewall
     # only opens 11434 on virbr0.

@@ -1,0 +1,27 @@
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index 744593c76..9a60632a9 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -2294,6 +2294,22 @@ private:
+     void create_checkpoint(server_slot & slot, const int64_t n_tokens_cur, llama_pos pos_min, llama_pos pos_max) {
+         const int id_task = slot.task->id;
+ 
++        const int64_t n_tokens_new = slot.prompt.n_tokens() - n_tokens_cur;
++
++        // if a checkpoint for this exact position already exists, the state is
++        // identical and re-taking it is pure cost -- a state copy out of the
++        // device, which for a recurrent model is hundreds of MiB. this happens
++        // on every request that restores a checkpoint and then resumes from it,
++        // because the batch that resumes starts at the position we restored to.
++        for (const auto & cur : slot.prompt.checkpoints) {
++            if (cur.n_tokens == n_tokens_new && cur.pos_min == pos_min && cur.pos_max == pos_max) {
++                SLT_TRC(slot, "reusing context checkpoint (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", size = %.3f MiB)\n",
++                        cur.pos_min, cur.pos_max, cur.n_tokens, (float) cur.size() / 1024 / 1024);
++
++                return;
++            }
++        }
++
+         // evict checkpoints within min-step of a previous checkpoint, unless they were
+         // created by the current task
+         int64_t last = -1;
