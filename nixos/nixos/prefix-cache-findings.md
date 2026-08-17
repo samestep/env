@@ -2,11 +2,11 @@ Status: **fixed and verified.** Fresh-conversation prefill 1770 ms -> 437 ms
 from checkpoint spacing, then -> 192 ms with the delimiters patch, which is the
 per-request floor. Generation 94.4 tok/s, no regression.
 
-| | original | spacing fix | + delimiters | + dedup |
-|---|---|---|---|---|
-| fresh conversation | 1770 ms | 437 ms | 192 ms | **158 ms** |
-| follow-up turn | 1831 ms | 185 ms | 275 ms | **239 ms** |
-| generation | 90.7 tok/s | 92.8 | 94.4 | **87.1** |
+| | original | spacing | + delimiters | + dedup | + unique marker | + VRAM |
+|---|---|---|---|---|---|---|
+| fresh conversation | 1770 ms | 437 ms | 192 ms | 158 ms | 165 ms | **105 ms** |
+| follow-up turn | 1831 ms | 185 ms | 275 ms | 239 ms | 154 ms | **109 ms** |
+| generation | 90.7 tok/s | 92.8 | 94.4 | 87.1 | 85 | **86** |
 
 Generation varies +/- 8% run to run (77 to 94 across the session on identical
 prompts), so none of that column is a signal beyond "no regression".
