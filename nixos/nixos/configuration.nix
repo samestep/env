@@ -192,6 +192,13 @@
       # after it was made. We want to keep the ones we ask for.
       LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT = "0";
 
+      # Exactly one prompt checkpoint, which is all we ask for: one delimiter,
+      # matched once. This is not a tuning choice, it is what makes keeping the
+      # checkpoint in VRAM correct -- llama.cpp allows a single on-device
+      # snapshot per sequence and taking another silently invalidates the
+      # previous one. Holding one means that can never happen.
+      LLAMA_ARG_CTX_CHECKPOINTS = "1";
+
       # Where llama-server may take a context checkpoint. It scans the prompt
       # for these token sequences and snapshots immediately before each match.
       #
