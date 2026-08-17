@@ -446,3 +446,31 @@ includes background tasks started earlier in the same session.
 model answered "Sunday" and then "Monday" for the same question on consecutive
 requests. It is a Monday. Deriving a weekday from a date is arithmetic the model
 does unreliably, and it costs nothing to hand it over.
+
+
+## Why follow-up turns were rewinding
+
+They should not have been. Continuing a conversation is appending, and appending
+needs no rollback. The cause was a prompt-rendering mismatch, found by rendering
+both turns with ollama's own renderer and diffing them:
+
+    common tail : ...the kitchen lamp.<|im_end|>\n<|im_start|>assistant\n
+    turn 1 then : <think>\n\n</think>\n\n
+    turn 2 then : The kitchen lamp is on.<|im_end|>\n<|im_start|>user\n...
+
+With thinking off, the qwen3.5 renderer ends the generation prompt with an empty
+`<think>\n\n</think>\n\n` (`emitEmptyThinkOnNoThink`), so the model's reply
+physically follows it in the slot. Replaying that same turn as history omits the
+block, so the shared prefix ends at `assistant\n` and everything after is
+recomputed — which on this architecture means a checkpoint rollback, not merely
+wasted prefill.
+
+The patch replays the empty block in history. Verified: the turn-2 prompt now
+has the turn-1 prompt as an exact prefix, diverging only where new content
+begins.
+
+**An earlier attempt to test this concluded the opposite and was wrong.** It
+compared `think=false` against `think=true` with the thinking field preserved --
+a different code path -- saw 247 ms vs 245 ms, and cleared the think tags of
+suspicion. The two paths differ in where the block is emitted, not whether it is.
+Render and diff the actual strings; do not infer from latency.

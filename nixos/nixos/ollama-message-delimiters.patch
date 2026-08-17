@@ -57,7 +57,7 @@ index a11b7f83..5d1378cd 100644
  	Logprobs bool
  
 diff --git a/model/renderers/qwen35.go b/model/renderers/qwen35.go
-index 8b9e5797..91587380 100644
+index 8b9e5797..cfc23209 100644
 --- a/model/renderers/qwen35.go
 +++ b/model/renderers/qwen35.go
 @@ -3,11 +3,20 @@ package renderers
@@ -128,6 +128,21 @@ index 8b9e5797..91587380 100644
  	multiStepTool := true
  	lastQueryIndex := len(messages) - 1 // so this is the last user message
  
+@@ -309,6 +351,14 @@ func (r *Qwen35Renderer) Render(messages []api.Message, tools []api.Tool, think
+ 
+ 			if renderAssistantThinkBlock {
+ 				sb.WriteString(imStartTag + message.Role + "\n<think>\n" + contentReasoning + "\n</think>\n\n" + content)
++			} else if !isThinking && r.emitEmptyThinkOnNoThink {
++				// Replay the empty think block that the generation prompt emitted
++				// just before this reply, so a past assistant turn matches the
++				// tokens the model actually produced. Without it the shared prefix
++				// ends at "assistant\n" and every later turn re-evaluates the whole
++				// conversation from there -- which on a recurrent model means a
++				// checkpoint rollback, not just some wasted prefill.
++				sb.WriteString(imStartTag + message.Role + "\n<think>\n\n</think>\n\n" + content)
+ 			} else {
+ 				sb.WriteString(imStartTag + message.Role + "\n" + content)
+ 			}
 diff --git a/model/renderers/renderer.go b/model/renderers/renderer.go
 index 93d3b0ea..e9ab74ee 100644
 --- a/model/renderers/renderer.go
