@@ -57,31 +57,10 @@ index a11b7f83..5d1378cd 100644
  	Logprobs bool
  
 diff --git a/model/renderers/qwen35.go b/model/renderers/qwen35.go
-index 8b9e5797..cfc23209 100644
+index 8b9e5797..dec01b62 100644
 --- a/model/renderers/qwen35.go
 +++ b/model/renderers/qwen35.go
-@@ -3,11 +3,20 @@ package renderers
- import (
- 	"fmt"
- 	"log/slog"
-+	"os"
- 	"strings"
-+	"time"
- 
- 	"github.com/ollama/ollama/api"
- )
- 
-+// qwen35CacheBoundary marks where the identical-on-every-request part of the
-+// prompt ends, for llama-server's context checkpointing. It is a padding token,
-+// chosen because it is a single special token (so it tokenizes identically
-+// wherever it appears) and carries no meaning of its own. Must match
-+// OLLAMA_MESSAGE_DELIMITERS.
-+const qwen35CacheBoundary = "<|fim_pad|>"
-+
- const (
- 	qwen35ThinkOpenTag  = "<think>"
- 	qwen35ThinkCloseTag = "</think>"
-@@ -72,6 +81,14 @@ func (r *Qwen35Renderer) LeadingBOS() string {
+@@ -72,6 +72,14 @@ func (r *Qwen35Renderer) LeadingBOS() string {
  	return ""
  }
  
@@ -96,39 +75,7 @@ index 8b9e5797..cfc23209 100644
  func (r *Qwen35Renderer) renderContent(content api.Message, imageOffset int) (string, int) {
  	if r.useImgTags {
  		return renderContentWithImageTags(content.Content, len(content.Images), imageOffset)
-@@ -272,6 +289,31 @@ func (r *Qwen35Renderer) Render(messages []api.Message, tools []api.Tool, think
- 		sb.WriteString(imStartTag + "system\n" + reasoningInstructions + imEndTag + "\n")
- 	}
- 
-+	// Emit the current time as its own system block, right after the part of
-+	// the prompt that is identical on every request. Keeping it out of the
-+	// system message is the point: llama-server takes a context checkpoint at
-+	// the message boundary just before it, so everything above stays cached and
-+	// only the time and the question are re-evaluated. See
-+	// OLLAMA_MESSAGE_DELIMITERS.
-+	//
-+	// The delimiter has to BE a special token. Delimiter matching compares token
-+	// sequences, and BPE merges across ordinary text: "system\n" is one token
-+	// alone but splits when text follows it, so a marker ending in text never
-+	// matches. Special tokens are atomic and merge with nothing.
-+	//
-+	// "<|im_end|>\n<|im_start|>" is stable but matches every message boundary,
-+	// which costs a snapshot at each. qwen35CacheBoundary is a single special
-+	// token that appears exactly here, so exactly one checkpoint is taken, at
-+	// the last position that is identical on every request.
-+	//
-+	// The alternatives are both worse: templating the time into the system
-+	// prompt invalidates the cache on every request, and answering "what time is
-+	// it" with a tool call costs an entire extra round trip through the model.
-+	if layout := os.Getenv("OLLAMA_TIME_FORMAT"); layout != "" {
-+		sb.WriteString(imStartTag + "system\n" + qwen35CacheBoundary + "Current time: " +
-+			time.Now().Format(layout) + imEndTag + "\n")
-+	}
-+
- 	multiStepTool := true
- 	lastQueryIndex := len(messages) - 1 // so this is the last user message
- 
-@@ -309,6 +351,14 @@ func (r *Qwen35Renderer) Render(messages []api.Message, tools []api.Tool, think
+@@ -309,6 +317,14 @@ func (r *Qwen35Renderer) Render(messages []api.Message, tools []api.Tool, think
  
  			if renderAssistantThinkBlock {
  				sb.WriteString(imStartTag + message.Role + "\n<think>\n" + contentReasoning + "\n</think>\n\n" + content)

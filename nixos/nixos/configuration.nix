@@ -219,19 +219,19 @@
       # of the invariant prompt, just before the current time.
       OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "<|fim_pad|>" ];
 
-      # What goes after that boundary: the current time, as its own system
-      # block, emitted by the renderer. A Go time layout; unset disables it.
-      # Minutes are the useful granularity -- seconds would change the prompt
-      # on every request for no benefit.
+      # What goes after the boundary is now Home Assistant's job, not the
+      # renderer's: its prompt ends with the marker followed by the current time
+      # and the live state of the entities worth stating up front. That is
+      # better layering -- Home Assistant is where that knowledge lives -- and it
+      # saves a whole model round trip, because the model no longer has to call
+      # GetLiveContext and be asked again. Measured: 677 ms of model time for the
+      # two-call version against 199 ms for one, of which 327 ms was generating
+      # the tool call.
       #
-      # With this set, drop "Call GetDateTimeTool for the current date or time."
-      # from the Home Assistant prompt; the model no longer needs a round trip
-      # to find out what time it is.
-      #
-      # The weekday is in there because the model cannot reliably derive it: with
-      # a bare date it answered "Sunday, August 17, 2026" and then "Monday,
-      # August 17, 2026" for the same question. It is a Monday.
-      OLLAMA_TIME_FORMAT = "Monday, January 2, 2006 at 3:04 PM MST";
+      # Home Assistant's prompt is a Jinja template and a <|fim_pad|> typed into
+      # it tokenizes as the special token, so it can supply the marker itself.
+      # There must be exactly ONE marker in the prompt: two would mean two
+      # checkpoints, and the on-device snapshot only holds one.
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
