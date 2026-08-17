@@ -427,3 +427,22 @@ solving for per-save and per-restore costs from differences between measurement
 types gave inconsistent answers (65 ms, then 35 ms, then 85 ms) because the
 cases differ in token count and checkpoint count at the same time. The reliable
 statements are the four measured totals in the table and the ~56 ms floor.
+
+
+## Measurement hygiene, again
+
+The trap at the top of this document ("Home Assistant must be idle") was
+violated by running a latency microbenchmark concurrently with a 75-run eval.
+It corrupted both: the microbenchmark read 234 ms for an identical request
+(higher than a real 3300-token conversation), and the eval reported the date
+scenario at 10.3 s when it actually takes 0.5-0.7 s.
+
+Nothing on this host measures anything while anything else is running. That
+includes background tasks started earlier in the same session.
+
+## The time format needs the weekday
+
+`OLLAMA_TIME_FORMAT` states the weekday explicitly. Given only `2026-08-17` the
+model answered "Sunday" and then "Monday" for the same question on consecutive
+requests. It is a Monday. Deriving a weekday from a date is arithmetic the model
+does unreliably, and it costs nothing to hand it over.

@@ -216,7 +216,11 @@
       # With this set, drop "Call GetDateTimeTool for the current date or time."
       # from the Home Assistant prompt; the model no longer needs a round trip
       # to find out what time it is.
-      OLLAMA_TIME_FORMAT = "2006-01-02 15:04";
+      #
+      # The weekday is in there because the model cannot reliably derive it: with
+      # a bare date it answered "Sunday, August 17, 2026" and then "Monday,
+      # August 17, 2026" for the same question. It is a Monday.
+      OLLAMA_TIME_FORMAT = "Monday, 2006-01-02 15:04";
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
