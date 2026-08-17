@@ -159,18 +159,26 @@
       # ollama passes its own environment through to llama-server, so LLAMA_ARG_*
       # reaches it with no patch.
       #
-      # Without this, a new conversation costs ~0.65 s of prefill instead of
-      # ~0.19 s. llama-server finds the prefix reusable (1836 of 1848 tokens)
-      # but cannot truncate the KV cache at an arbitrary position, because this
-      # context reports COMMON_CONTEXT_SEQ_RM_TYPE_FULL. It rolls back to the
-      # nearest context checkpoint instead — 824 — and re-prefills the 1011
-      # valid tokens in between. Setting this to 0 removes the rollback, leaving
-      # a plain longest-common-prefix reuse.
+      # qwen35 has full attention only every 4th layer (full_attention_interval
+      # = 4); the other three quarters are linear layers holding a recurrent
+      # state. A recurrent state cannot be truncated to an arbitrary position,
+      # only snapshotted or reset, so the context reports
+      # COMMON_CONTEXT_SEQ_RM_TYPE_FULL and context checkpoints are the *only*
+      # prefix-reuse mechanism there is. Setting -ctxcp to 0 does not fall back
+      # to plain longest-common-prefix reuse, it removes reuse altogether:
+      # measured 1.8 s of prefill on every request, even a byte-exact append.
       #
-      # Checkpoints exist to let speculative decoding work on a FULL-only
-      # context, so this is exactly the knob that might cost MTP. See
-      # prefix-cache-findings.md.
-      LLAMA_ARG_CTX_CHECKPOINTS = "0";
+      # What is actually wrong is the default spacing of 8192 tokens. The whole
+      # Home Assistant prompt is 1848 tokens, so after the first checkpoint the
+      # server declines to make another one anywhere useful, and a new
+      # conversation rolls back to a checkpoint near the start of the prefix and
+      # re-prefills ~1000 tokens. 128 puts the worst-case rollback at 128 tokens
+      # (~70 ms) and, with the default of 32 checkpoints, covers 4096 tokens of
+      # history — comfortably more than a voice conversation.
+      #
+      # Checkpoints live in host RAM, not VRAM: ~152 MiB each, so ~4.8 GB of the
+      # 128 GiB at the default count. See prefix-cache-findings.md.
+      LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT = "128";
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.

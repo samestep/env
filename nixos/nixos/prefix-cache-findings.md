@@ -1,10 +1,24 @@
-# Why fresh conversations re-prefill the whole system prompt
-
-Status: **root cause found; fix 1 applied, measurement pending.**
+Status: **root cause found; fix applied, measurement pending.**
 
 Every Home Assistant command that starts a new conversation costs ~0.65 s of
 prompt evaluation instead of ~0.19 s, because llama-server discards a cached
 prefix it has already identified as reusable.
+
+## Why this model can only reuse a prefix via checkpoints
+
+`general.architecture` is `qwen35`, and `qwen35.full_attention_interval = 4`:
+only every 4th layer is full attention. The other three quarters are linear
+layers carrying a **recurrent state**, not a KV cache.
+
+A recurrent state has no per-position structure to truncate. You can advance it,
+snapshot it, or reset it — nothing else. So the context reports
+`COMMON_CONTEXT_SEQ_RM_TYPE_FULL` ("can seq_rm full sequences only"), and
+**context checkpoints are the only prefix-reuse mechanism that exists here.**
+They are not an optimization layered on top of ordinary reuse; they are it.
+
+This is the fact that made the earlier rounds of this investigation
+unintelligible, and it is worth holding onto: `/api/show` reports it in one
+call, and it explains the behaviour that looked like a caching bug.
 
 ## The mechanism, from llama-server's own log
 
@@ -19,34 +33,44 @@ ollama runs llama-server with `--log-verbosity 4`, so this is in
     cached n_tokens = 825, memory_seq_rm [825, end)
     prompt eval time = 667.37 ms / 1023 tokens
 
-The slot selector finds **1836 of 1848 tokens** in common — it knows almost the
-whole prompt is already cached. Then the context-checkpoint machinery takes
-over. It cannot truncate the sequence at an arbitrary position; it can only roll
-back to a checkpoint. The only checkpoints are at 824 and 1843. 1843 is past the
-divergence point, so it falls back to 824 and re-prefills 1023 tokens.
+The slot selector finds **1836 of 1848 tokens** in common. The server then has
+to land on a checkpoint at or before 1836. The only ones are 824 and 1843; 1843
+is past the divergence point, so it falls back to 824 and re-prefills 1023
+tokens.
 
-Checkpoints are enabled because the context reports
-`COMMON_CONTEXT_SEQ_RM_TYPE_FULL` ("can seq_rm full sequences only"), which
-makes the server log "speculative decoding will use checkpoints". Partial
-truncation degrades to checkpoint granularity, and checkpoints are sparse
-because each one costs ~152 MiB.
+## The fix: checkpoint spacing, not checkpoint removal
 
-## Candidate fixes, untested
+`checkpoint_min_step` defaults to **8192 tokens** — the minimum spacing between
+checkpoints. Our entire prompt is 1848 tokens. After the first checkpoint the
+server declines to create another one anywhere near the end of the system
+prefix, which is exactly where every new conversation diverges.
 
-Both are environment variables. ollama passes `cmd.Env = os.Environ()` to the
-llama-server subprocess, so `services.ollama.environmentVariables` reaches it
-with no patch.
+Applied: `LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT=128`. Worst-case rollback becomes
+128 tokens (~70 ms at the measured ~1800 tok/s prefill rate), and the default 32
+checkpoints then cover 4096 tokens of history.
 
-1. `LLAMA_ARG_CTX_CHECKPOINTS=0` — disable checkpoints entirely. Should let the
-   server truncate at 1836 and prefill ~12 tokens. Risk: checkpoints exist to
-   support speculative decoding on a FULL-only context, so this may disable or
-   degrade MTP, which is worth ~1.7x on generation. Measure both prefill and
-   tokens/sec before keeping it.
-2. `LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT=<small>` — keep checkpoints but space
-   them closely, so a rollback loses less. Costs VRAM: ~152 MiB each, up to 32.
+Checkpoints are `std::vector<uint8_t>` in `common_prompt_checkpoint`, i.e. **host
+RAM, not VRAM** — ~152 MiB each, ~4.8 GB at the default count, against 128 GiB.
+An earlier version of this document said VRAM; that was wrong, and it made the
+budget look tight when it is free.
 
-Both bindings verified present in `common/arg.cpp` at llama.cpp b10380, which is
-what ollama 0.32.13 vendors.
+## Tried and rejected: `LLAMA_ARG_CTX_CHECKPOINTS=0`
+
+This was the first candidate, on the theory that removing checkpoints would
+leave plain longest-common-prefix reuse. It does the opposite. With no
+checkpoints the restore path finds nothing to land on, sets `do_reset`, and
+re-prefills from zero — **every request, including a byte-exact append**:
+
+    turn 0: 3117.4 ms / 5784 tok
+    turn 4: 3282.5 ms / 5872 tok
+
+against a ~150 ms floor. Generation did rise from 77 to 91 tok/s, so creating
+checkpoints does cost something on the generation path, but not a fraction of
+what the prefill regression costs.
+
+The useful by-product: this proved the env-var channel works. ollama passes
+`cmd.Env = os.Environ()` to llama-server, so `services.ollama.environmentVariables`
+reaches `LLAMA_ARG_*` with no patch. That had been assumed, never demonstrated.
 
 ## Ruled out — do not retry these
 
@@ -59,6 +83,9 @@ Each was tested, not reasoned about:
   and `update_cache && prompt_cache` then short-circuits). Measured: no change.
 - **`--slot-prompt-similarity`.** Already effectively enabled — the log shows
   `selected slot by LCP similarity`. Selection was never the problem.
+- **`--swa-full` / `LLAMA_ARG_SWA_FULL`.** Irrelevant: this model has no sliding
+  window. `--ctx-checkpoints` carries `--swa-checkpoints` as an alias, which
+  makes checkpoints look like an SWA feature; they serve recurrent state too.
 - **MTP / the draft head.** The non-MTP `qwen3.6:27b-q4_K_M` is equally slow.
 - **`--mmproj` / vision.** A projector-stripped variant built with
   `/api/create` (capabilities lost `vision`, kept `tools` and `thinking`) is
@@ -75,6 +102,11 @@ new prompt to extend the cached one. It computes
 `n_past = slot.prompt.tokens.get_common_prefix(input_tokens)` — a genuine
 longest common prefix. Verified standalone: three fresh conversations sharing
 only a system prefix prefilled 9, 10 and 10 tokens.
+
+Note that standalone test used an ordinary transformer, where the common prefix
+is the whole story. On qwen35 the common prefix is computed the same way and
+then *discarded* down to a checkpoint. Reproducing a cache question on a
+different architecture proves nothing about this one.
 
 ## Measurement traps that produced false results here
 
@@ -96,9 +128,9 @@ only a system prefix prefilled 9, 10 and 10 tokens.
 Measured through the primer on `qwen3.6:27b-mtp-q8_0`, which does not affect
 generation:
 
-- **Generation: 77 tok/s median** (with MTP). This is the number fix 1 puts at
-  risk. If it drops toward ~45 tok/s, checkpoints were load-bearing for
-  speculative decoding and fix 2 is the one to take.
+- **Generation: 77 tok/s median** (with MTP, at the default checkpoint spacing).
+  91 tok/s with checkpoints disabled entirely, which is the ceiling denser
+  spacing trades against.
 - **Prefill: ~152 ms for a 25-token prompt**, i.e. the fixed per-request
   overhead. A perfect cache hit cannot read below roughly this.
 
