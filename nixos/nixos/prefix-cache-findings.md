@@ -8,13 +8,10 @@ per-request floor. Generation 94.4 tok/s, no regression.
 | follow-up turn | 1831 ms | 185 ms | **275 ms** |
 | generation | 90.7 tok/s | 92.8 | **94.4** |
 
-The follow-up turn got *worse*, 185 -> 275 ms, and that is not yet explained.
-The likely cause is that a new user message now triggers a checkpoint save
-(~162 MiB of state), but that does not obviously square with a fresh
-conversation costing only 192 ms while also starting a user message. The log
-would settle it. It is a good trade either way: a two-turn exchange went
-437 + 185 = 622 ms to 192 + 275 = 467 ms, and voice commands are mostly
-single-turn.
+The follow-up turn got *worse*, 185 -> 275 ms. Explained below: it saves one
+more checkpoint than a fresh conversation does. Still a good trade -- a two-turn
+exchange went 437 + 185 = 622 ms to 192 + 275 = 467 ms, and voice commands are
+mostly single-turn.
 
 Every Home Assistant command that starts a new conversation costs ~0.65 s of
 prompt evaluation instead of ~0.19 s, because llama-server discards a cached
@@ -222,3 +219,38 @@ mark a checkpoint permanent. The ideal -- pin the system prefix forever, keep
 one more for the live conversation -- still has no expression in the API. 32
 checkpoints at 128 minimum spacing is enough headroom that a voice conversation
 never evicts the prefix, but that is headroom, not a guarantee.
+
+## Where the remaining ~190 ms goes
+
+Not prefill. The cost is nearly independent of prompt length:
+
+| system prompt | fresh prefill |
+|---|---|
+| 6298 tokens | 198 ms |
+| 568 tokens | 179 ms |
+
+It is **checkpoint creation**. The recurrent state is a fixed ~162 MiB
+regardless of context length, and saving one means copying that device->host.
+From the log, a fresh conversation restores one checkpoint and creates two; a
+follow-up restores one and creates three, because its prompt contains two user
+delimiters plus a `near_prompt_end`. Solving across the two cases:
+
+- **checkpoint save: ~65 ms** (2 saves = 192 ms fresh, 3 saves = 275 ms follow-up)
+- **checkpoint restore: single-digit ms** — the cheap direction, host->device
+- everything else: ~50 ms
+
+So restores are nearly free and saves dominate. This also means the earlier
+"~0.15 s of fixed per-request overhead" in the traps section was mostly
+misattributed: it was checkpoint saves, not HTTP and tokenization.
+
+### The only remaining lever is architectural
+
+For single-turn voice, the `near_prompt_end` checkpoint is pure overhead — we
+always restore the user-boundary one. Suppressing it would save ~65 ms per
+command. But `near_prompt_end` has no flag: it is exempt from
+`checkpoint_min_step` and unaffected by `n_ctx_checkpoints`, so this needs a
+llama.cpp patch, not a configuration change, and it would trade away multi-turn
+performance (that checkpoint is exactly what a follow-up restores).
+
+Not worth it at ~65 ms against a 1.4-3.2 s voice interaction. Recorded so the
+next person does not go looking for a config knob that does not exist.
