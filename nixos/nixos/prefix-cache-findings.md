@@ -243,7 +243,31 @@ So restores are nearly free and saves dominate. This also means the earlier
 "~0.15 s of fixed per-request overhead" in the traps section was mostly
 misattributed: it was checkpoint saves, not HTTP and tokenization.
 
-### The only remaining lever is architectural
+### Keeping checkpoints in VRAM
+
+The 65 ms is a device->host copy, and nothing requires that. llama.cpp has the
+flag already, in `include/llama.h`:
+
+    // Keeps the tensor data on device buffers (i.e. not accessible in host memory, but faster save/load).
+    // Getting the state for a seq_id with this flag invalidates all prior states gotten for that seq_id with this flag.
+    #define LLAMA_STATE_SEQ_FLAGS_ON_DEVICE 2
+
+It is a bit flag; the server passes only `PARTIAL_ONLY` (= 1). `grep ON_DEVICE
+tools/server/ common/` returns nothing — implemented in the core, never wired
+up. A save would become a device->device copy via `llama_io_write_device`,
+sub-millisecond instead of 65 ms.
+
+The catch is the second comment line. `mem_storage` is
+`std::map<llama_seq_id, llama_memory_buffers>` and each `get_data` rebuilds the
+entry, so there is exactly **one on-device snapshot per seq_id**. Two
+VRAM-resident checkpoints need two sequence ids — the two-slot design, with a
+real mechanism behind it. ollama passes `-np 1`.
+
+This is an upstream llama.cpp change, not a flag and not an ollama patch: the
+checkpoint deque holds up to 32 entries and would need to know which one gets
+the single on-device slot per sequence. Worth ~130 ms of the 192 ms.
+
+### The other lever is architectural
 
 For single-turn voice, the `near_prompt_end` checkpoint is pure overhead — we
 always restore the user-boundary one. Suppressing it would save ~65 ms per
@@ -254,3 +278,17 @@ performance (that checkpoint is exactly what a follow-up restores).
 
 Not worth it at ~65 ms against a 1.4-3.2 s voice interaction. Recorded so the
 next person does not go looking for a config knob that does not exist.
+
+## nixpkgs builds a different llama.cpp than ollama pins
+
+`pkgs/by-name/ol/ollama/package.nix`:
+
+    # Pre-stage the pin (tracks upstream's `LLAMA_CPP_VERSION` file) ...
+    llamaCppVersion = "b10091";
+
+ollama 0.32.13's `LLAMA_CPP_VERSION` says **b10380**. The comment claims the pin
+tracks upstream; it is roughly 290 builds behind.
+
+Our patch is unaffected — `message_delimiters` exists in both, which is why the
+measurement came out right — but **read b10091 when reasoning about behaviour on
+this host**, not ollama's pin and not llama.cpp master. All three differ.
