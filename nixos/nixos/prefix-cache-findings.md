@@ -1,4 +1,5 @@
-Status: **root cause found; fix applied, measurement pending.**
+Status: **fixed.** Fresh-conversation prefill 1770 ms -> 437 ms, against a
+185 ms floor. One unexplained 250 ms remains; see the last section.
 
 Every Home Assistant command that starts a new conversation costs ~0.65 s of
 prompt evaluation instead of ~0.19 s, because llama-server discards a cached
@@ -38,12 +39,19 @@ to land on a checkpoint at or before 1836. The only ones are 824 and 1843; 1843
 is past the divergence point, so it falls back to 824 and re-prefills 1023
 tokens.
 
-## The fix: checkpoint spacing, not checkpoint removal
+## The fix: stop suppressing the checkpoint we want
 
-`checkpoint_min_step` defaults to **8192 tokens** — the minimum spacing between
-checkpoints. Our entire prompt is 1848 tokens. After the first checkpoint the
-server declines to create another one anywhere near the end of the system
-prefix, which is exactly where every new conversation diverges.
+Checkpoints are **not** placed on a grid. The server parses the rendered chat
+into role spans and snapshots at the start of each user message
+(`spans.is_user_start`, `common/chat.h:174`), plus once near the end of the
+prompt. Those are already the positions worth saving: the boundary just after
+system+tools, and the end of the conversation so far.
+
+`checkpoint_min_step` is a throttle on that placement, not the placement itself
+— take this user-boundary checkpoint only if it is at least min_step past the
+last one. It defaults to **8192 tokens** while our whole prompt is 1848, so it
+suppressed the checkpoint at the end of the system prefix, which is exactly
+where every new conversation diverges.
 
 Applied: `LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT=128`. Worst-case rollback becomes
 128 tokens (~70 ms at the measured ~1800 tok/s prefill rate), and the default 32
@@ -64,9 +72,9 @@ re-prefills from zero — **every request, including a byte-exact append**:
     turn 0: 3117.4 ms / 5784 tok
     turn 4: 3282.5 ms / 5872 tok
 
-against a ~150 ms floor. Generation did rise from 77 to 91 tok/s, so creating
-checkpoints does cost something on the generation path, but not a fraction of
-what the prefill regression costs.
+against a ~150 ms floor. Generation read 91 tok/s here, but that is not evidence
+that checkpoints cost generation: with the fix applied it reads 92.8 tok/s. The
+77 tok/s baseline was taken on a ~28-token prompt and does not compare.
 
 The useful by-product: this proved the env-var channel works. ollama passes
 `cmd.Env = os.Environ()` to llama-server, so `services.ollama.environmentVariables`
@@ -128,9 +136,9 @@ different architecture proves nothing about this one.
 Measured through the primer on `qwen3.6:27b-mtp-q8_0`, which does not affect
 generation:
 
-- **Generation: 77 tok/s median** (with MTP, at the default checkpoint spacing).
-  91 tok/s with checkpoints disabled entirely, which is the ceiling denser
-  spacing trades against.
+- **Generation: 92.8 tok/s** after the fix, so checkpoint spacing costs nothing
+  measurable on the generation path. (An earlier 77 tok/s figure was taken on a
+  ~28-token prompt and is not comparable.)
 - **Prefill: ~152 ms for a 25-token prompt**, i.e. the fixed per-request
   overhead. A perfect cache hit cannot read below roughly this.
 
@@ -149,3 +157,26 @@ so any measurement taken with it in the path is unfalsifiable (trap 1).
 
 If fix 1 has to be reverted, the proxy is recoverable from git history rather
 than worth rewriting.
+
+## What is not solved
+
+Two things, neither blocking.
+
+**No pinning.** Eviction is FIFO (`erase(checkpoints.begin())`) with no way to
+mark a checkpoint permanent. The ideal — pin the system prefix forever, keep one
+more for the live conversation — has no expression in the API. 32 checkpoints at
+128 minimum spacing is enough headroom that a voice conversation never evicts
+the prefix, but that is headroom, not a guarantee.
+
+**An unexplained 250 ms.** A fresh conversation costs 437 ms against a 185 ms
+floor. If it were landing on the user-boundary checkpoint at the end of the
+prefix, the rollback would be ~0 tokens and the gap should be tens of ms. So
+either restoring a checkpoint is itself expensive (a state copy back into the
+context), or it is landing on an earlier checkpoint than intended. The log
+distinguishes these — it reports both checkpoint sizes and which one is
+restored:
+
+    journalctl -u ollama --since "10 min ago" | grep -i checkpoint
+
+If it is restore cost, lowering min_step further will not help and the remaining
+win would have to come from not needing a rollback at all.
