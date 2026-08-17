@@ -155,18 +155,18 @@
       # lights" is the difference between usable and infuriating.
       OLLAMA_KEEP_ALIVE = "-1";
       # ollama only reuses a cached sequence when the new prompt *extends* it,
-      # never on a shared prefix — so every fresh conversation re-runs the whole
-      # system prompt. Measured on this host: 0.65 s against 0.19 s when the
-      # prefix happens to be cached, on every command.
+      # so every fresh conversation re-runs the whole system prompt: measured
+      # here at 0.65 s against 0.19 s when the prefix happens to be cached.
       #
-      # Two slots is the whole idea: one holds the base prefix, one holds the
-      # conversation in progress, and neither evicts the other. A third would
-      # only earn its keep with two satellites talking at once. Slots multiply
-      # the KV allocation and this host asks for a 32768 context, so they are
-      # not free: KV here is 65 layers x 4 kv heads x 512 dims x 2 bytes, about
-      # 260 KB per token, i.e. ~2.2 GB per slot at the 8192 Home Assistant
-      # requests and ~8.7 GB at the full 32768.
-      OLLAMA_NUM_PARALLEL = "2";
+      # Extra slots do not fix it, and llama.cpp's source says why. ollama
+      # spawns llama-server with `-np`, but llama-server picks a slot by LRU
+      # unless --slot-prompt-similarity is set, and that defaults to 0.0 with no
+      # environment binding, so ollama cannot turn it on. A fresh conversation
+      # therefore takes the least recently used slot no matter what is cached in
+      # it. Measured with two slots: a three-turn conversation still evicted the
+      # prefix and the next command went back to 0.63 s. Left at one slot, since
+      # `-c` is num_ctx x parallel and the extra KV bought nothing.
+      OLLAMA_NUM_PARALLEL = "1";
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
