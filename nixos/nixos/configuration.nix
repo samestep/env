@@ -146,7 +146,17 @@
   # https://wiki.nixos.org/wiki/Ollama
   services.ollama = {
     enable = true;
-    package = pkgs.ollama-cuda;
+    # llama-server can place a context checkpoint exactly at the start of each
+    # message, but only if it is told where messages begin: it scans the prompt
+    # for delimiter strings passed in the request's "message_delimiters" field.
+    # The chat-completions path fills that in from the chat template. ollama
+    # renders qwen's template itself in Go and posts a flat string to
+    # /completion, leaving the field empty, so llama-server sees an opaque
+    # prompt and falls back to checkpointing near the end of it. The patch has
+    # renderers report their delimiters and passes them through.
+    package = pkgs.ollama-cuda.overrideAttrs (old: {
+      patches = (old.patches or [ ]) ++ [ ./ollama-message-delimiters.patch ];
+    });
     # 0.0.0.0 so libvirt guests can reach it at 192.168.122.1; the firewall
     # only opens 11434 on virbr0.
     host = "0.0.0.0";

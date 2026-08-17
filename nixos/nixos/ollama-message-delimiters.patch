@@ -1,0 +1,148 @@
+diff --git a/api/types.go b/api/types.go
+index c0e771d4..29502293 100644
+--- a/api/types.go
++++ b/api/types.go
+@@ -191,6 +191,14 @@ func (t Tool) String() string {
+ 	return string(bts)
+ }
+ 
++// MessageDelimiter is the string that begins a message with the given role in
++// a rendered prompt. llama-server scans the prompt for these so that it can
++// place context checkpoints at message boundaries.
++type MessageDelimiter struct {
++	Role      string `json:"role"`
++	Delimiter string `json:"delimiter"`
++}
++
+ // Message is a single message in a chat sequence. The message contains the
+ // role ("system", "user", or "assistant"), the content and an optional list
+ // of images.
+diff --git a/llm/llama_server.go b/llm/llama_server.go
+index 1b13a5b0..a251391d 100644
+--- a/llm/llama_server.go
++++ b/llm/llama_server.go
+@@ -1410,6 +1410,8 @@ type llamaServerCompletionRequest struct {
+ 	JsonSchema      json.RawMessage `json:"json_schema,omitempty"`
+ 	NProbs          int             `json:"n_probs,omitempty"`
+ 	PreservedTokens []string        `json:"preserved_tokens,omitempty"`
++
++	MessageDelimiters []api.MessageDelimiter `json:"message_delimiters,omitempty"`
+ }
+ 
+ func llamaServerPreservedTokens(parserTokens []string, toolCallTag string) []string {
+@@ -1572,6 +1574,8 @@ func (s *llamaServerRunner) Completion(ctx context.Context, req CompletionReques
+ 		TypicalP:        req.Options.TypicalP,
+ 		Seed:            req.Options.Seed,
+ 		PreservedTokens: llamaServerPreservedTokens(req.PreservedTokens, req.ToolCallTag),
++
++		MessageDelimiters: req.MessageDelimiters,
+ 	}
+ 
+ 	if req.Logprobs {
+diff --git a/llm/server.go b/llm/server.go
+index a11b7f83..5d1378cd 100644
+--- a/llm/server.go
++++ b/llm/server.go
+@@ -216,6 +216,12 @@ type CompletionRequest struct {
+ 	ToolCallTag     string   // raw generic tool parser tag, if any
+ 	LeadingBOS      string   // textual BOS emitted by Go rendering, if any
+ 
++	// MessageDelimiters tells llama-server where messages begin in the rendered
++	// prompt, so it can place context checkpoints at those boundaries. Without
++	// it, a Go-rendered prompt is opaque and checkpoints land near the end of
++	// the prompt instead; ignored by non-llama-server runners.
++	MessageDelimiters []api.MessageDelimiter
++
+ 	// Logprobs specifies whether to include log probabilities in the response
+ 	Logprobs bool
+ 
+diff --git a/model/renderers/qwen35.go b/model/renderers/qwen35.go
+index 8b9e5797..4e30446b 100644
+--- a/model/renderers/qwen35.go
++++ b/model/renderers/qwen35.go
+@@ -72,6 +72,14 @@ func (r *Qwen35Renderer) LeadingBOS() string {
+ 	return ""
+ }
+ 
++// MessageDelimiters reports where a user message begins. llama-server places a
++// context checkpoint at each one, which puts a checkpoint at the end of the
++// system prompt and tool definitions -- exactly where a new conversation
++// diverges from the previous one.
++func (r *Qwen35Renderer) MessageDelimiters() []api.MessageDelimiter {
++	return []api.MessageDelimiter{{Role: "user", Delimiter: imStartTag + "user\n"}}
++}
++
+ func (r *Qwen35Renderer) renderContent(content api.Message, imageOffset int) (string, int) {
+ 	if r.useImgTags {
+ 		return renderContentWithImageTags(content.Content, len(content.Images), imageOffset)
+diff --git a/model/renderers/renderer.go b/model/renderers/renderer.go
+index 93d3b0ea..e9ab74ee 100644
+--- a/model/renderers/renderer.go
++++ b/model/renderers/renderer.go
+@@ -52,6 +52,29 @@ func LeadingBOSForRenderer(name string) string {
+ 	return renderer.LeadingBOS()
+ }
+ 
++// messageDelimiterRenderer is implemented by renderers that can say where each
++// message begins in their output. Renderers that do not implement it simply
++// contribute no delimiters, and llama-server falls back to placing checkpoints
++// near the end of the prompt.
++type messageDelimiterRenderer interface {
++	MessageDelimiters() []api.MessageDelimiter
++}
++
++// MessageDelimitersForRenderer returns the message-start delimiters for a
++// renderer, for llama-server's context checkpointing.
++func MessageDelimitersForRenderer(name string) []api.MessageDelimiter {
++	renderer := rendererForName(name)
++	if renderer == nil {
++		return nil
++	}
++
++	if d, ok := renderer.(messageDelimiterRenderer); ok {
++		return d.MessageDelimiters()
++	}
++
++	return nil
++}
++
+ func rendererForName(name string) Renderer {
+ 	if constructor, ok := registry.renderers[name]; ok {
+ 		return constructor()
+diff --git a/server/routes.go b/server/routes.go
+index 3a027a9e..a414800c 100644
+--- a/server/routes.go
++++ b/server/routes.go
+@@ -667,6 +667,8 @@ func (s *Server) GenerateHandler(c *gin.Context) {
+ 			TopLogprobs:     req.TopLogprobs,
+ 			PreservedTokens: preservedTokensForCompletion(builtinParser),
+ 			LeadingBOS:      leadingBOS,
++
++			MessageDelimiters: messageDelimitersForModel(m),
+ 		}, func(cr llm.CompletionResponse) {
+ 			res := api.GenerateResponse{
+ 				Model:     req.Model,
+@@ -2315,6 +2317,14 @@ func leadingBOSForModel(m *Model) string {
+ 	return renderers.LeadingBOSForRenderer(resolveRendererName(m))
+ }
+ 
++func messageDelimitersForModel(m *Model) []api.MessageDelimiter {
++	if m == nil || m.Config.Renderer == "" {
++		return nil
++	}
++
++	return renderers.MessageDelimitersForRenderer(resolveRendererName(m))
++}
++
+ func optionsForPrompt(opts *api.Options, runner llm.LlamaServer) *api.Options {
+ 	if opts == nil || runner == nil {
+ 		return opts
+@@ -2763,6 +2773,8 @@ func (s *Server) ChatHandler(c *gin.Context) {
+ 				PreservedTokens: preservedTokensForCompletion(builtinParser),
+ 				ToolCallTag:     toolCallTagForCompletion(toolParser),
+ 				LeadingBOS:      leadingBOSForModel(m),
++
++				MessageDelimiters: messageDelimitersForModel(m),
+ 			}, func(r llm.CompletionResponse) {
+ 				res := api.ChatResponse{
+ 					Model:     req.Model,

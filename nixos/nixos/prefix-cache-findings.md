@@ -1,5 +1,6 @@
-Status: **fixed.** Fresh-conversation prefill 1770 ms -> 437 ms, against a
-185 ms floor. One unexplained 250 ms remains; see the last section.
+Status: **fixed, with an ollama patch pending a rebuild.** Fresh-conversation
+prefill went 1770 ms -> 437 ms from checkpoint spacing alone; the patch should
+take it to the ~185 ms floor. Verify after rebuilding.
 
 Every Home Assistant command that starts a new conversation costs ~0.65 s of
 prompt evaluation instead of ~0.19 s, because llama-server discards a cached
@@ -158,25 +159,52 @@ so any measurement taken with it in the path is unfalsifiable (trap 1).
 If fix 1 has to be reverted, the proxy is recoverable from git history rather
 than worth rewriting.
 
-## What is not solved
+## Telling the engine exactly where to checkpoint
 
-Two things, neither blocking.
+The remaining 437 - 185 ms was **not** restore cost. The log showed every
+checkpoint landing at a `near_prompt_end` position, 512 apart (2759 and 3271 for
+a 3272-token prompt), because `near_prompt_end` opens a window of one
+`n_ubatch`. The system prefix ends at 3261, just before 3271, so it fell back to
+2760 and re-prefilled ~500 tokens.
+
+That is the *fallback* placement. The intended one is `is_user_start`, and it is
+directly controllable: `message_delimiters` is a field on the `/completion`
+request (`server-context.cpp:4150` at b10380, the revision ollama pins):
+
+    auto delimiters = common_chat_msg_delimiters_parse(json_value(data, "message_delimiters", json::array()));
+    delimiters.tokenize(ctx_server.vocab);
+    ...
+    task.params.message_spans = task.tokens.find_message_spans(delimiters);
+
+Spans are not derived from structured chat data. llama-server tokenizes the
+delimiter strings you hand it and scans the prompt for them. Give it
+`<|im_start|>user\n` and it puts a checkpoint at the end of everything before
+the first user message -- the system prompt and tool definitions -- which is
+exactly where a new conversation diverges.
+
+ollama never sends the field. It renders qwen's template in Go and posts a flat
+string to `/completion` (`llm/llama_server.go:5`), and its
+`llamaServerCompletionRequest` has no such field, so llama-server parses
+`json::array()` and finds no spans.
+
+`ollama-message-delimiters.patch` adds it: an optional `MessageDelimiters()`
+method on the renderer interface, implemented for `Qwen35Renderer`, threaded
+through `llm.CompletionRequest` into the request body. Applies cleanly to
+v0.32.13, which is what nixpkgs ships; `go build` and the `renderers` and `llm`
+test packages pass.
+
+### The n_ubatch red herring
+
+Because the fallback window is one `n_ubatch`, shrinking it does buy prefill:
+437 ms at 512, 310 ms at 256, 262 ms at 128, against bulk prefill dropping from
+1769 to 1534 tok/s. That is a real trade, and it is the wrong thing to trade: it
+tunes the granularity of the fallback instead of using the mechanism that exists
+for saying where the checkpoint goes. **Do not set num_batch for this.**
+
+## What is still not solved
 
 **No pinning.** Eviction is FIFO (`erase(checkpoints.begin())`) with no way to
-mark a checkpoint permanent. The ideal — pin the system prefix forever, keep one
-more for the live conversation — has no expression in the API. 32 checkpoints at
-128 minimum spacing is enough headroom that a voice conversation never evicts
-the prefix, but that is headroom, not a guarantee.
-
-**An unexplained 250 ms.** A fresh conversation costs 437 ms against a 185 ms
-floor. If it were landing on the user-boundary checkpoint at the end of the
-prefix, the rollback would be ~0 tokens and the gap should be tens of ms. So
-either restoring a checkpoint is itself expensive (a state copy back into the
-context), or it is landing on an earlier checkpoint than intended. The log
-distinguishes these — it reports both checkpoint sizes and which one is
-restored:
-
-    journalctl -u ollama --since "10 min ago" | grep -i checkpoint
-
-If it is restore cost, lowering min_step further will not help and the remaining
-win would have to come from not needing a rollback at all.
+mark a checkpoint permanent. The ideal -- pin the system prefix forever, keep
+one more for the live conversation -- still has no expression in the API. 32
+checkpoints at 128 minimum spacing is enough headroom that a voice conversation
+never evicts the prefix, but that is headroom, not a guarantee.
