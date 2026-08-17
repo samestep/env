@@ -154,19 +154,27 @@
       # The assistant has to stay resident; a 30 s reload before "turn off the
       # lights" is the difference between usable and infuriating.
       OLLAMA_KEEP_ALIVE = "-1";
-      # ollama only reuses a cached sequence when the new prompt *extends* it,
-      # so every fresh conversation re-runs the whole system prompt: measured
-      # here at 0.65 s against 0.19 s when the prefix happens to be cached.
+      # Every fresh conversation was re-running the whole system prompt: 0.65 s
+      # against 0.19 s when the prefix was already cached. The cause is in
+      # llama-server, which ollama runs as a subprocess. Slot selection falls to
+      # LRU (--slot-prompt-similarity defaults to 0 and has no env binding), and
+      # the LRU path does this:
       #
-      # Extra slots do not fix it, and llama.cpp's source says why. ollama
-      # spawns llama-server with `-np`, but llama-server picks a slot by LRU
-      # unless --slot-prompt-similarity is set, and that defaults to 0.0 with no
-      # environment binding, so ollama cannot turn it on. A fresh conversation
-      # therefore takes the least recently used slot no matter what is cached in
-      # it. Measured with two slots: a three-turn conversation still evicted the
-      # prefix and the next command went back to 0.63 s. Left at one slot, since
-      # `-c` is num_ctx x parallel and the extra KV bought nothing.
-      OLLAMA_NUM_PARALLEL = "1";
+      #     ret->prompt_save(*prompt_cache);
+      #     if (!ret->prompt_load(*prompt_cache, task.tokens)) {
+      #         ret->prompt_clear();
+      #     }
+      #
+      # so when the level-2 cache has no better match it *clears the slot*,
+      # throwing away a prefix that ordinary common-prefix reuse would have
+      # kept. That block is guarded by `update_cache && prompt_cache`, and the
+      # cache is only built when cache_ram_mib != 0 — so switching it off stops
+      # the clearing. llama-server inherits this environment (cmd.Env =
+      # os.Environ()), so no patch is needed.
+      #
+      # Nothing is lost: that cache exists to restore evicted conversations when
+      # serving many at once, and this host serves one.
+      LLAMA_ARG_CACHE_RAM = "0";
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
