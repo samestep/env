@@ -372,14 +372,23 @@ type that can follow it:
 **Any future marker must be checked this way.** Reasoning about BPE is not
 enough; this one looked obviously fine and was not.
 
-### Why matching every boundary is acceptable
+### And it must be unique, not merely stable
 
-`<|im_end|>\n<|im_start|>` matches every message boundary, not just the one we
-want. That is fine because the dedup patch skips re-taking a snapshot where one
-already exists, so boundaries whose content has not changed cost nothing.
+`<|im_end|>\n<|im_start|>` is stable but matches *every* message boundary, and
+a snapshot is taken at each: fresh prefill 267 ms against 158 ms for a marker
+that matched one place. The dedup patch does not save us here, because the
+boundaries in question are at positions that genuinely differ per request.
 
-The dedup is sound even though the timestamp makes content change under a fixed
-position: on any divergence the server first erases every checkpoint with
+So the marker is `<|fim_pad|>` — a single special token, emitted by the renderer
+in exactly one place. Every spare special token in this vocab was checked and
+all tokenize as one token; a padding token was chosen because it carries no
+meaning the model has to interpret.
+
+Both properties are required, and only a special token has both: text markers
+fail to match at all, and structural markers match too often.
+
+The dedup remains sound even though the timestamp makes content change under a
+fixed position: on any divergence the server first erases every checkpoint with
 `pos_max > pos_next`, so a checkpoint that survives to be dedup-matched was
 necessarily built from an identical token prefix.
 

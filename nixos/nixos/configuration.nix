@@ -195,18 +195,18 @@
       # Where llama-server may take a context checkpoint. It scans the prompt
       # for these token sequences and snapshots immediately before each match.
       #
-      # This MUST end on a special token. Matching compares token sequences, and
-      # BPE merges across ordinary text: "system\n" is a single token on its own
-      # but splits when text follows, so a marker ending in text never matches.
-      # Measured, after shipping one that did not work. Special tokens are
-      # atomic, and this concatenates cleanly with every message that can follow
-      # it (3 + n tokens, checked against system, user and assistant turns).
+      # This MUST be a special token, and it must equal qwen35CacheBoundary in
+      # the renderer patch. Two properties are needed and only a special token
+      # has both. Matching compares token sequences and BPE merges across
+      # ordinary text -- "system\n" is a single token alone but splits when text
+      # follows, so a text marker never matches at all. And the marker must be
+      # unique: "<|im_end|>\n<|im_start|>" is stable but matches every message
+      # boundary, costing a ~162 MiB snapshot at each one.
       #
-      # It therefore matches every message boundary rather than only the one we
-      # care about, which is fine: the checkpoint-dedup patch skips re-taking a
-      # snapshot at a position that already has one, so the boundaries whose
-      # content did not change cost nothing.
-      OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "<|im_end|>\n<|im_start|>" ];
+      # <|fim_pad|> is a padding token, so it carries no meaning the model has
+      # to interpret, and the renderer emits it in exactly one place: at the end
+      # of the invariant prompt, just before the current time.
+      OLLAMA_MESSAGE_DELIMITERS = builtins.toJSON [ "<|fim_pad|>" ];
 
       # What goes after that boundary: the current time, as its own system
       # block, emitted by the renderer. A Go time layout; unset disables it.
