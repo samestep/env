@@ -147,22 +147,19 @@
   services.ollama = {
     enable = true;
     package = pkgs.ollama-cuda;
-    host = "0.0.0.0"; # So libvirt guests can reach it at 192.168.122.1.
+    # Behind the primer proxy, which is what listens on 11434.
+    host = "127.0.0.1";
+    port = 11435;
     environmentVariables = {
       OLLAMA_CONTEXT_LENGTH = "32768"; # Otherwise it's tiered off total VRAM.
       OLLAMA_FLASH_ATTENTION = "1";
       # The assistant has to stay resident; a 30 s reload before "turn off the
       # lights" is the difference between usable and infuriating.
       OLLAMA_KEEP_ALIVE = "-1";
-      # Note: every fresh conversation re-runs the whole system prompt here,
-      # 0.65 s against 0.19 s for a continued one, on every command. The cause
-      # is not yet identified. Ruled out by measurement: extra slots (selection
-      # is LRU and ignores what is cached), and disabling llama-server's
-      # level-2 prompt cache with LLAMA_ARG_CACHE_RAM=0. Ruled out by reading
-      # llama.cpp b10380: cache_prompt defaults true and ollama sets it anyway,
-      # and n_past is only zeroed when it is false. Until it is understood, the
-      # lever that does work is keeping the prompt short — every entity exposed
-      # to Assist is ~25 tokens of prefill on every request.
+      # See ollama-primer.py: llama-server only reuses a cached sequence that
+      # the new prompt extends, so a conversation leaves the slot in a state the
+      # next conversation cannot build on. Measured 0.65 s of prefill on every
+      # command, against 0.19 s once the slot holds just the prefix.
     };
     # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
     # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
@@ -177,6 +174,39 @@
       "qwen3.6:27b-mtp-q8_0" # 30 GB, index 38. The assistant.
       "qwen3.6:35b-a3b-q4_K_M" # 24 GB, index 32 — faster, but see above.
     ];
+  };
+
+  # Keeps ollama's prompt cache holding the Home Assistant system prefix. See
+  # the docstring in ollama-primer.py for why this is needed; in short,
+  # llama-server reuses a cached sequence only when the new prompt extends it,
+  # and a finished conversation leaves the slot in a state the next one cannot
+  # build on. The proxy replays each request with the conversation stripped, so
+  # the bytes match by construction — including tool schemas — and keep matching
+  # when the prompt changes.
+  systemd.services.ollama-primer = {
+    description = "Prefix-cache primer in front of ollama";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "ollama.service" ];
+    wants = [ "ollama.service" ];
+    environment = {
+      PRIMER_UPSTREAM = "http://127.0.0.1:${toString config.services.ollama.port}";
+      PRIMER_HOST = "0.0.0.0"; # So libvirt guests can reach it at 192.168.122.1.
+      PRIMER_PORT = "11434";
+    };
+    serviceConfig = {
+      ExecStart = "${pkgs.python3}/bin/python3 ${./ollama-primer.py}";
+      Restart = "always";
+      RestartSec = 2;
+      DynamicUser = true;
+      NoNewPrivileges = true;
+      PrivateDevices = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
+    };
   };
 
   # Voice assistant. With `prefer_local_intents` on (a per-pipeline setting,
@@ -363,9 +393,7 @@
   services.esphome.enable = true;
 
   # Only the VMs, not the whole LAN.
-  networking.firewall.interfaces."virbr0".allowedTCPPorts = [
-    config.services.ollama.port
-  ];
+  networking.firewall.interfaces."virbr0".allowedTCPPorts = [ 11434 ];
 
   # Chat UI at http://localhost:8080
   services.open-webui = {
