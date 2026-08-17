@@ -2,11 +2,14 @@ Status: **fixed and verified.** Fresh-conversation prefill 1770 ms -> 437 ms
 from checkpoint spacing, then -> 192 ms with the delimiters patch, which is the
 per-request floor. Generation 94.4 tok/s, no regression.
 
-| | original | spacing fix | + delimiters patch |
-|---|---|---|---|
-| fresh conversation | 1770 ms | 437 ms | **192 ms** |
-| follow-up turn | 1831 ms | 185 ms | **275 ms** |
-| generation | 90.7 tok/s | 92.8 | **94.4** |
+| | original | spacing fix | + delimiters | + dedup |
+|---|---|---|---|---|
+| fresh conversation | 1770 ms | 437 ms | 192 ms | **158 ms** |
+| follow-up turn | 1831 ms | 185 ms | 275 ms | **239 ms** |
+| generation | 90.7 tok/s | 92.8 | 94.4 | **87.1** |
+
+Generation varies +/- 8% run to run (77 to 94 across the session on identical
+prompts), so none of that column is a signal beyond "no regression".
 
 The follow-up turn got *worse*, 185 -> 275 ms. Explained below: it saves one
 more checkpoint than a fresh conversation does. Still a good trade -- a two-turn
@@ -292,3 +295,25 @@ tracks upstream; it is roughly 290 builds behind.
 Our patch is unaffected — `message_delimiters` exists in both, which is why the
 measurement came out right — but **read b10091 when reasoning about behaviour on
 this host**, not ollama's pin and not llama.cpp master. All three differ.
+
+
+## The real per-request floor is ~56 ms
+
+Send the *same* tiny prompt repeatedly. After the first, there is nothing new to
+evaluate and (with the dedup patch) no new checkpoint position, so what is left
+is the cost of being a request at all:
+
+    identical request 0: prefill  141.3 ms / 15 tok     <- new prompt, takes a checkpoint
+    identical request 1: prefill   55.9 ms / 15 tok
+    identical request 2: prefill   56.9 ms / 15 tok
+    identical request 3: prefill   55.1 ms / 15 tok
+
+So **~56 ms is irreducible** without changing ollama or llama.cpp more deeply,
+and a fresh conversation at 158 ms still carries ~100 ms of checkpoint work: one
+save plus one restore.
+
+Do not try to attribute that 100 ms more finely than this. Several attempts at
+solving for per-save and per-restore costs from differences between measurement
+types gave inconsistent answers (65 ms, then 35 ms, then 85 ms) because the
+cases differ in token count and checkpoint count at the same time. The reliable
+statements are the four measured totals in the table and the ~56 ms floor.
