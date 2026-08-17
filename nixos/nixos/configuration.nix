@@ -192,12 +192,16 @@
       # after it was made. We want to keep the ones we ask for.
       LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT = "0";
 
-      # Exactly one prompt checkpoint, which is all we ask for: one delimiter,
-      # matched once. This is not a tuning choice, it is what makes keeping the
-      # checkpoint in VRAM correct -- llama.cpp allows a single on-device
-      # snapshot per sequence and taking another silently invalidates the
-      # previous one. Holding one means that can never happen.
-      LLAMA_ARG_CTX_CHECKPOINTS = "1";
+      # LLAMA_ARG_CTX_CHECKPOINTS was set to 1 here to guarantee the single
+      # checkpoint that ON_DEVICE requires. It broke fresh conversations
+      # outright -- 163 ms to 1836 ms, i.e. full reprocessing, so no usable
+      # checkpoint survived between conversations. The cap evicts the front of
+      # the deque whenever anything else is created, and evidently something is.
+      #
+      # Removed: only one position is ever checkpointed anyway (one delimiter,
+      # matched once, prompt-end snapshots suppressed), so the invariant holds
+      # without the cap. If answers ever go strange rather than slow, suspect
+      # this and revert the ON_DEVICE flag in llama-checkpoint-dedup.patch.
 
       # Where llama-server may take a context checkpoint. It scans the prompt
       # for these token sequences and snapshots immediately before each match.
