@@ -174,3 +174,14 @@ utterance while pauses keep working, and the model itself costs about 100 ms.
 Recommended: `silence_seconds` 0.1-0.15 with `turn_detection` on. That is
 roughly 200 ms from end of speech to decision, against 789 ms measured for
 silence alone at 0.7, and it is inside the 200 ms band of human turn-taking.
+
+
+## End to end
+
+Full pipeline, audio in to answer out, timed from the last sample of speech,
+through the real conversation agent on the host:
+
+    before: silence 0.7, no turn model     1408 ms   'No, the bed light is off.'
+    after:  silence 0.1, turn model         824 ms   'No, the bed light is off.'
+
+**584 ms**, same answer. `dev/e2e-compare.py` runs it.
