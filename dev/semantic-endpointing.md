@@ -11,6 +11,8 @@ setting could do before.
 | Turn detection | Smart Turn v3 decides whether a pause is final, so `silence_seconds` no longer has to be long enough to forgive one |
 | `silence_seconds` | 0.7 -> 0.25 by default, 0.1 available; every 100 ms off it is 100 ms off the answer |
 | Speculative transcription | transcribes a snapshot taken when speech stops, during the wait, instead of after it |
+| Speculative conversation | runs the model on that transcript too, holding side effects and speech until the turn is confirmed |
+| Streaming synthesis | Kokoro is fed text as it is generated, so the first sentence is spoken while the last is still being written |
 | Model | `ornith:35b-q4_K_M` scored 45/45 against 38/45 for the incumbent, and is faster |
 
 ## The one thing to understand
@@ -44,12 +46,10 @@ Voice tests need a transcriber in the VM:
   and text-to-speech. The 6.1% of unfinished utterances the model cuts off at
   threshold 0.9 is the number that matters, and it cannot be checked against a
   corpus that does not contain your voice, your room or your phrasing.
-- **Speculating past transcription.** The conversation stage executes tool
-  calls, and a cancelled speculation cannot un-turn-on a light. Overlapping the
-  wait with the *model* rather than just the transcriber needs a way to defer
-  side effects.
-- **Streaming speech synthesis** is now implemented; see below. Untested against
-  the real synthesiser, because building it needs onnxruntime with CUDA.
+- **Speculating past transcription** is now done; see below. Tool calls that
+  would change something are held mid-call rather than abandoned, so a guess
+  that turns out right keeps the prefill and the tokens that chose the tool.
+- **Streaming speech synthesis** is done and verified on the host; see below.
 - **Switching the live assistant to ornith.** Left deliberately for a person:
   the eval is 15 scenarios against demo entities, not a house.
 
@@ -407,6 +407,136 @@ The first sentence is spoken while the third is still being generated. The
 longer the reply, the more this saves, and it is the only change here that
 attacks time-to-*first-audio* rather than time-to-answer.
 
-**Still to verify on the host**, where the real synthesiser lives: that Home
-Assistant picks up the capability, and what it does to the felt latency of a
-long reply.
+### Verified on the host
+
+`run-start` carries `tts_output.stream_response`, which is true only when the
+synthesiser takes streamed input *and* the agent produces streamed output, so
+the question needs no guessing:
+
+    stream_response = True
+
+Fetching the audio from the moment the URL exists, and timing the first byte
+against the moment generation finished:
+
+| reply | first audio | generation done | speaking starts |
+|---|---|---|---|
+| "Is the bed light on?" | 516 ms | 381 ms | 135 ms *after* |
+| three sentences | 1054 ms | 2535 ms | **1482 ms before** |
+| eight sentences | 748 ms | 5500 ms | **4752 ms before** |
+
+A one-sentence answer gains nothing -- there is no later sentence to overlap
+with, and synthesis still has to happen. Everything longer gains roughly the
+whole of its own generation time. Reproduce with `scratch/host-tts-firstbyte.py`.
+
+### Every reply was being synthesised twice
+
+Home Assistant sends `SynthesizeStart`, then the chunks, and then the whole
+message again as a plain `Synthesize` -- commented in `wyoming/tts.py` as "for
+backwards compatibility", for servers that cannot stream. The patched server
+fell through to its ordinary `Synthesize` handler for that, so it said
+everything a second time and spent twice the GPU on it.
+
+The stub test had not caught it because it sent only the events the streaming
+path cares about. It now performs the exchange Home Assistant actually performs,
+trailing `Synthesize` included, which is the version worth keeping: the bug was
+not in the logic under test but in the half of the protocol the test omitted.
+
+## Speculating on the conversation, not just the transcription
+
+Transcribing early leaves the *model* idle for the rest of the wait, and the
+model is the slower of the two. So the conversation now starts on the
+speculative transcript as well, and everything it produces is held until the
+turn is confirmed:
+
+| what | how it is held |
+|---|---|
+| pipeline events | buffered and replayed in order at commit |
+| speech | the stream is not handed to the synthesiser until commit |
+| tools that read | run immediately -- a wrong one wastes milliseconds |
+| tools that act | block inside `llm.APIInstance.async_call_tool` |
+
+**Held, not abandoned.** The prefill and the tokens that chose the tool are
+still valid if the guess was right, which it usually is, so a paused call costs
+nothing and resumes on commit. Abandoning would throw away the most expensive
+part of the work to save nothing.
+
+`llm.Tool.reads_only` says which tools may run on a guess. It defaults to
+*acts*, because the two mistakes do not cost the same: a needless read wastes a
+few milliseconds, a needless action cannot be undone. Only `GetLiveContext`,
+`GetDateTime`, `calendar_get_events`, `todo_get_items` and the read-only intents
+are marked.
+
+Discard is nearly free, which is what makes the whole thing safe.
+`conversation.async_get_chat_log` builds on a copy of the history and writes it
+back only *after* the block it guards finishes -- so cancelling the task leaves
+nothing behind. `async_get_chat_session` does the same. Neither needed changing.
+
+### What it is worth
+
+Speculation cannot remove the wait itself: the answer still must not arrive
+before the speaker is known to have finished. What it removes is the work that
+used to happen *after* the wait. So the number to look at is not the saving at
+one setting, it is how flat the curve becomes.
+
+    question                          command
+    silence     off     on            silence     off     on
+       0.10     785     753              0.10    1477    1379
+       0.25     787     760              0.25    1476    1421
+       0.70    1244     838              0.70    1887    1370
+
+Median ms from the last sample of speech to the answer, four runs a cell,
+`dev/speculation-sweep.py`. With speculation on, latency barely depends on the
+wait at all: 753-838 ms across the whole range for a question, 1370-1421 ms for
+a command. Without it, going from 0.25 to 0.7 costs 457 ms and 411 ms.
+
+**So pause tolerance is close to free now.** The default stays at 0.25 s, since
+the turn model already holds mid-sentence pauses and there is no reason to make
+a finished utterance wait longer. But 0.7 s costs about 80 ms instead of about
+460 ms, which makes it a reasonable thing to reach for if the model turns out to
+cut you off -- a pause shorter than the threshold is never submitted to it at
+all.
+
+The saving is smaller here than it will be on the host, because this VM
+transcribes in ~211 ms against the host's 94-167 ms, and the transcription has
+to finish before the conversation can start on it. The idle left inside a
+250 ms wait is whatever the transcriber does not use.
+
+### Checking it does not act on a guess
+
+`dev/speculation-safety.py` plays a complete command, a pause, then more speech
+-- the shape of someone who was not finished -- with `turn_threshold` at 1.0 so
+the pause is held however final the fragment sounds. Counting states is not
+enough, because the full utterance contains that command too and the light ends
+up off either way. What separates them is how many times the service was called:
+
+    heard: ' Turn off the ceiling lights.  Is the kitchen light on right now?'
+    service calls: ['homeassistant.turn_off', 'light.turn_off']
+    light.turn_off called 1 time(s)
+
+and in the log, the held call is dropped rather than released:
+
+    holding tool call HassTurnOff until the turn is confirmed
+    abandoning speculative conversation:  Turn off the ceiling lights.
+    speculating on:  Turn off the ceiling lights.  Is the kitchen light on...
+    holding tool call HassTurnOff until the turn is confirmed
+    committing speculative conversation, releasing held HassTurnOff
+
+`dev/speculation-speech.py` checks the other half, that a guess is never spoken,
+against `dev/fake-tts.py` -- a synthesiser that says nothing and writes down what
+it was asked to say, since Kokoro needs CUDA and that question does not.
+
+### Two things that only a real synthesiser in the loop would have found
+
+**Home Assistant caches speech.** These clips draw the same few replies over and
+over, so runs were served from the cache and the synthesiser was never asked
+anything -- which looks exactly like "nothing was spoken". The test clears the
+cache between cases now.
+
+**A race between commit and the start of streaming.** Home Assistant only starts
+streaming text into the synthesiser once a reply looks long enough to be worth
+it. That can happen *after* commit, and the first version stored the stream
+whenever it was a speculation -- so a stream created after commit was stored for
+a commit that had already happened, and nobody wired it. Home Assistant then
+skipped `async_set_message`, believing a stream was set, and the reply was never
+spoken. The decision is on the gate now, the same condition the event buffer
+uses, not on "is this a speculation".

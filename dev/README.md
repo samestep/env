@@ -21,6 +21,18 @@ Voice and model experiments, all driven through `dev/halib.py`. See
     dev/toolcall-stress.py           # the tool-call path, repeatedly
     dev/smart-turn-probe.py <clip>   # the turn model's opinion, cut by cut
     dev/smart-turn-eval.py           # its accuracy on real labelled speech
+    dev/speculation-sweep.py         # what speculating is worth, against the wait
+    dev/speculation-safety.py        # a wrong guess must not act
+    dev/speculation-speech.py        # a wrong guess must not be spoken
+    dev/kokoro-stream-test.py <main.py>   # the synthesiser's protocol handling
+
+Run them with `dev/py`, which supplies websockets, numpy and ffmpeg; which
+packages a bare `python3` happens to have is not something to depend on.
+
+`dev/speculation-speech.py` needs the stand-in synthesiser, added to Home
+Assistant as a Wyoming entry on port 10211:
+
+    dev/run-fake-tts.sh
 
 Anything that streams audio needs a transcriber in this VM, because the host's
 is bound to loopback:
@@ -83,3 +95,16 @@ reachable from here; run local ones if a test needs them.
 - **Turn-detection verdicts log at debug level.** Without the `logger:` block in
   `configuration.yaml` the decision is invisible and you can only infer it from
   timing.
+- **`pkill -f` matches the shell that typed it.** A command containing
+  `fake-tts.py` is itself a match, so the pattern kills the session. Bracketing
+  only helps when the name does not appear elsewhere on the line; a pid file and
+  a script, as in `run-fake-tts.sh`, always works.
+- **Home Assistant caches synthesised speech.** A test that plays the same clip
+  repeatedly is served from the cache and never reaches the synthesiser, which
+  reads as "nothing was spoken". `tts.clear_cache` between cases.
+- **A Wyoming synthesiser must send an audio header even with nothing to say.**
+  Without an `AudioStart`/`AudioStop` pair Home Assistant waits for audio that
+  never arrives, and the whole pipeline appears to hang somewhere else entirely.
+- **Home Assistant sends the whole message again after the chunks**, as a plain
+  `Synthesize`, for servers that cannot stream. One that can must ignore it or
+  it says everything twice.
