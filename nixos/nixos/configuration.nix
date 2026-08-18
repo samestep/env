@@ -146,26 +146,7 @@
   # https://wiki.nixos.org/wiki/Ollama
   services.ollama = {
     enable = true;
-    # llama-server can place a context checkpoint exactly at the start of each
-    # message, but only if it is told where messages begin: it scans the prompt
-    # for delimiter strings passed in the request's "message_delimiters" field.
-    # The chat-completions path fills that in from the chat template. ollama
-    # renders qwen's template itself in Go and posts a flat string to
-    # /completion, leaving the field empty, so llama-server sees an opaque
-    # prompt and falls back to checkpointing near the end of it. The patch has
-    # renderers report their delimiters and passes them through.
-    #
-    # The second patch is against llama.cpp, not ollama. nixpkgs pre-stages
-    # llama.cpp into $TMPDIR/llama-cpp-src at the end of postPatch so the
-    # CMake FetchContent step does not reach the network, which gives us a
-    # place to patch it. Note that nixpkgs pins b10091 while ollama 0.32.13
-    # asks for b10380, so read b10091 when reasoning about this host.
-    package = pkgs.ollama-cuda.overrideAttrs (old: {
-      patches = (old.patches or [ ]) ++ [ ./ollama-message-delimiters.patch ];
-      postPatch = (old.postPatch or "") + ''
-        patch -d "$TMPDIR/llama-cpp-src" -p1 < ${./llama-checkpoint-dedup.patch}
-      '';
-    });
+    package = pkgs.ollama-cuda-patched; # see packages/ollama.nix
     # 0.0.0.0 so libvirt guests can reach it at 192.168.122.1; the firewall
     # only opens 11434 on virbr0.
     host = "0.0.0.0";
@@ -250,51 +231,7 @@
     ];
   };
 
-  # Home Assistant assembles the system prompt as: the configured prompt
-  # template, then the API preamble and the exposed entity overview, then
-  # anything extra. That puts unchanging content *after* the template, so a
-  # cache boundary placed at the end of the template would leave the entity
-  # overview outside the cached region -- around 300-400 tokens re-read on every
-  # request, roughly 200 ms, for content that never changes.
-  #
-  # The patch moves everything after the boundary marker to the very end
-  # instead, so the prompt is: unchanging instructions, preamble and entity
-  # overview | marker | current time and live states. See
-  # prefix-cache-findings.md.
-  services.home-assistant.package = pkgs.home-assistant.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [
-      ./home-assistant-cache-boundary.patch
-      # Home Assistant's own Silero implementation, lifted from the commit that
-      # added it (079c6daa633) before it was reverted a month later in
-      # 329b2c840d8. The revert cites lag, broken end-of-speech detection,
-      # crashes and macOS build failures -- problems for a project shipping to
-      # every platform, and worth re-testing on one machine that builds its own
-      # software.
-      #
-      # The reason to want it, measured here on the same clips: microVAD keeps
-      # reporting speech for 480-600 ms after speech stops and needs 400-500 ms
-      # of speech before it reports any, because it is a wake-word architecture
-      # classifying over a ~500 ms window. Silero releases in 0-96 ms and fires
-      # on 100 ms of speech. That is ~500 ms off every single voice command,
-      # larger than anything left anywhere else in the pipeline.
-      ./home-assistant-silero-vad.patch
-
-      # Lets a pipeline run set silence_seconds. The websocket API already
-      # accepts four of the five audio settings; this one was reachable only
-      # through the VAD sensitivity select entity that satellite integrations
-      # create, so it could not be tested or tuned without buying hardware.
-      ./home-assistant-vad-silence-api.patch
-    ];
-
-    # audio_enhancer.py imports pysilero_vad after that patch. The manifest
-    # change in the patch does not pull it in, because nixpkgs resolves
-    # component requirements before patches are applied -- and it has to be a
-    # package input rather than services.home-assistant.extraPackages, because
-    # the test suite runs during the build and imports it too.
-    propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
-      pkgs.home-assistant.python3Packages.pysilero-vad
-    ];
-  });
+  services.home-assistant.package = pkgs.home-assistant-patched; # packages/home-assistant.nix
 
   # Voice assistant. With `prefer_local_intents` on (a per-pipeline setting,
   # off by default) the built-in sentence matcher answers anything it
@@ -531,6 +468,15 @@
         '';
       });
     })
+
+    # Patched ollama and Home Assistant. Defined outside this file so the same
+    # definitions serve a Home Manager config, the agent VM, or a Mac -- none of
+    # the patches need a GPU to build.
+    #
+    # MUST come after the unstable ollama-cuda overlay above: it patches
+    # prev.ollama-cuda, and if it ran first that would be stable's 0.32.3, which
+    # the patches do not apply to.
+    (import ../../packages/overlay.nix)
   ];
 
   # https://wiki.nixos.org/wiki/Docker#System_setup

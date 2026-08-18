@@ -40,11 +40,43 @@
       moss,
     }:
     {
-      packages = {
-        x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
-        aarch64-linux.home-manager = home-manager.packages.aarch64-linux.default;
-        aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
-      };
+      # Patched ollama and Home Assistant, so the same definitions can be used
+      # from a NixOS config, a Home Manager config, another machine's `nix run`,
+      # or a Mac. See packages/prefix-cache-findings.md for what the patches do.
+      overlays.default = import ./packages/overlay.nix;
+
+      packages =
+        let
+          patched =
+            system:
+            let
+              pkgs = import nixpkgs {
+                inherit system;
+                config.allowUnfree = true;
+                overlays = [ (import ./packages/overlay.nix) ];
+              };
+            in
+            {
+              inherit (pkgs) ollama-patched;
+            }
+            // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+              inherit (pkgs) ollama-cuda-patched home-assistant-patched;
+            };
+        in
+        {
+          x86_64-linux = {
+            home-manager = home-manager.packages.x86_64-linux.default;
+          }
+          // patched "x86_64-linux";
+          aarch64-linux = {
+            home-manager = home-manager.packages.aarch64-linux.default;
+          }
+          // patched "aarch64-linux";
+          aarch64-darwin = {
+            home-manager = home-manager.packages.aarch64-darwin.default;
+          }
+          // patched "aarch64-darwin";
+        };
       nixosConfigurations = {
         "nixos" = nixpkgs-stable.lib.nixosSystem {
           # So the host can take individual packages from unstable.
