@@ -1,0 +1,22 @@
+--- a/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 00:54:25.108291810 +0000
++++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 00:54:25.124441473 +0000
+@@ -521,8 +521,18 @@
+     is_vad_enabled: bool = True
+     """True if VAD is used to determine the end of the voice command."""
+ 
+-    silence_seconds: float = 0.7
++    silence_seconds: float = 0.4
+     """Seconds of silence after voice command has ended."""
++    # Upstream default is 0.7. The VAD model in front of this counter,
++    # pymicro-vad, does not report silence promptly: fed digital silence it holds
++    # speech_probability at 1.000 for 400 ms and does not fall below the 0.5
++    # in-command threshold until 640 ms. That hangover is added to this counter,
++    # so 0.7 means an end-of-speech decision 1340 ms after the speaker stops,
++    # which is the single largest cost in a voice interaction here.
++    #
++    # 0.4 gives 1040 ms of total tolerance for a mid-sentence pause -- still
++    # generous, because a pause shorter than the 640 ms hangover never registers
++    # as silence at all -- and takes 300 ms off every command.
+ 
+     def __post_init__(self) -> None:
+         """Verify settings post-initialization."""

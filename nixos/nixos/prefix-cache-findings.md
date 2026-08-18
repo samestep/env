@@ -706,3 +706,34 @@ Actionable regardless: `silence_seconds` is 0.7 and unreachable from the API, so
 lowering it needs a patch. That is worth doing after the residual is understood,
 not before -- otherwise a smaller threshold may just be swallowed by whatever
 the extra 600 ms is.
+
+
+## The unexplained VAD time was the VAD model's hangover
+
+Running `pymicro_vad.MicroVad` -- the model Home Assistant uses, over 10 ms
+frames -- directly on the same utterance followed by digital silence:
+
+        0 ms after speech end: 1.000
+      300 ms after speech end: 1.000
+      500 ms after speech end: 0.941
+      600 ms after speech end: 0.920
+      700 ms after speech end: 0.009
+
+    first frame at or below the in-command threshold (0.5): 640 ms
+
+It holds probability at 1.000 for 400 ms after the audio is silent and does not
+fall below the threshold until 640 ms. HA's `silence_seconds` countdown only
+starts once it does.
+
+So the 1306 ms measured from end of speech to `stt-vad-end` is
+**640 ms of VAD hangover + 700 ms of silence_seconds**, and both parts are now
+accounted for. Nothing is lagging: HA's own audio timestamps track wall clock,
+so the pipeline keeps up in real time.
+
+This makes lowering the threshold safer than it first appears. Tolerance for a
+mid-sentence pause is hangover + silence_seconds, and a pause shorter than 640 ms
+never registers as silence at all. `home-assistant-vad-silence.patch` sets it to
+0.4, giving 1040 ms of tolerance and taking 300 ms off every command.
+
+The 640 ms floor belongs to the model. Beating it means a different VAD, not a
+different setting.
