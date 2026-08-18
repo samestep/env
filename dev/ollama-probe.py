@@ -53,8 +53,12 @@ def chat(messages, num_predict=40):
 ms = lambda d, k: d[k] / 1e6
 print(f"model {MODEL} at {URL}")
 d = chat([{"role": "system", "content": SYSTEM}, {"role": "user", "content": "Hello."}])
-print(f"cold   {ms(d, 'prompt_eval_duration'):8.1f} ms / {d['prompt_eval_count']} tok"
-      f"   ({d['prompt_eval_count'] / (d['prompt_eval_duration'] / 1e9):.0f} tok/s prefill)")
+rate = d["prompt_eval_count"] / (d["prompt_eval_duration"] / 1e9)
+print(f"first  {ms(d, 'prompt_eval_duration'):8.1f} ms / {d['prompt_eval_count']} tok"
+      f"   ({rate:.0f} tok/s)")
+if rate > 3000:
+    print("       ^ the slot was already warm, so this is NOT a cold prefill rate;"
+          " restart the server to measure that")
 
 fresh, follow = [], []
 for q in QUESTIONS:

@@ -1009,3 +1009,39 @@ A related trap: the counting prompt produced 300 tokens on CUDA and 17 on Metal
 at temperature 0. Backends diverge numerically, so a task one model finishes the
 other can abandon, and the tokens/sec then describes startup overhead rather
 than generation. `dev/ollama-probe.py` warns when fewer than 60 tokens come out.
+
+
+## RTX 5880 Ada against an M5 Pro MacBook
+
+Same model (`qwen3.8:27b-mtp-q8_0`), same patched ollama, same probe, same
+settings: 32768 context, `<|fim_pad|>` boundary, checkpoint spacing 0.
+
+| | RTX 5880 Ada | M5 Pro (64 GiB) | ratio |
+|---|---|---|---|
+| fresh conversation | 97 ms | 453 ms | 4.7x |
+| follow-up turn | 99 ms | 686 ms | 7x |
+| generation, prose | 44-50 tok/s | 14.1 tok/s | ~3.2x |
+| cold prefill | 1957 tok/s | 131 tok/s | 15x |
+
+**Prefix caching works identically on Metal.** Both patches compile and behave:
+a fresh conversation costs 453 ms where re-reading the prompt would cost 48 s.
+That was the thing worth checking, and it carries.
+
+**The gap is prefill throughput.** Every Mac figure follows from 131 tok/s
+against 1957. Fresh re-reads ~59 tokens after the boundary, the follow-up ~90
+(the extra being the previous reply), and at 131 tok/s those are 450 and 690 ms.
+It also explains the one asymmetry: the Mac's follow-up is *slower* than its
+fresh conversation, where the two are equal on the RTX, because the cost is
+proportional to tokens re-read and the Mac's constant is 15x larger.
+
+For the assistant that compounds to roughly **0.3 s of model time on the RTX
+against ~1.3 s on the Mac** for a typical state question.
+
+I expected the generation gap to narrow on prose, since MTP flatters the
+counting prompt. It did not: both machines lose about half their tokens/sec on
+prose (97 -> 50 and 29 -> 14), so the ratio holds near 3.2x either way.
+
+Measurement note: the probe's first line is only a genuine cold prefill when the
+slot is empty. Once a run has populated it, that line reports 14000+ tok/s and
+means nothing. The 131 and 1957 tok/s above come from runs where the model had
+just loaded.
