@@ -130,11 +130,18 @@ async def run(ws, pid, audio, end_stage="intent", trailing=4, **settings):
             text = e["data"]["stt_output"]["text"]
         if e["type"] == "intent-end":
             reply = e["data"]["intent_output"]["response"]["speech"]["plain"]["speech"]
-        if e["type"] in ("run-end", "error"):
+        if e["type"] == "error":
+            return None, text, reply, e["data"]
+        if e["type"] == "run-end":
             break
     if task:
         task.cancel()
     last = "intent-end" if end_stage == "intent" else "stt-end"
-    if last not in marks or audio_end is None:
-        return None, text, reply, f"no {last}"
+    if last not in marks:
+        return None, text, reply, f"no {last} event"
+    if audio_end is None:
+        # The turn ended before the whole clip had been streamed, so there is no
+        # "end of speech" to measure from. Not a failure: it is what holding a
+        # pause and then hitting the cap looks like on a long recording.
+        return None, text, reply, None
     return (marks[last] - audio_end) * 1000, text, reply, None
