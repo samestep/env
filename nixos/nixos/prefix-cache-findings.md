@@ -812,3 +812,46 @@ it to 0.4 has been reverted for that reason: it trims the wrong term.
 The fix is a different VAD. Silero is the obvious candidate: it releases in tens
 of milliseconds and exposes a minimum-silence parameter. That means patching
 `audio_enhancer.py`, which hardcodes `MicroVad`.
+
+
+## Is the current end-of-speech latency intentional?
+
+Partly, but not as a target -- and the leftover behaviour is incoherent.
+
+**They did retune after the swap.** Home Assistant went WebRTC -> microVAD in
+`7f4dabf546f` (2024-07-31), and two weeks later `f2d39feec03` (2024-08-15),
+titled "Adjust VAD seconds better for microVAD", moved every timing *down*:
+
+    2.0 -> 1.25       0.5 -> 0.25       1.0 -> 0.7
+
+by Michael Hansen, who also wrote pymicro-vad. Then `69e3348cd79` (2024-11-05)
+split one speech threshold into two, 0.2 before a command and 0.5 during it.
+Both changes are someone clawing back latency the model added, not someone
+choosing how long a pause should feel. So 0.7 is a microVAD-compensating value,
+and the ~1.2 s that results is what was left over, not what was wanted.
+
+**And the resulting behaviour is not a coherent "tolerance".** Driving Home
+Assistant's own segmenter with real VAD output, on speech / pause / speech:
+
+| pause | outcome |
+|---|---|
+| <= 850 ms | tolerated, command continues |
+| **900-1050 ms** | **ends 30-180 ms AFTER the user resumed speaking** |
+| >= 1100 ms | ends before the user resumes |
+
+The middle band exists because the model needs ~400 ms to notice speech
+*starting* too, so a resumed sentence is not seen before the countdown expires.
+Nobody designs a window where the assistant commits to stopping while you are
+mid-word. The latency is delay, not tolerance.
+
+## Do not simply swap in Silero
+
+Home Assistant already tried. `079c6daa633` (2025-12-08) replaced microVAD with
+Silero VAD (ggml); `329b2c840d8` (2026-01-13) reverted it. The revert PR cites
+"2026.1 Introduces Lag to Voice Assist Speech-To-Text", "End-of-Speech Detection
+Broken after upgrading to Core 26.1", "Voice assistant is killing Home
+Assistant", and macOS build problems.
+
+So the obvious fix has been tried in production and regressed. Anything here
+needs measuring on this machine rather than assuming, and the fallback is what
+Home Assistant itself did: lower the timings and accept the model.
