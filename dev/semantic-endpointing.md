@@ -185,3 +185,27 @@ through the real conversation agent on the host:
     after:  silence 0.1, turn model         824 ms   'No, the bed light is off.'
 
 **584 ms**, same answer. `dev/e2e-compare.py` runs it.
+
+
+## Model choice, re-tested
+
+End to end from the last sample of speech, with the turn model on and
+`silence_seconds` 0.1:
+
+| model | question answered from the prompt | control command, needs a tool call |
+|---|---|---|
+| qwen3.8:27b-mtp-q8_0 | 817 ms | 1503 ms |
+| qwen3.6:35b-a3b-q4_K_M | 717 ms | 1251 ms |
+| ornith:35b-q4_K_M | 713 ms | **1116 ms** |
+
+**No CUDA fault in 18 tool-call runs across the two MoE models.** That fault --
+an illegal memory access during constrained decoding of tool calls with array or
+enum parameters -- is what disqualified qwen35moe, on ollama 0.32.3. We run
+0.32.13. It appears resolved, which reopens the faster models.
+
+Caveats before switching: `qwen3.6:35b-a3b` answered "I am unable to turn on the
+kitchen lights" where ornith turned it on, so speed is not the only axis and this
+needs the scenario eval rather than a latency script. And the replies above are
+not strictly comparable because the light's state carried between runs -- one
+model reported "already on". Reset entity state between runs when comparing
+behaviour rather than timing.
