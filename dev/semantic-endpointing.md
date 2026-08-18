@@ -209,3 +209,29 @@ needs the scenario eval rather than a latency script. And the replies above are
 not strictly comparable because the light's state carried between runs -- one
 model reported "already on". Reset entity state between runs when comparing
 behaviour rather than timing.
+
+
+## Quality: ornith is the one to use
+
+`dev/eval.py` runs 15 scenarios against the development instance, resetting
+entity state before *every* run so a light left on by one scenario cannot make
+the next look correct. Three repetitions each, 45 runs per model:
+
+| model | scenarios passed | median intent |
+|---|---|---|
+| qwen3.8:27b-mtp-q8_0 (current) | 38/45 | 441 ms |
+| qwen3.6:35b-a3b-q4_K_M | 39/45 | 466 ms |
+| **ornith:35b-q4_K_M** | **45/45** | 678 ms |
+
+ornith is perfect where the others miss six or seven. Its higher median here is
+partly an artefact of being correct: "I am unable to turn on the kitchen lights"
+returns faster than actually turning it on. On real audio end to end it is the
+*fastest* of the three -- 713 ms against 817 for a question, 1116 against 1503
+for a command.
+
+`<|fim_pad|>` is a single special token in all three vocabularies, so the cache
+boundary carries over unchanged.
+
+Recommendation: switch the conversation agent to `ornith:35b-q4_K_M`. Left for a
+person to decide, because the eval is 15 scenarios against demo entities rather
+than a real house, and the assistant's manner of speaking is a matter of taste.
