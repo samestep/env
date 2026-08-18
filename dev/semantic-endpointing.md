@@ -57,3 +57,56 @@ Today latency and pause tolerance are the same number: 0.25 s means both a
 short threshold governs the common case, and the model holds the turn open when
 the utterance sounds unfinished -- fast when you are done, patient when you are
 not.
+
+
+## Measured on the model's own labelled test set
+
+`pipecat-ai/smart-turn-data-v3.1-test` carries `endpoint_bool`, plus `synthetic`
+and `midfiller` flags. Filtering to **real, non-synthetic English** recordings
+(607 of them in one shard, 312 complete and 295 not):
+
+**93.2% accuracy**, against the 92.63% published across all languages. That also
+validates the preprocessing port -- a wrong mel pipeline reads as chance.
+
+The two errors cost very different amounts, so the threshold matters:
+
+| threshold | cut off mid-thought | made to wait when done |
+|---|---|---|
+| 0.3 | 19.7% | 1.0% |
+| 0.5 (default) | 14.6% | 1.9% |
+| 0.7 | 11.2% | 3.8% |
+| 0.8 | 8.8% | 4.8% |
+| 0.9 | 6.1% | 8.7% |
+| 0.95 | 2.4% | 13.1% |
+| 0.98 | 0.7% | 32.1% |
+
+Being cut off mid-thought is the failure worth avoiding; being made to wait costs
+one extra increment. Today *every* pause longer than `silence_seconds` cuts you
+off, so even the default threshold is a large improvement, and ~0.9 looks like a
+sensible operating point.
+
+## The verdict does not drift, so the design needs a cap
+
+Appending silence to unfinished utterances barely moves the score:
+
+    +0 ms   median P 0.033
+    +500 ms median P 0.044
+    +2000 ms median P 0.060
+
+So re-checking as silence accumulates will not converge on ending the turn by
+itself. Something that sounds unfinished stays unfinished, and an utterance
+someone simply trails off from would hold the turn open forever. The design
+needs an explicit maximum.
+
+## Design
+
+1. Silero detects silence as now, with `silence_seconds` set low (~0.25 s).
+2. On expiry, run Smart Turn over the last 8 s of buffered audio (~30 ms).
+3. `P(complete) > 0.9` -> end the turn. Total ~280 ms.
+4. Otherwise extend by another increment and re-check.
+5. Cap the total extension (~2-3 s) and end regardless, because of the drift
+   result above.
+
+This is the shape Pipecat and LiveKit both use. It decouples the two numbers
+that are currently the same: a short threshold governs the common case, and the
+model holds the turn open only when the utterance actually sounds unfinished.
