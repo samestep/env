@@ -613,3 +613,33 @@ suppresses it only because the Assist API offers `GetDateTimeTool`. Dropping
 that tool would get the time for free -- but into part 3, which is *before* the
 marker after this patch, so it would invalidate the cache every minute. Put the
 time after the marker instead.
+
+
+## Result: live state in the prompt, measured end to end
+
+Home Assistant's prompt now ends with the marker followed by the current time
+and the live state of the entities worth stating up front. Through the real
+pipeline, intent stage:
+
+| question | tool round trip | state in prompt |
+|---|---|---|
+| Is the bed light on? | 986 ms | **433 ms** |
+| What is the weather forecast? | 1265 ms | **585 ms** |
+| Turn on the ceiling lights (local matcher) | 3 ms | 4 ms |
+| unanswerable, falls through to search | 1754 ms | 1355 ms |
+
+Answers verified against the entity states rather than just timed: bed light
+off, kitchen lights on, weather partlycloudy 79 F humidity 81%, all reported
+correctly and with no tool call.
+
+The prompt is now:
+
+    <instructions>                      cached
+    <API preamble, entity overview>     cached, thanks to the chat_log patch
+    <|fim_pad|>                         the boundary
+    Live state, correct as of now:      re-read each request, ~60 tokens
+    Current time: ...
+    Bed Light: ... etc
+
+Exactly one marker exists in the prompt, which is what keeps the on-device
+snapshot safe. The renderer no longer injects one.
