@@ -668,3 +668,41 @@ of that is unaccounted for and worth chasing before touching the threshold.
 request cannot override it. Calling it "just a setting" was wrong: it is a
 constant with no UI and no API, and changing it means another Home Assistant
 patch.
+
+
+## Chasing the extra VAD time: partly explained
+
+The utterance really is speech from 50 ms to 1240 ms of a 1280 ms file, checked
+by looking at the samples, so no leading or trailing silence is confusing this.
+
+Streaming it in real time and timing against my own clock:
+
+| | measured | expected from settings |
+|---|---|---|
+| speech onset -> `stt-vad-start` | 1007 ms | 350 ms (50 + speech_seconds 300) |
+| end of speech -> `stt-vad-end` | 1206 ms | 700 ms (silence_seconds) |
+
+Both ends were late by roughly the same ~600 ms, which looks like a constant
+delay in the audio path.
+
+Prepending 2 s of silence before the utterance moves onset to **605 ms** after
+speech begins, against 1007 ms without. So roughly 400 ms is Home Assistant
+pipeline startup: it is not ready to consume audio the instant the run begins,
+and early audio queues behind that.
+
+**This probably does not apply to a real satellite.** A wake-word device starts
+the pipeline when it hears the wake word, before the command is spoken, so that
+startup is absorbed. My harness starts the run and streams immediately.
+
+**Unexplained: the end is still ~600 ms late even with startup absorbed** (1305
+ms against ~700 ms expected), while onset improved. An asymmetric residual is
+not a constant pipeline delay, so that explanation does not cover it. Thresholds
+do not obviously explain it either: `in_command_speech_threshold` is 0.5 and the
+silence being fed is digital zero, which should read as ~0 immediately. Likely
+candidates not yet tested: smoothing or internal state in the VAD model itself,
+or buffering between the websocket handler and the pipeline.
+
+Actionable regardless: `silence_seconds` is 0.7 and unreachable from the API, so
+lowering it needs a patch. That is worth doing after the residual is understood,
+not before -- otherwise a smaller threshold may just be swallowed by whatever
+the extra 600 ms is.
