@@ -47,21 +47,92 @@
 
       packages =
         let
+          # Each patched package comes from the same nixpkgs the NixOS host takes
+          # it from, because the patches are version-specific: the Silero one
+          # does not apply to Home Assistant 2026.8.2 in unstable, only to the
+          # 2026.5.4 in stable. A development instance on a different version
+          # would not tell us anything transferable.
+          with-overlay =
+            input: system:
+            import input {
+              inherit system;
+              config.allowUnfree = true;
+              overlays = [ (import ./packages/overlay.nix) ];
+            };
           patched =
             system:
             let
-              pkgs = import nixpkgs {
-                inherit system;
-                config.allowUnfree = true;
-                overlays = [ (import ./packages/overlay.nix) ];
-              };
+              unstable = with-overlay nixpkgs system; # ollama: host takes it from here
+              stable = with-overlay nixpkgs-stable system; # home-assistant: ditto
             in
             {
-              inherit (pkgs) ollama-patched;
+              inherit (unstable) ollama-patched;
             }
-            // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-              inherit (pkgs) ollama-cuda-patched home-assistant-patched;
+            // nixpkgs.lib.optionalAttrs (nixpkgs.lib.hasSuffix "linux" system) {
+              inherit (unstable) ollama-cuda-patched;
+              inherit (stable) home-assistant-patched;
+
+              # A Home Assistant that can run standalone, for the development
+              # instance in the agent VM. The NixOS module normally derives
+              # extraComponents from the configuration; running `hass` straight
+              # out of the package gets only the defaults, and the ollama config
+              # flow then fails with "Invalid handler specified".
+              #
+              # Same components as the real machine, so the two behave alike.
+              # Runnable wrapper: `nix run .#hass-dev -- -c ~/ha-dev`. The
+              # component dependencies live in passthru.pythonPath rather than in
+              # the package, which is why the NixOS module sets
+              # environment.PYTHONPATH from it; running `hass` directly without
+              # that gets "Invalid handler specified" for ollama.
+              hass-dev =
+                let
+                  ha = patched-for system;
+                in
+                stable.writeShellScriptBin "hass-dev" ''
+                  export PYTHONPATH=${ha.pythonPath}
+                  exec ${ha}/bin/hass "$@"
+                '';
+
+              home-assistant-dev = patched-for system;
             };
+
+          patched-for =
+            system:
+            let
+              stable = with-overlay nixpkgs-stable system;
+            in
+            import ./packages/home-assistant.nix (
+              stable.home-assistant.override {
+                extraComponents = [
+                  # The NixOS module always adds these and running `hass` outside
+                  # the module does not. Without "frontend" the hass_frontend
+                  # module is missing, frontend setup fails, and Home Assistant
+                  # drops into recovery mode -- which ignores configuration.yaml
+                  # entirely, so nothing below loads and the failure looks
+                  # unrelated to the frontend.
+                  "application_credentials"
+                  "frontend"
+                  "hardware"
+                  "logger"
+                  "network"
+                  "system_health"
+                  "automation"
+                  "person"
+                  "scene"
+                  "script"
+                  "zone"
+
+                  # Same as the real machine.
+                  "assist_pipeline"
+                  "demo"
+                  "esphome"
+                  "met"
+                  "ollama"
+                  "radio_browser"
+                  "wyoming"
+                ];
+              }
+            );
         in
         {
           x86_64-linux = {
