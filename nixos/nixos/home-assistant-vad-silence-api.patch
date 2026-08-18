@@ -1,0 +1,27 @@
+--- a/homeassistant/components/assist_pipeline/websocket_api.py	2026-08-18 01:41:42.089893820 +0000
++++ b/homeassistant/components/assist_pipeline/websocket_api.py	2026-08-18 01:41:42.104626881 +0000
+@@ -96,6 +96,12 @@
+                             vol.Optional("volume_multiplier"): float,
+                             # Advanced use cases/testing
+                             vol.Optional("no_vad"): bool,
++                            # Seconds of silence before end of speech is
++                            # declared. Settable per run so the knob can be
++                            # exercised without satellite hardware; without this
++                            # it is reachable only through the VAD sensitivity
++                            # select entity that satellite integrations create.
++                            vol.Optional("silence_seconds"): vol.Any(float, int),
+                         }
+                     },
+                     extra=vol.ALLOW_EXTRA,
+@@ -213,6 +219,11 @@
+             auto_gain_dbfs=msg_input.get("auto_gain_dbfs", 0),
+             volume_multiplier=msg_input.get("volume_multiplier", 1.0),
+             is_vad_enabled=not msg_input.get("no_vad", False),
++            **(
++                {"silence_seconds": float(msg_input["silence_seconds"])}
++                if "silence_seconds" in msg_input
++                else {}
++            ),
+         )
+     elif start_stage == PipelineStage.INTENT:
+         # Input to conversation agent

@@ -912,3 +912,25 @@ set; `pkgs.python3Packages` would be the wrong one.
 Verified in the built output: `audio_enhancer.py` imports
 `SileroVoiceActivityDetector`, `pipeline.py` constructs
 `SileroVadSpeexEnhancer`, and the cache-boundary patch is still applied.
+
+
+## Silero: measured
+
+Same harness, same clip, after the swap:
+
+| | microVAD | Silero |
+|---|---|---|
+| onset detected | +340 ms late | **+50 ms** |
+| end detected | +640 ms late | **+20 ms** |
+| end of speech -> `stt-vad-end` | 1306 ms | **704 ms** |
+| end of speech -> `stt-end` | 1301 ms | **833 ms** |
+
+The model now contributes essentially nothing: the 704 ms *is* `silence_seconds`
+= 0.7. About 600 ms saved on every voice command, and the timings finally mean
+what they say.
+
+`home-assistant-vad-silence-api.patch` makes `silence_seconds` settable on a
+pipeline run. The websocket API already accepted four of the five audio settings
+and this one was reachable only through the VAD sensitivity select entity that
+satellite integrations create, so it could not be tuned or even tested without
+buying hardware.

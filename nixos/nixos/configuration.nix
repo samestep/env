@@ -276,6 +276,12 @@
       # on 100 ms of speech. That is ~500 ms off every single voice command,
       # larger than anything left anywhere else in the pipeline.
       ./home-assistant-silero-vad.patch
+
+      # Lets a pipeline run set silence_seconds. The websocket API already
+      # accepts four of the five audio settings; this one was reachable only
+      # through the VAD sensitivity select entity that satellite integrations
+      # create, so it could not be tested or tuned without buying hardware.
+      ./home-assistant-vad-silence-api.patch
     ];
 
     # audio_enhancer.py imports pysilero_vad after that patch. The manifest
