@@ -279,3 +279,23 @@ have finished, which is cheap: whisper tiny on CPU.
 
 Verified that holding a pause still works with it on -- the JFK clip still
 reaches "ASK NOT", so the snapshot really is discarded when speech resumes.
+
+
+## Altogether
+
+From the last sample of speech to the answer, through the real conversation
+agent:
+
+| configuration | question | control command |
+|---|---|---|
+| before any of this | 1406 ms | 2026 ms |
+| turn model + speculative transcription | 717 ms | 774 ms |
+| + ornith as the agent | **600 ms** | 1013 ms |
+
+**1406 -> 600 ms on a question, 2.3x.** And it now holds a mid-sentence pause,
+which no setting could do before.
+
+The command column is not trustworthy: entity state carries between runs, so a
+model that says "already on" looks faster than one that actually switches the
+light. Compare behaviour with `dev/eval.py`, which resets state before every
+run, not with a latency script.
