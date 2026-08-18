@@ -125,14 +125,26 @@ let
     # The SIGTERM handler stops the asyncio server, which surfaces as a
     # CancelledError out of asyncio.run and a traceback with status 1. Docker
     # swallowed that; systemd would call every `systemctl stop` a failure.
-    pkgs.runCommandLocal "kokoro-wyoming-1.0.2" { } ''
-      mkdir -p $out/bin
-      substitute ${src}/src/main.py $out/bin/kokoro-wyoming \
-        --replace-fail "#!/usr/bin/env python3" "#!${python.interpreter}" \
-        --replace-fail "except KeyboardInterrupt:" \
-          "except (KeyboardInterrupt, asyncio.CancelledError):"
-      chmod +x $out/bin/kokoro-wyoming
-    '';
+    pkgs.runCommandLocal "kokoro-wyoming-1.0.2"
+      { nativeBuildInputs = [ pkgs.patch ]; }
+      ''
+        mkdir -p src $out/bin
+        cp ${src}/src/main.py src/main.py
+        chmod +w src/main.py
+
+        # Accept text as it is produced rather than all at once. The server
+        # already splits into sentences and emits audio for each, so Home
+        # Assistant can feed it the conversation reply token by token and the
+        # first sentence is spoken while the last is still being generated.
+        # Nothing is said at all until generation finishes otherwise.
+        patch -p1 < ${./kokoro-wyoming-streaming.patch}
+
+        substitute src/main.py $out/bin/kokoro-wyoming \
+          --replace-fail "#!/usr/bin/env python3" "#!${python.interpreter}" \
+          --replace-fail "except KeyboardInterrupt:" \
+            "except (KeyboardInterrupt, asyncio.CancelledError):"
+        chmod +x $out/bin/kokoro-wyoming
+      '';
 in
 {
   # So the server can be built and run by hand, without a rebuild:

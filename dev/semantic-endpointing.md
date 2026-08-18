@@ -48,10 +48,8 @@ Voice tests need a transcriber in the VM:
   calls, and a cancelled speculation cannot un-turn-on a light. Overlapping the
   wait with the *model* rather than just the transcriber needs a way to defer
   side effects.
-- **Streaming speech synthesis.** Home Assistant already pipes conversation
-  deltas into a TTS engine that advertises `supports_synthesize_streaming`, and
-  the Wyoming integration supports it. Whether Kokoro advertises it is untested
-  -- it would start audio on the first sentence instead of the last.
+- **Streaming speech synthesis** is now implemented; see below. Untested against
+  the real synthesiser, because building it needs onnxruntime with CUDA.
 - **Switching the live assistant to ornith.** Left deliberately for a person:
   the eval is 15 scenarios against demo entities, not a house.
 
@@ -364,3 +362,51 @@ The command column is not trustworthy: entity state carries between runs, so a
 model that says "already on" looks faster than one that actually switches the
 light. Compare behaviour with `dev/eval.py`, which resets state before every
 run, not with a latency script.
+
+
+## Streaming speech synthesis
+
+Nothing was spoken until the last token of the reply was generated, because
+Kokoro did not advertise `supports_synthesize_streaming` and Home Assistant will
+not stream text into an engine that does not.
+
+It turned out the hard part was already done. `kokoro-wyoming` **already** splits
+text into sentences and emits audio for each as it is synthesised:
+
+    sentences = split_into_sentences(text)
+    for sentence in sentences:
+        stream = self.kokoro.create_stream(sentence, ...)
+        if i == 0:
+            await self.write_event(AudioStart(...).event())
+        async for audio, sample_rate in stream:
+            ...AudioChunk...
+
+Only the *input* side was missing: it waited for one complete `Synthesize` event.
+`kokoro-wyoming-streaming.patch` adds `SynthesizeStart` / `SynthesizeChunk` /
+`SynthesizeStop`, buffering text and synthesising each sentence as soon as it is
+finished. So the model does not need to stream -- Kokoro synthesises a whole
+utterance at once -- it just has to be fed sooner.
+
+`take_complete_sentences` only hands over text up to the last sentence-ending
+punctuation, so a sentence is never synthesised from a fragment that more text
+would have changed.
+
+`dev/kokoro-stream-test.py` drives the handler with a stub synthesiser, since
+building the real one needs onnxruntime with CUDA. Feeding it a reply the way a
+language model produces it:
+
+    after 'The bed '          synthesised=[]                          audio chunks=0
+    after 'light is off. '    synthesised=['The bed light is off.']    audio chunks=1
+    after 'The kitchen '      synthesised=['The bed light is off.']    audio chunks=1
+    after 'lights are on'     synthesised=['The bed light is off.']    audio chunks=1
+    after '. Anything else?'  synthesised=[all three]                  audio chunks=3
+
+    event order: audio-start ... audio-stop synthesize-stopped
+
+The first sentence is spoken while the third is still being generated. The
+longer the reply, the more this saves, and it is the only change here that
+attacks time-to-*first-audio* rather than time-to-answer.
+
+**Still to verify on the host**, where the real synthesiser lives: that Home
+Assistant picks up the capability, and what it does to the felt latency of a
+long reply.
