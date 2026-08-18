@@ -30,6 +30,17 @@ home-assistant.overrideAttrs (old: {
     # VAD sensitivity select entity that satellite integrations create, so it
     # could not be tuned or tested without buying hardware.
     ./home-assistant-vad-silence-api.patch
+
+    # Semantic endpointing. Silence alone cannot tell "still thinking" from
+    # "finished" -- acoustically identical, only the words differ -- so latency
+    # and pause tolerance are forced to be the same number. On reaching
+    # silence_seconds this asks Smart Turn v3 whether the utterance sounds
+    # complete and keeps listening if not, which separates them.
+    #
+    # The model must only be asked about audio that ends where speech stopped:
+    # fed audio cut mid-word, 60.6% of polls read as complete, because it judges
+    # the prosody up to the cut. Silero still decides *when* to ask.
+    ./home-assistant-smart-turn.patch
   ];
 
   # audio_enhancer.py imports pysilero_vad after the Silero patch. The manifest
@@ -42,5 +53,6 @@ home-assistant.overrideAttrs (old: {
   # would be a different Python and the import would fail at runtime.
   propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
     home-assistant.python3Packages.pysilero-vad
+    (home-assistant.python3Packages.callPackage ./smart-turn.nix { })
   ];
 })

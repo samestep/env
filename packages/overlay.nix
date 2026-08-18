@@ -4,6 +4,8 @@ final: prev:
 
 {
   ollama-patched = import ./ollama.nix prev.ollama;
+
+  smart-turn-vad = prev.python3Packages.callPackage ./smart-turn.nix { };
 }
 // prev.lib.optionalAttrs (prev ? ollama-cuda) {
   ollama-cuda-patched = import ./ollama.nix prev.ollama-cuda;
