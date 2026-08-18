@@ -643,3 +643,28 @@ The prompt is now:
 
 Exactly one marker exists in the prompt, which is what keeps the on-device
 snapshot safe. The renderer no longer injects one.
+
+
+## The VAD wait, measured properly
+
+Streaming silence continuously rather than ending the stream, timed from the
+last sample of speech:
+
+    end of speech -> stt-vad-end (VAD decides)    1206 ms
+    end of speech -> stt-end   (+ transcribe)     1301 ms
+    transcription alone                             94 ms
+
+**Transcription is 94 ms.** faster-whisper on CPU is not worth moving to the
+GPU; it is 5% of a voice interaction. An earlier "~0.10 s" figure for this was
+right, and a later "~600 ms" inference from a fast-push harness was wrong.
+
+**The VAD decision is 1206 ms** and is now the single largest cost in the whole
+pipeline. `AudioSettings.silence_seconds` defaults to 0.7 s, so roughly 500 ms
+of that is unaccounted for and worth chasing before touching the threshold.
+
+`silence_seconds` is **not settable over the websocket API**. The handler builds
+`AudioSettings` from only `noise_suppression_level`, `auto_gain_dbfs`,
+`volume_multiplier` and `is_vad_enabled` (`websocket_api.py:211`), so a run
+request cannot override it. Calling it "just a setting" was wrong: it is a
+constant with no UI and no API, and changing it means another Home Assistant
+patch.
