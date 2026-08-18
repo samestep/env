@@ -26,6 +26,8 @@ Voice and model experiments, all driven through `dev/halib.py`. See
     dev/speculation-speech.py        # a wrong guess must not be spoken
     dev/stt-compare.py <port>:<name> # transcribers, side by side
     dev/local-intent-test.py         # what an alias is worth
+    dev/ollama-overhead.py <url> <model>  # time spent before inference starts
+    dev/ollama-tap.py                # what Home Assistant really sends ollama
     dev/kokoro-stream-test.py <main.py>   # the synthesiser's protocol handling
 
 Run them with `dev/py`, which supplies websockets, numpy and ffmpeg; which
@@ -110,3 +112,8 @@ reachable from here; run local ones if a test needs them.
 - **Home Assistant sends the whole message again after the chunks**, as a plain
   `Synthesize`, for servers that cannot stream. One that can must ignore it or
   it says everything twice.
+- **Do not reconstruct a request you can capture.** Estimating Home Assistant's
+  prompt from its parts gave a wrong answer twice. `dev/ollama-tap.py` proxies
+  the real one and the numbers stopped moving.
+- **ollama's `load_duration` is not loading**, and is not zero for a resident
+  model: it brackets everything before the runner is handed the request.

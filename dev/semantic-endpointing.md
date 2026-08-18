@@ -93,6 +93,68 @@ Three hundred times faster, on the slowest kind of request, from configuration
 alone. Worth doing for every phrasing actually used, once there are real devices
 to name.
 
+## The largest remaining block was not inference
+
+Time to first token on the host is 276 ms, and that is the biggest single item
+left. Taking it apart needed the real request rather than a reconstruction of
+it, so `dev/ollama-tap.py` proxies the development instance and writes down what
+Home Assistant actually sends: 2 messages, 4118 characters, **29 tools**,
+`num_ctx` 8192, thinking off. Replayed against ollama directly:
+
+| | |
+|---|---|
+| before inference starts (`load_duration`) | **148 ms** |
+| prompt processing, 4787 tokens | 104 ms |
+| the first token itself | ~14 ms |
+
+So the prompt cache is working -- 4787 tokens in 104 ms -- and the 29 tools cost
+nothing measurable. Over half the wait is `load_duration`, on a model that never
+left the GPU.
+
+It is not loading. `load_duration` brackets everything ollama does before
+handing off to the runner, and what dominates it is deciding what the model is
+capable of: open the GGUF, parse its metadata. The chat path does this three
+times per request -- `GetModel`, the handler's `Capabilities()`, and again
+through `CheckCapabilities` inside `scheduleRunner`.
+
+strace of one request, one token generated: the model blob opened **6 times**,
+**35.79 MB** read from it. It reproduces on a 0.6B model on CPU in the VM at
+91 ms, so it is ollama, not this hardware or this model.
+
+`ollama-model-metadata-cache.patch` caches those key-values on the blob path,
+which is a content hash. Measured with `dev/ollama-overhead.py`:
+
+    before   205.1 ms wall,  90.9 ms before inference
+    after    112.6 ms wall,   1.2 ms before inference   (0.03 MB read, was 35.79)
+
+The first attempt cached the *capabilities* on the manifest digest, and ollama's
+own test suite rejected it: capabilities also depend on `OLLAMA_GO_TEMPLATE`, so
+two models with identical bytes can legitimately disagree. The file read is what
+is expensive, not the logic, so only the read is cached. Worth running someone
+else's tests before believing your own reasoning.
+
+## Where that leaves the budget
+
+Measured, host, question, text in to first byte of audio: first token 276 ms,
+generated 383 ms, first audio 474 ms. With the audio front end that is roughly
+540 ms from the last sample of speech. Removing the 148 ms should put it near
+390 ms, against an architectural floor of
+
+    250 ms   silence, before the turn may be called over
+     25 ms   the turn model
+     91 ms   synthesising the first sentence
+    ------
+    366 ms
+
+which is 26 ms away. **Speech-to-text on the GPU is no longer worth having**:
+at 68 ms it is almost entirely hidden behind the wait, and removing all of it
+saves ~26 ms before the silence threshold becomes the binding constraint
+instead. Before Parakeet and speculation it would have been worth ~300 ms; the
+order things were fixed in changed which of them mattered.
+
+Below 366 ms means shortening the wait, which is the one number that trades
+directly against cutting people off. Everything else is saturated.
+
 ## Still open
 
 - **Recordings of the person who will use it.** Everything here is public data
