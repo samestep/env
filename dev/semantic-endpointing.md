@@ -145,3 +145,32 @@ decrements *inside* a command, so without it the segmenter sits waiting for
 speech that may never come and the turn never ends at all. The symptom was runs
 that hung until the 60 s pipeline timeout, with the model logging "keep
 listening" correctly each time.
+
+
+## The payoff: latency and pause tolerance finally separate
+
+Sweeping `silence_seconds` with and without the turn model, measuring both
+things that matter -- when a *finished* utterance ends, and whether a
+*mid-sentence* pause survives:
+
+| silence_seconds | turn | finished utterance ends | mid-sentence pause |
+|---|---|---|---|
+| 0.70 | off | 3.6 s | cut short |
+| 0.70 | on | 3.7 s | **held** |
+| 0.40 | off | 3.3 s | cut short |
+| 0.40 | on | 3.4 s | **held** |
+| 0.25 | off | 3.1 s | cut short |
+| 0.25 | on | 3.2 s | **held** |
+| 0.15 | off | 3.0 s | cut short |
+| 0.15 | on | 3.1 s | **held** |
+| 0.10 | off | 3.0 s | cut short |
+| **0.10** | **on** | **3.1 s** | **held** |
+
+Without the model, every setting cuts the pause short -- the tolerance *is* the
+threshold. With it, the pause is held at every setting, and the threshold is
+free to be small. `silence_seconds` 0.7 -> 0.1 takes **600 ms** off a finished
+utterance while pauses keep working, and the model itself costs about 100 ms.
+
+Recommended: `silence_seconds` 0.1-0.15 with `turn_detection` on. That is
+roughly 200 ms from end of speech to decision, against 789 ms measured for
+silence alone at 0.7, and it is inside the 200 ms band of human turn-taking.
