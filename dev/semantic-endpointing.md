@@ -110,3 +110,38 @@ needs an explicit maximum.
 This is the shape Pipecat and LiveKit both use. It decouples the two numbers
 that are currently the same: a short threshold governs the common case, and the
 model holds the turn open only when the utterance actually sounds unfinished.
+
+
+## Working end to end
+
+Streaming a real recording in real time through the dev instance, with no
+artificial pause -- the speaker's own pauses are the test:
+
+    silence only, 0.25 s     ended 2.5s  heard: ' And so my fellow Americans'
+    silence only, 0.70 s     ended 3.0s  heard: ' And so my fellow Americans!'
+    turn detection, 0.25 s   ended 5.2s  heard: ' And so my fellow Americans, ASK NOT!'
+
+The model recognised the pause after "Americans," as unfinished and kept
+listening, at the *shorter* silence threshold. It still stops at 5.2 s because
+`turn_max_seconds` was 2.0 and this speaker pauses for dramatic effect -- which
+is the cap doing its job.
+
+`dev/turn-test.py` runs this. It needs a speech-to-text engine in the VM:
+
+    nix build --no-link --print-out-paths nixpkgs#wyoming-faster-whisper
+    .../bin/wyoming-faster-whisper --model tiny-int8 --language en \
+      --uri tcp://127.0.0.1:10300 --data-dir ~/ha-dev/whisper \
+      --download-dir ~/ha-dev/whisper
+
+`demo_stt` cannot stand in for it: it accepts only stereo, and the pipeline
+sends mono.
+
+## A bug worth remembering
+
+`VoiceCommandSegmenter.process()` calls `reset()` as it reports the command
+finished, which clears `in_command`. Granting another silence window therefore
+has to restore that flag as well as the counter -- the silence counter only
+decrements *inside* a command, so without it the segmenter sits waiting for
+speech that may never come and the turn never ends at all. The symptom was runs
+that hung until the 60 s pipeline timeout, with the model logging "keep
+listening" correctly each time.

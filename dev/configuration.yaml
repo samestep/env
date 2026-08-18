@@ -21,3 +21,10 @@ assist_pipeline:
 
 # Fake lights and sensors, so the assistant has something to control.
 demo:
+
+# Turn detection logs its verdict at debug level; without this the decision is
+# invisible and a test can only infer it from timing.
+logger:
+  default: info
+  logs:
+    homeassistant.components.assist_pipeline: debug
