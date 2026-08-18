@@ -260,8 +260,29 @@
   # overview | marker | current time and live states. See
   # prefix-cache-findings.md.
   services.home-assistant.package = pkgs.home-assistant.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./home-assistant-cache-boundary.patch ];
+    patches = (old.patches or [ ]) ++ [
+      ./home-assistant-cache-boundary.patch
+      # Home Assistant's own Silero implementation, lifted from the commit that
+      # added it (079c6daa633) before it was reverted a month later in
+      # 329b2c840d8. The revert cites lag, broken end-of-speech detection,
+      # crashes and macOS build failures -- problems for a project shipping to
+      # every platform, and worth re-testing on one machine that builds its own
+      # software.
+      #
+      # The reason to want it, measured here on the same clips: microVAD keeps
+      # reporting speech for 480-600 ms after speech stops and needs 400-500 ms
+      # of speech before it reports any, because it is a wake-word architecture
+      # classifying over a ~500 ms window. Silero releases in 0-96 ms and fires
+      # on 100 ms of speech. That is ~500 ms off every single voice command,
+      # larger than anything left anywhere else in the pipeline.
+      ./home-assistant-silero-vad.patch
+    ];
   });
+
+  # audio_enhancer.py imports pysilero_vad after the patch above. The manifest
+  # change in that patch does not pull the dependency in, because nixpkgs
+  # resolves component requirements before patches are applied.
+  services.home-assistant.extraPackages = ps: [ ps.pysilero-vad ];
 
   # Voice assistant. With `prefer_local_intents` on (a per-pipeline setting,
   # off by default) the built-in sentence matcher answers anything it

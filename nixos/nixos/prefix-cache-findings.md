@@ -855,3 +855,37 @@ Assistant", and macOS build problems.
 So the obvious fix has been tried in production and regressed. Anything here
 needs measuring on this machine rather than assuming, and the fallback is what
 Home Assistant itself did: lower the timings and accept the model.
+
+
+## The VAD knobs, and what the research says
+
+There is one timing knob, exposed at three preset levels, plus supporting
+counters. From `assist_pipeline/vad.py`:
+
+| knob | value | meaning |
+|---|---|---|
+| `silence_seconds` | 0.7 | silence needed after speech to end the command |
+| `speech_seconds` | 0.3 | speech needed before a command is considered started |
+| `command_seconds` | 1.0 | minimum command length before it may end |
+| `reset_seconds` | 1.0 | continuous speech needed to reset the silence counter |
+| `timeout_seconds` | 15.0 | give up |
+| `before_command_speech_threshold` | 0.2 | probability counted as speech before the command |
+| `in_command_speech_threshold` | 0.5 | probability counted as speech during it |
+
+`silence_seconds` is what `VadSensitivity` selects: **relaxed 1.25, default 0.7,
+aggressive 0.25**. That is a select entity per satellite (esphome, wyoming, voip
+all register one), so it is a dropdown in the UI, not a patch. The
+`home-assistant-vad-silence.patch` written earlier was reinventing it, and was
+reverted.
+
+**Research context.** Human turn-taking gaps average ~200 ms across languages,
+and production voice systems use silence thresholds of roughly 300-800 ms before
+deciding a turn ended. Our effective ~1.2 s is well above that band. Silero
+plus the default 0.7 would be ~0.8 s; Silero plus aggressive ~0.35 s, which is
+at the fast end of what industry ships. The current setup cannot get there:
+microVAD's window alone is ~500 ms.
+
+Beyond thresholds, the current direction in voice agents is semantic
+endpointing -- letting a model judge whether the transcript sounds finished
+rather than counting silence. That is plausible here eventually, given a local
+LLM answering in ~100 ms.
