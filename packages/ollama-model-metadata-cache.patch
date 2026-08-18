@@ -1,0 +1,130 @@
+diff -ruN a/server/images.go b/server/images.go
+--- a/server/images.go	2026-08-18 13:45:47.975366668 +0000
++++ b/server/images.go	2026-08-18 13:52:29.325435244 +0000
+@@ -19,6 +19,7 @@
+ 	"slices"
+ 	"strconv"
+ 	"strings"
++	"sync"
+ 	"time"
+ 
+ 	"github.com/ollama/ollama/api"
+@@ -137,40 +138,90 @@
+ 	return capabilities
+ }
+ 
++// The handful of GGUF key-values that deciding a model's capabilities depends
++// on. Reading them means parsing the metadata block, which for a 27B model is
++// ~35 MB of key-values -- and a chat request asks twice, once directly and once
++// through CheckCapabilities in scheduleRunner, on top of GetModel's own read.
++// That was ~150 ms spent before inference was even scheduled, on every request,
++// for a model already resident in VRAM.
++//
++// Cached on the blob path, which is a content hash: what is at one can never
++// change, so there is nothing to invalidate. Note that this caches the *file
++// contents*, not the capabilities derived from them -- those also depend on
++// OLLAMA_GO_TEMPLATE and on the model's own config, and must still be worked
++// out each time.
++type ggufFacts struct {
++	arch         string
++	chatTemplate string
++	hasPooling   bool
++	hasVision    bool
++	hasAudio     bool
++}
++
++var ggufFactsCache sync.Map // blob path -> ggufFacts
++
++func ggufFactsOf(f *gguf.File) ggufFacts {
++	return ggufFacts{
++		arch:         f.KeyValue("general.architecture").String(),
++		chatTemplate: f.KeyValue("tokenizer.chat_template").String(),
++		hasPooling:   f.KeyValue("pooling_type").Valid(),
++		hasVision:    f.KeyValue("vision.block_count").Valid(),
++		hasAudio:     f.KeyValue("audio.block_count").Valid(),
++	}
++}
++
++func ggufFactsAt(path string) (ggufFacts, error) {
++	if cached, ok := ggufFactsCache.Load(path); ok {
++		return cached.(ggufFacts), nil
++	}
++
++	f, err := gguf.Open(path)
++	if err != nil {
++		return ggufFacts{}, err
++	}
++	defer f.Close()
++
++	facts := ggufFactsOf(f)
++	ggufFactsCache.Store(path, facts)
++	return facts, nil
++}
++
+ func (m *Model) ggufCapabilities(capabilities []model.Capability, source templateCapabilitySource, f *gguf.File) ([]model.Capability, string) {
+ 	if m.ModelPath == "" || !m.isGGUF() {
+ 		return capabilities, ""
+ 	}
+ 
+-	if f == nil {
++	var facts ggufFacts
++	if f != nil {
++		facts = ggufFactsOf(f)
++	} else {
+ 		var err error
+-		f, err = gguf.Open(m.ModelPath)
++		facts, err = ggufFactsAt(m.ModelPath)
+ 		if err != nil {
+ 			slog.Error("couldn't open model file", "error", err)
+ 			return capabilities, ""
+ 		}
+-		defer f.Close()
+ 	}
+ 
+-	modelArch := f.KeyValue("general.architecture").String()
++	modelArch := facts.arch
+ 	switch source {
+ 	case templateCapabilitySelected:
+ 		if !usesOllamaRenderedChat(m) {
+-			capabilities = chatTemplateCapabilities(capabilities, f.KeyValue("tokenizer.chat_template").String())
++			capabilities = chatTemplateCapabilities(capabilities, facts.chatTemplate)
+ 		}
+ 	case templateCapabilityChat:
+-		capabilities = chatTemplateCapabilities(capabilities, f.KeyValue("tokenizer.chat_template").String())
++		capabilities = chatTemplateCapabilities(capabilities, facts.chatTemplate)
+ 	}
+-	if f.KeyValue("pooling_type").Valid() {
++	if facts.hasPooling {
+ 		capabilities = appendCapability(capabilities, model.CapabilityEmbedding)
+ 	} else {
+ 		// If no embedding is specified, we assume the model supports completion.
+ 		capabilities = appendCapability(capabilities, model.CapabilityCompletion)
+ 	}
+-	if f.KeyValue("vision.block_count").Valid() {
++	if facts.hasVision {
+ 		capabilities = appendCapability(capabilities, model.CapabilityVision)
+ 	}
+-	if f.KeyValue("audio.block_count").Valid() {
++	if facts.hasAudio {
+ 		capabilities = appendCapability(capabilities, model.CapabilityAudio)
+ 	}
+ 
+@@ -711,15 +762,14 @@
+ 			m.ModelPath = filename
+ 			m.ParentModel = layer.From
+ 			if m.isGGUF() {
+-				f, err := gguf.Open(filename)
++				facts, err := ggufFactsAt(filename)
+ 				if err != nil {
+ 					slog.Error("couldn't open model file", "error", err)
+ 					break
+ 				}
+-				ggufChatTemplate = f.KeyValue("tokenizer.chat_template").String()
++				ggufChatTemplate = facts.chatTemplate
+ 				m.HasChatTemplate = ggufChatTemplate != ""
+-				modelHasPooling = f.KeyValue("pooling_type").Valid()
+-				f.Close()
++				modelHasPooling = facts.hasPooling
+ 			}
+ 		case manifest.MediaTypeImageDraft:
+ 			m.DraftPath = filename

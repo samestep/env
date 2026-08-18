@@ -19,7 +19,19 @@ ollama.overrideAttrs (old: {
   # The patch has renderers report their delimiters and threads them through.
   # It also replays the empty think block in history, without which a follow-up
   # turn does not match the tokens the model actually produced.
-  patches = (old.patches or [ ]) ++ [ ./ollama-message-delimiters.patch ];
+  #
+  # The second patch is unrelated to prompt caching and much simpler. Every
+  # chat request asks the model what it is capable of, twice, and answering
+  # means opening the GGUF and parsing its metadata: 35 MB of key-values read
+  # per request for the 27B model, ~150 ms before inference is even scheduled,
+  # on a model already resident in VRAM. Measured against a voice command that
+  # takes ~540 ms end to end, so better than a quarter of it. The answers are
+  # cached on the manifest digest and the blob path, both of which are content
+  # hashes, so nothing can go stale.
+  patches = (old.patches or [ ]) ++ [
+    ./ollama-message-delimiters.patch
+    ./ollama-model-metadata-cache.patch
+  ];
 
   # This one is against llama.cpp, not ollama. nixpkgs pre-stages llama.cpp into
   # $TMPDIR/llama-cpp-src at the end of postPatch so the CMake FetchContent step
