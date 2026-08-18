@@ -949,12 +949,33 @@ long a mid-sentence pause survives before the command is cut off:
 | 0.7 (default) | 789 ms | 700 ms |
 | 1.25 (relaxed) | 1401 ms | 1300 ms |
 
-**Latency and pause tolerance are the same number.** They always were, for both
-VADs -- what differs is the constant added to each. microVAD's ~500 ms window
-added to both, so its floor was around 750 ms of latency even at the aggressive
-setting. Silero adds ~50 ms, so the fast end of the curve is reachable at all.
-That is the win: not a better tradeoff, but access to a part of the curve that
-was previously unreachable.
+**Latency and pause tolerance move together**, for both VADs -- what differs is
+the constant added to each. microVAD's ~500 ms window added to both, so its
+floor was around 750 ms of latency even at the aggressive setting. Silero adds
+~50 ms, so the fast end of the curve becomes reachable.
+
+**But Silero also removes the cut-off-mid-word failure mode entirely**, which is
+a separate and arguably bigger win. The danger zone -- pauses where the command
+ends *while the user is already speaking again* -- exists because the VAD needs
+time to notice speech restarting, and its width is that rise time:
+
+| VAD, silence_seconds | pauses cut off mid-resumption |
+|---|---|
+| microVAD 0.25 | 520-620 ms (120 ms wide) |
+| microVAD 0.3 | 580-660 ms (100 ms wide) |
+| microVAD 0.4 | 600-760 ms (180 ms wide) |
+| microVAD 0.7 | 880-1060 ms (200 ms wide) |
+| **Silero, any of 0.25 / 0.3 / 0.4 / 0.7** | **none** |
+
+microVAD needs ~400 ms to notice speech restarting, so the countdown can expire
+inside that gap. Silero notices in 30-100 ms and the band closes completely. So
+Silero is not merely a shifted curve: with it, the assistant never commits to
+stopping while you are mid-word.
+
+Measurement note: counting "fired after the user resumed" is wrong, because
+firing at the *end* of the resumed speech is normal. The band is "fired *during*
+the resumed speech". The looser criterion invented a 260 ms band for Silero that
+does not exist.
 
 So this is a genuine preference, not an optimisation. Production voice systems
 sit at 300-800 ms, which spans 0.25 to 0.7 here. 0.5 is a reasonable middle:
