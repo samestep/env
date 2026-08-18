@@ -774,3 +774,41 @@ speech. Cut mid-speech instead.
 The remaining lever is a different VAD. Silero releases far faster and exposes a
 minimum-silence parameter. That is a bigger patch than a constant, but it is
 where the floor actually is.
+
+
+## Why the model behaves this way: it is a wake-word model
+
+pymicro-vad's README says it "uses the machine learning architecture from
+microWakeWord". That is a *wake word* architecture: a classifier over a sliding
+window, answering "does this window contain the phrase". Used as a VAD it
+answers "does this window contain speech", which is inherently about one window
+late at both edges.
+
+Feeding bursts of real speech of varying length, surrounded by silence:
+
+    burst   peak prob during burst   stays above 0.5 after
+     50 ms          0.00             never fires
+    100 ms          0.00             never fires
+    200 ms          0.00             never fires
+    300 ms          0.06             never fires
+    500 ms          1.00             650 ms
+    800 ms          1.00             650 ms
+   1200 ms          1.00             540 ms
+
+Under ~400 ms of speech never registers at all, and once it fires it holds until
+the window drains. That is a ~500 ms window, and it explains both edges we
+measured: onset ~340 ms late, release ~340-610 ms.
+
+**This is not a bug and not an oversight by whoever trained it.** For wake-word
+detection a window-length latency is inherent and harmless -- you are detecting
+a discrete event, not tracking when someone stopped talking. It only becomes a
+problem when the model is repurposed to decide end-of-speech, which is what Home
+Assistant does with it.
+
+It also means no threshold can fix it. `silence_seconds` is added *after* the
+model finally reports silence. The `home-assistant-vad-silence.patch` that set
+it to 0.4 has been reverted for that reason: it trims the wrong term.
+
+The fix is a different VAD. Silero is the obvious candidate: it releases in tens
+of milliseconds and exposes a minimum-silence parameter. That means patching
+`audio_enhancer.py`, which hardcodes `MicroVad`.
