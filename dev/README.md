@@ -24,6 +24,8 @@ Voice and model experiments, all driven through `dev/halib.py`. See
     dev/speculation-sweep.py         # what speculating is worth, against the wait
     dev/speculation-safety.py        # a wrong guess must not act
     dev/speculation-speech.py        # a wrong guess must not be spoken
+    dev/stt-compare.py <port>:<name> # transcribers, side by side
+    dev/local-intent-test.py         # what an alias is worth
     dev/kokoro-stream-test.py <main.py>   # the synthesiser's protocol handling
 
 Run them with `dev/py`, which supplies websockets, numpy and ffmpeg; which

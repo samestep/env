@@ -40,6 +40,59 @@ Voice tests need a transcriber in the VM:
       --model tiny-int8 --language en --uri tcp://127.0.0.1:10300 \
       --data-dir ~/ha-dev/whisper --download-dir ~/ha-dev/whisper
 
+## The transcriber was the wrong one
+
+`wyoming-faster-whisper` defaults to `model = "auto"`, which reads as "the best
+one available". It is not. For English it prefers Parakeet through sherpa-onnx,
+and the test is whether `sherpa_onnx` imports -- a module that lives in the
+package's `optional-dependencies` and is not installed. So the preference falls
+through to `rhasspy/faster-whisper-base-int8`, silently.
+
+Same machine, same four clips, `dev/stt-compare.py`:
+
+| | median |
+|---|---|
+| whisper-base-int8 -- what "auto" resolves to today | 368 ms |
+| tiny-int8 | 193 ms |
+| **Parakeet TDT 0.6b v2 int8** -- what "auto" prefers | **65 ms** |
+
+5.7x faster than the host runs now, from the more accurate model of the two.
+Turning the extra on is the whole change.
+
+It matters twice over. Speculative transcription is only free while it finishes
+*inside* the wait for silence: at 368 ms it overran a 250 ms wait outright, so
+the conversation could not start until after the turn was already confirmed. At
+65 ms it leaves most of the wait for the model.
+
+## Where the remaining time goes
+
+Measured against the host, intent stage only, `scratch/host-stages.py`:
+
+| | first tool call | first word | done |
+|---|---|---|---|
+| no tool ("say hello") | -- | 276 ms | 329 ms |
+| a state question | -- | 271 ms | 378 ms |
+| a command, loose wording | 1194 ms | 314 ms | 1521 ms |
+| **a command, exact wording** | -- | -- | **4 ms** |
+
+The last row is not the model being fast. It is Home Assistant never asking it.
+`prefer_local_intents` matches the sentence against its own templates first, and
+a match costs single-digit milliseconds. The filter is inverted from how it
+reads: `_async_local_fallback_intent_filter` returns True to *reject*, so with a
+controlling agent it is state *questions* that are pushed to the model and
+actions that stay local.
+
+Matching is strict -- exact wording, exact entity name -- so whether a phrase is
+fast depends entirely on what the entity is called. Aliases are the lever, and
+`dev/local-intent-test.py` measures one:
+
+    Turn off the ceiling light.   no alias         1679 ms   (the model)
+    Turn off the ceiling light.   alias added         5 ms   (local)
+
+Three hundred times faster, on the slowest kind of request, from configuration
+alone. Worth doing for every phrasing actually used, once there are real devices
+to name.
+
 ## Still open
 
 - **Recordings of the person who will use it.** Everything here is public data
