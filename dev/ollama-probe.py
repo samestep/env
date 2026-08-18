@@ -66,9 +66,14 @@ for q in QUESTIONS:
 
 # Long enough to measure: short replies make tokens/sec mostly startup noise.
 # Warn rather than quietly report a number derived from a handful of tokens.
+# Open-ended prose rather than a countable task: the same counting prompt at
+# temperature 0 produced 300 tokens on CUDA and 17 on Metal, because the
+# backends diverge numerically and one model gave up early. Prose keeps
+# generating on both.
 g = chat([{"role": "system", "content": SYSTEM},
-          {"role": "user", "content": "Write the numbers from 1 to 120 separated by "
-                                      "commas. Output nothing else."}], 300)
+          {"role": "user", "content": "Describe a kitchen in detail: the counters, "
+                                      "the light, the smells, the sounds. Write "
+                                      "several paragraphs."}], 300)
 if g["eval_count"] < 60:
     print(f"\n!! only {g['eval_count']} tokens generated; tokens/sec below is unreliable")
 print(f"\nfresh conversation : {statistics.median(fresh):8.1f} ms")

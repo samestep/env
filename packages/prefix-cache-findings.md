@@ -984,3 +984,28 @@ sit at 300-800 ms, which spans 0.25 to 0.7 here. 0.5 is a reasonable middle:
 No silence threshold can distinguish "still thinking" from "finished" -- they
 are acoustically identical, and only the words differ. That is what semantic
 endpointing is for.
+
+
+## Generation speed is content-dependent, because of MTP
+
+Same model, same machine, temperature 0, only the prompt differing:
+
+| prompt | tok/s |
+|---|---|
+| count from 1 to 120 | 97.3 |
+| a short assistant reply | 86.8 (14 tok, noisy) |
+| several paragraphs of prose | 50.5 |
+
+Speculative decoding accepts more draft tokens when the continuation is
+predictable, so counting is close to a best case and prose closer to a worst
+one. **The 85-95 tok/s quoted throughout this document came from a counting
+prompt** and overstates what an assistant reply achieves.
+
+Two consequences for measurement. Use prose to compare hardware, since it is
+nearer the real workload and not dominated by how well MTP happens to guess. And
+never compare a tokens/sec figure against one taken with a different prompt.
+
+A related trap: the counting prompt produced 300 tokens on CUDA and 17 on Metal
+at temperature 0. Backends diverge numerically, so a task one model finishes the
+other can abandon, and the tokens/sec then describes startup overhead rather
+than generation. `dev/ollama-probe.py` warns when fewer than 60 tokens come out.
