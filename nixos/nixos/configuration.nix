@@ -260,10 +260,7 @@
   # overview | marker | current time and live states. See
   # prefix-cache-findings.md.
   services.home-assistant.package = pkgs.home-assistant.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [
-      ./home-assistant-cache-boundary.patch
-      ./home-assistant-vad-silence.patch
-    ];
+    patches = (old.patches or [ ]) ++ [ ./home-assistant-cache-boundary.patch ];
   });
 
   # Voice assistant. With `prefer_local_intents` on (a per-pipeline setting,
