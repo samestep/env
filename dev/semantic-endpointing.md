@@ -254,3 +254,28 @@ pause it forgives, which is why upstream's numbers are so long.
 Measured with no per-run settings at all: **940 ms** from end of speech to
 answer, against 1408 ms on the old defaults. Selecting "aggressive" takes it to
 ~824 ms.
+
+
+## Where the time goes, and speculative transcription
+
+Per stage, from the last sample of speech, with the turn model on:
+
+    VAD + turn model decided       243 ms
+    speech-to-text finished        454 ms   (+211)
+    answer ready                   837 ms   (+383)
+
+The wait for silence and the transcription are both dead time, and they were
+consecutive for no reason. `speculative_stt` takes a snapshot the moment speech
+stops and transcribes *that* during the wait, so the text is ready when the turn
+is confirmed over. If the speaker resumes, the snapshot is cancelled and the
+normal path is used.
+
+    speculative stt off       838 ms
+    speculative stt on        720 ms
+
+118 ms, bounded by how much wait there is to hide behind. It costs one extra
+transcription of audio that is thrown away when the speaker turns out not to
+have finished, which is cheap: whisper tiny on CPU.
+
+Verified that holding a pause still works with it on -- the JFK clip still
+reaches "ASK NOT", so the snapshot really is discarded when speech resumes.

@@ -1,6 +1,6 @@
 --- a/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 04:52:05.196107157 +0000
-+++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 05:39:31.249632367 +0000
-@@ -521,8 +521,42 @@
++++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 05:46:50.302759554 +0000
+@@ -521,8 +521,52 @@
      is_vad_enabled: bool = True
      """True if VAD is used to determine the end of the voice command."""
  
@@ -35,6 +35,16 @@
 +    of finished ones; 0.9 is 6.1% and 8.7%.
 +    """
 +
++    speculative_stt: bool = True
++    """Start transcribing as soon as the speaker stops, not after the wait.
++
++    The wait for silence and the transcription are both dead time and they do not
++    have to be consecutive. Transcribing a snapshot taken when speech stopped
++    runs during the wait, so by the time the turn is confirmed over the text is
++    already there. Costs one extra transcription of audio that is thrown away
++    when the speaker turns out not to have finished.
++    """
++
 +    turn_max_seconds: float = 3.0
 +    """Give up and end the command after this much silence, regardless.
 +
@@ -45,10 +55,23 @@
  
      def __post_init__(self) -> None:
          """Verify settings post-initialization."""
-@@ -953,9 +987,24 @@
+@@ -880,6 +924,9 @@
+                         code="wake-word-timeout", message="Wake word was not detected"
+                     )
+ 
++    _speculate: Any = None
++    _turn_over: asyncio.Event | None = None
++
+     async def prepare_speech_to_text(self, metadata: stt.SpeechMetadata) -> None:
+         """Prepare speech-to-text."""
+         # pipeline.stt_engine can't be None or this function is not called
+@@ -953,10 +1000,53 @@
                      silence_seconds=self.audio_settings.silence_seconds
                  )
  
+-            result = await self.stt_provider.async_process_audio_stream(
+-                metadata,
+-                self._speech_to_text_stream(audio_stream=stream, stt_vad=stt_vad),
 +            turn_detector = None
 +            if stt_vad is not None and self.audio_settings.turn_detection:
 +                try:
@@ -62,16 +85,44 @@
 +                        exc_info=True,
 +                    )
 +
-             result = await self.stt_provider.async_process_audio_stream(
-                 metadata,
--                self._speech_to_text_stream(audio_stream=stream, stt_vad=stt_vad),
-+                self._speech_to_text_stream(
-+                    audio_stream=stream, stt_vad=stt_vad, turn_detector=turn_detector
-+                ),
++            self._speculate = (
++                self._make_speculator(metadata)
++                if stt_vad is not None and self.audio_settings.speculative_stt
++                else None
++            )
++            self._turn_over = asyncio.Event()
++
++            main = self.hass.async_create_task(
++                self.stt_provider.async_process_audio_stream(
++                    metadata,
++                    self._speech_to_text_stream(
++                        audio_stream=stream, stt_vad=stt_vad, turn_detector=turn_detector
++                    ),
++                )
              )
++
++            speculated: str | None = None
++            if self._speculate is not None:
++                # Wait for the turn to end, not for the transcription that
++                # follows it: the speculative one has been running since the
++                # speaker stopped and is usually finished by now.
++                done, _pending = await asyncio.wait(
++                    (asyncio.ensure_future(self._turn_over.wait()), main),
++                    return_when=asyncio.FIRST_COMPLETED,
++                )
++                if main not in done:
++                    speculated = await self._speculate.take()
++
++            if speculated is not None:
++                _LOGGER.debug("used speculative transcript: %s", speculated)
++                main.cancel()
++                result = stt.SpeechResult(speculated, stt.SpeechResultState.SUCCESS)
++            else:
++                result = await main
          except asyncio.CancelledError, TimeoutError:
              raise  # expected
-@@ -1001,17 +1050,38 @@
+         except hass_nabucasa.auth.Unauthenticated as src_error:
+@@ -1001,17 +1091,51 @@
          self,
          audio_stream: AsyncIterable[EnhancedAudioChunk],
          stt_vad: VoiceCommandSegmenter | None,
@@ -83,7 +134,11 @@
          sent_vad_start = False
 +        # The turn model reads the last 8 s of audio, so keep exactly that.
 +        turn_window = 8 * sample_rate * sample_width
-+        turn_audio = bytearray() if turn_detector is not None else None
++        turn_audio = (
++            bytearray()
++            if turn_detector is not None or self._speculate is not None
++            else None
++        )
 +        silence_spent = 0.0
 +
          async for chunk in audio_stream:
@@ -96,6 +151,15 @@
 +
              if stt_vad is not None:
                  chunk_seconds = (len(chunk.audio) // sample_width) / sample_rate
++                # A snapshot the moment speech stops, so transcription of it can
++                # run during the wait rather than after it. Speech resuming
++                # invalidates it, and whoever consumes it re-checks the length.
++                speaking = (chunk.speech_probability or 0.0) > 0.5
++                if self._speculate is not None and stt_vad.in_command:
++                    if speaking:
++                        self._speculate.cancel_snapshot()
++                    else:
++                        self._speculate.offer(bytes(turn_audio or b""))
                  if not stt_vad.process(chunk_seconds, chunk.speech_probability):
 +                    silence_spent += self.audio_settings.silence_seconds
 +                    if (
@@ -110,10 +174,63 @@
                      # Silence detected at the end of voice command
                      self.process_event(
                          PipelineEvent(
-@@ -1033,6 +1103,35 @@
+@@ -1019,6 +1143,8 @@
+                             {"timestamp": chunk.timestamp_ms},
+                         )
+                     )
++                    if self._turn_over is not None:
++                        self._turn_over.set()
+                     break
+ 
+                 if stt_vad.in_command and (not sent_vad_start):
+@@ -1033,6 +1159,79 @@
  
              yield chunk.audio
  
++    def _make_speculator(self, metadata: stt.SpeechMetadata) -> Any:
++        """Transcribe a snapshot taken when speech stopped, during the wait."""
++        run = self
++
++        class _Speculator:
++            def __init__(self) -> None:
++                self.task: asyncio.Task | None = None
++
++            def offer(self, audio: bytes) -> None:
++                """Speech has stopped; start transcribing what we have."""
++                if self.task is not None or len(audio) < 2 * SAMPLE_RATE // 10:
++                    return
++                self.task = run.hass.async_create_task(self._transcribe(audio))
++
++            def cancel_snapshot(self) -> None:
++                """Speech resumed, so the snapshot is not the whole utterance."""
++                if self.task is not None:
++                    self.task.cancel()
++                    self.task = None
++
++            async def _transcribe(self, audio: bytes) -> stt.SpeechResult:
++                async def once() -> AsyncGenerator[bytes]:
++                    yield audio
++
++                assert run.stt_provider is not None
++                return await run.stt_provider.async_process_audio_stream(metadata, once())
++
++            async def take(self) -> str | None:
++                """The transcript, if one was speculated and still applies."""
++                if self.task is None:
++                    return None
++                try:
++                    result = await self.task
++                except asyncio.CancelledError:
++                    return None
++                except Exception:  # noqa: BLE001
++                    _LOGGER.debug("speculative transcription failed", exc_info=True)
++                    return None
++                if result.result != stt.SpeechResultState.SUCCESS or not result.text:
++                    return None
++                return result.text
++
++        return _Speculator()
++
 +    async def _turn_is_complete(self, turn_detector: Any, audio: bytearray) -> bool:
 +        """Ask the turn model whether the speaker has finished.
 +
@@ -194,8 +311,8 @@
          """Process samples using external VAD.
  
 --- a/homeassistant/components/assist_pipeline/websocket_api.py	2026-08-18 04:52:05.196122125 +0000
-+++ b/homeassistant/components/assist_pipeline/websocket_api.py	2026-08-18 04:55:32.649741760 +0000
-@@ -102,6 +102,11 @@
++++ b/homeassistant/components/assist_pipeline/websocket_api.py	2026-08-18 05:47:02.192569787 +0000
+@@ -102,6 +102,12 @@
                              # it is reachable only through the VAD sensitivity
                              # select entity that satellite integrations create.
                              vol.Optional("silence_seconds"): vol.Any(float, int),
@@ -204,10 +321,11 @@
 +                            vol.Optional("turn_detection"): bool,
 +                            vol.Optional("turn_threshold"): vol.Any(float, int),
 +                            vol.Optional("turn_max_seconds"): vol.Any(float, int),
++                            vol.Optional("speculative_stt"): bool,
                          }
                      },
                      extra=vol.ALLOW_EXTRA,
-@@ -219,11 +224,17 @@
+@@ -219,11 +225,18 @@
              auto_gain_dbfs=msg_input.get("auto_gain_dbfs", 0),
              volume_multiplier=msg_input.get("volume_multiplier", 1.0),
              is_vad_enabled=not msg_input.get("no_vad", False),
@@ -223,6 +341,7 @@
 +                    ("turn_detection", bool),
 +                    ("turn_threshold", float),
 +                    ("turn_max_seconds", float),
++                    ("speculative_stt", bool),
 +                )
 +                if key in msg_input
 +                for value in (msg_input[key],)
