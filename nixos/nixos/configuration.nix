@@ -369,13 +369,35 @@
   };
 
   # Speech to text. CPU by default: `device = "cuda"` needs ctranslate2 built
-  # with CUDA, which is a much bigger rebuild than it sounds.
+  # with CUDA, which is a much bigger rebuild than it sounds -- and with Parakeet
+  # below there is no longer much reason to want it.
   services.wyoming.faster-whisper.servers.en = {
     enable = true;
     uri = "tcp://127.0.0.1:10300";
     language = "en";
     device = "cpu";
+
+    # The default model is "auto", which reads as "the best one available" but
+    # is not: for English it prefers Parakeet through sherpa-onnx, and the check
+    # is whether the sherpa_onnx module imports. That module is an optional
+    # extra of the package and is not installed, so the preference falls through
+    # to rhasspy/faster-whisper-base-int8 without saying so. Turning the extra
+    # on is the whole change; the model choice then makes itself.
+    #
+    # Measured on the same machine, same clips, whisper-base-int8 against
+    # Parakeet TDT 0.6b v2 int8: 368 ms -> 65 ms, and Parakeet is the more
+    # accurate model of the two by a wide margin. See dev/stt-compare.py.
+    #
+    # This matters twice over, because speculative transcription is only free
+    # while it finishes inside the wait for silence. At 368 ms it overran a
+    # 250 ms wait entirely; at 65 ms it leaves most of the wait for the model.
   };
+
+  # The option is on the module, not the server: one binary serves them all.
+  services.wyoming.faster-whisper.package =
+    pkgs.wyoming-faster-whisper.overridePythonAttrs (old: {
+      dependencies = old.dependencies ++ old.optional-dependencies.sherpa;
+    });
 
   # Text to speech. Piper was archived upstream on 2025-10-06 and sounds every
   # bit its age; kept only to A/B against Kokoro, and worth deleting once that
