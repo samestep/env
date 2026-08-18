@@ -1,8 +1,16 @@
 """Drive the patched Kokoro server's protocol handling with a stub synthesiser.
 
-Building the real thing needs onnxruntime with CUDA, which is hours of compile
-and irrelevant to what changed: this exercises the event handling, the sentence
-splitting, and the order of the audio events Home Assistant expects.
+Building the real thing needs onnxruntime with CUDA, which is irrelevant to what
+changed: this exercises the event handling, the sentence splitting, and the order
+of the audio events Home Assistant expects.
+
+The exchange is exactly the one Home Assistant performs, including the plain
+Synthesize carrying the whole message that it sends after the chunks "for
+backwards compatibility". A server that streams has already said all of it, and
+must ignore it -- the first version of this test left it out, and the reply was
+synthesised twice for a day before anything noticed.
+
+    dev/py dev/kokoro-stream-test.py <path to main.py>
 """
 import asyncio, importlib.util, sys, types
 
@@ -30,7 +38,9 @@ kmain = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(kmain)
 
 from wyoming.audio import AudioChunk, AudioStart, AudioStop
-from wyoming.tts import SynthesizeChunk, SynthesizeStart, SynthesizeStop, SynthesizeStopped
+from wyoming.tts import (
+    Synthesize, SynthesizeChunk, SynthesizeStart, SynthesizeStop, SynthesizeStopped,
+)
 
 
 class StubKokoro:
@@ -57,6 +67,7 @@ class Recorder(kmain.KokoroEventHandler):
         self._stream_voice = "af_heart"
         self._stream_buffer = ""
         self._stream_started = False
+        self._streaming = False
         self._stream_t0 = 0.0
         self.events = []
 
@@ -74,6 +85,10 @@ async def main():
         await h.handle_event(SynthesizeChunk(text=piece).event())
         n = sum(AudioChunk.is_type(e.type) for e in h.events)
         print(f"  after {piece!r:22} synthesised={stub.spoken!r:60} audio chunks={n}")
+    # What Home Assistant sends next: the whole message, again.
+    whole = "The bed light is off. The kitchen lights are on. Anything else?"
+    await h.handle_event(Synthesize(text=whole).event())
+    print(f"  after the trailing Synthesize   synthesised={stub.spoken!r}")
     await h.handle_event(SynthesizeStop().event())
 
     kinds = [e.type for e in h.events]

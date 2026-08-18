@@ -14,7 +14,7 @@ env=$(nix build --no-link --print-out-paths --impure --expr \
      paths = [
        ffmpeg  # the clips are wav and mp3; the pipeline wants raw 16 kHz mono
        (python3.withPackages (ps: with ps; [
-         websockets aiohttp numpy onnxruntime
+         websockets aiohttp numpy onnxruntime wyoming
        ]))
      ];
    }' 2>/dev/null | tail -1)

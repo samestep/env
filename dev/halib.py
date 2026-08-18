@@ -78,9 +78,11 @@ async def pipeline_id(ws, name, **fields):
                        **{k: v for k, v in existing.items() if k != "id"}, **stale)
         return existing["id"]
     res = await call(ws, type="assist_pipeline/pipeline/create",
-                     name=name, language="en", conversation_language="en",
-                     tts_engine=None, tts_language=None, tts_voice=None,
-                     wake_word_entity=None, wake_word_id=None, **fields)
+                     **{"name": name, "language": "en",
+                        "conversation_language": "en", "tts_engine": None,
+                        "tts_language": None, "tts_voice": None,
+                        "wake_word_entity": None, "wake_word_id": None,
+                        **fields})
     return res["result"]["id"]
 
 
@@ -95,8 +97,14 @@ def engines():
     return stt, conv
 
 
-async def run(ws, pid, audio, end_stage="intent", trailing=4, **settings):
-    """Stream audio in real time; return (ms from end of speech, text, reply, error)."""
+async def run(ws, pid, audio, end_stage="intent", trailing=4, on_event=None,
+              **settings):
+    """Stream audio in real time; return (ms from end of speech, text, reply, error).
+
+    on_event, if given, is called with every pipeline event as it arrives -- for
+    tests that need to act on one, such as fetching the speech as a satellite
+    would rather than leaving it to be synthesised whenever.
+    """
     ident = _ident()
     stream = audio + b"\x00" * (SR * 2 * trailing)
     await ws.send(json.dumps({"id": ident, "type": "assist_pipeline/run",
@@ -123,6 +131,8 @@ async def run(ws, pid, audio, end_stage="intent", trailing=4, **settings):
             continue
         e = m["event"]
         marks[e["type"]] = time.monotonic()
+        if on_event is not None:
+            on_event(e)
         if e["type"] == "run-start":
             hid = e["data"]["runner_data"]["stt_binary_handler_id"]
             task = asyncio.create_task(pump())

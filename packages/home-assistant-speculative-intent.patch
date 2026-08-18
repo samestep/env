@@ -1,6 +1,6 @@
 diff -ruN a/homeassistant/components/assist_pipeline/pipeline.py b/homeassistant/components/assist_pipeline/pipeline.py
 --- a/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 12:07:45.222634118 +0000
-+++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 12:15:40.098000182 +0000
++++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 12:36:54.954953182 +0000
 @@ -35,6 +35,7 @@
      device_registry as dr,
      entity_registry as er,
@@ -224,18 +224,24 @@ diff -ruN a/homeassistant/components/assist_pipeline/pipeline.py b/homeassistant
          if self.intent_agent is None or self._conversation_data is None:
              raise RuntimeError("Recognize intent was not prepared")
  
-@@ -1399,7 +1550,18 @@
+@@ -1399,7 +1550,24 @@
                  )
  
                  assert self.tts_stream is not None
 -                self.tts_stream.async_set_message_stream(tts_input_stream_generator())
-+                if speculating is not None:
++                if speculating is not None and not speculating.gate.is_set():
 +                    # Not yet. ResultStream keeps only the first stream it is
 +                    # given, so wiring the guess here would make the real
 +                    # reply's stream a silent no-op -- and the speaker would
 +                    # answer a question that had not finished being asked. Held
 +                    # until commit, by which point the queue behind it has a
 +                    # head start.
++                    #
++                    # The gate, not "is this a speculation": commit can happen
++                    # before generation is far enough along to stream, and a
++                    # stream stored after that has nobody left to wire it. Home
++                    # Assistant would then skip async_set_message, since it
++                    # believes a stream was set, and the speech never arrives.
 +                    speculating.speech = tts_input_stream_generator()
 +                else:
 +                    self.tts_stream.async_set_message_stream(
@@ -244,7 +250,7 @@ diff -ruN a/homeassistant/components/assist_pipeline/pipeline.py b/homeassistant
  
              user_input = conversation.ConversationInput(
                  text=intent_input,
-@@ -1886,6 +2048,13 @@
+@@ -1886,6 +2054,13 @@
              device_id=self.device_id,
              satellite_id=self.satellite_id,
          )

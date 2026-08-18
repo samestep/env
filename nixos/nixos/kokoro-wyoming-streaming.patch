@@ -1,5 +1,5 @@
---- a/src/main.py
-+++ b/src/main.py
+--- a/src/main.py	2026-08-18 12:27:48.912647149 +0000
++++ b/src/main.py	2026-08-18 12:28:06.790783727 +0000
 @@ -24,7 +24,13 @@
  
  from wyoming.info import Attribution, TtsProgram, TtsVoice, TtsVoiceSpeaker, Describe, Info
@@ -37,7 +37,7 @@
  def clean_text(text: str) -> str:
      """Strip markup artifacts that LLMs sometimes include in responses.
  
-@@ -146,6 +167,12 @@
+@@ -146,6 +167,13 @@
          self._semaphore = synth_semaphore
          self._cache = cache
  
@@ -45,12 +45,13 @@
 +        self._stream_voice = default_voice
 +        self._stream_buffer = ""
 +        self._stream_started = False
++        self._streaming = False
 +        self._stream_t0 = 0.0
 +
      async def handle_event(self, event: Event) -> bool:
          """Handle Wyoming protocol events."""
          if Describe.is_type(event.type):
-@@ -153,6 +180,49 @@
+@@ -153,10 +181,63 @@
              _LOGGER.debug("Sent info")
              return True
  
@@ -66,6 +67,7 @@
 +            )
 +            self._stream_buffer = ""
 +            self._stream_started = False
++            self._streaming = True
 +            self._stream_t0 = time.monotonic()
 +            _LOGGER.debug("Streaming synthesis started: voice=%s", self._stream_voice)
 +            return True
@@ -90,6 +92,7 @@
 +                self._stream_started = True
 +            await self.write_event(AudioStop().event())
 +            await self.write_event(SynthesizeStopped().event())
++            self._streaming = False
 +            _LOGGER.info(
 +                "Streamed synthesis: voice=%s, %.0fms",
 +                self._stream_voice,
@@ -100,7 +103,19 @@
          if not Synthesize.is_type(event.type):
              _LOGGER.warning("Unexpected event: %s", event)
              return True
-@@ -165,6 +235,42 @@
+ 
++        if self._streaming:
++            # Home Assistant sends the whole message as a plain Synthesize after
++            # the chunks, "for backwards compatibility" with servers that do not
++            # stream. This one does, and has already said all of it: synthesising
++            # again would speak the reply twice and cost twice the GPU time.
++            _LOGGER.debug("Ignoring trailing Synthesize during a stream")
++            return True
++
+         try:
+             return await self._handle_synthesize(event)
+         except Exception as err:
+@@ -165,6 +246,42 @@
              )
              raise err
  
@@ -143,7 +158,7 @@
      async def _handle_synthesize(self, event: Event) -> Optional[bool]:
          try:
              synthesize = Synthesize.from_event(event)
-@@ -382,6 +488,7 @@
+@@ -382,6 +499,7 @@
              installed=True,
              voices=sorted(wyoming_voices, key=lambda v: v.name),
              version=VERSION,
