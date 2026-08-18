@@ -22,13 +22,20 @@ MODEL = sys.argv[1] if len(sys.argv) > 1 else "qwen3.8:27b-mtp-q8_0"
 
 # Shaped like Home Assistant's: a preamble plus a long entity table. The size and
 # the fact that it is byte-identical across conversations are what matter.
+#
+# It ends with the cache boundary marker, because that is what the server is
+# told to look for. Without it the delimiter matches nothing, the server falls
+# back to checkpointing near the end of the prompt, and the probe measures the
+# degraded path -- which looks like a hardware difference if the two machines
+# are configured differently.
+MARKER = os.environ.get("OLLAMA_CACHE_MARKER", "<|fim_pad|>")
 SYSTEM = (
     "You are a voice assistant for a home. Answer in one or two short sentences, "
     "in plain spoken language, with no markdown and no lists.\n\n"
     "An overview of the areas and the devices in this smart home:\n"
 ) + "\n".join(
     f"- device_{i}: Device {i} ('Device {i}', {'on' if i % 3 else 'off'})"
-    for i in range(300))
+    for i in range(300)) + f"\n{MARKER}\nCurrent time: Monday, 9:00 PM"
 
 QUESTIONS = ["Turn on device 1.", "What state is device 2 in?", "Is device 3 on?",
              "Turn off device 4.", "Check device 5.", "Toggle device 6."]
@@ -57,8 +64,13 @@ for q in QUESTIONS:
     d2 = chat(msgs + [d["message"], {"role": "user", "content": "And the one after?"}])
     follow.append(ms(d2, "prompt_eval_duration"))
 
+# Long enough to measure: short replies make tokens/sec mostly startup noise.
+# Warn rather than quietly report a number derived from a handful of tokens.
 g = chat([{"role": "system", "content": SYSTEM},
-          {"role": "user", "content": "Count from 1 to 60, comma separated."}], 200)
+          {"role": "user", "content": "Write the numbers from 1 to 120 separated by "
+                                      "commas. Output nothing else."}], 300)
+if g["eval_count"] < 60:
+    print(f"\n!! only {g['eval_count']} tokens generated; tokens/sec below is unreliable")
 print(f"\nfresh conversation : {statistics.median(fresh):8.1f} ms")
 print(f"follow-up turn     : {statistics.median(follow):8.1f} ms")
 print(f"generation         : {g['eval_count'] / (g['eval_duration'] / 1e9):8.1f} tok/s"
