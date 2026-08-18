@@ -1,10 +1,22 @@
 --- a/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 04:52:05.196107157 +0000
-+++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 04:52:40.393168382 +0000
-@@ -524,6 +524,33 @@
-     silence_seconds: float = 0.7
-     """Seconds of silence after voice command has ended."""
++++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 05:39:31.249632367 +0000
+@@ -521,8 +521,42 @@
+     is_vad_enabled: bool = True
+     """True if VAD is used to determine the end of the voice command."""
  
-+    turn_detection: bool = False
+-    silence_seconds: float = 0.7
+-    """Seconds of silence after voice command has ended."""
++    silence_seconds: float = 0.25
++    """Seconds of silence after voice command has ended.
++
++    Upstream is 0.7. With turn detection on, this no longer has to carry the
++    pause tolerance as well: the model holds the turn open when the utterance
++    sounds unfinished, so this only decides how quickly a *finished* one ends.
++    Measured, a finished utterance ends 600 ms sooner at 0.1 than at 0.7 while
++    mid-sentence pauses are still held at every setting tried.
++    """
++
++    turn_detection: bool = True
 +    """Consult a turn-detection model before ending the voice command.
 +
 +    Silence alone cannot tell "still thinking" from "finished": they are
@@ -30,11 +42,10 @@
 +    utterances sit at 0.03 after two further seconds -- so without a cap,
 +    someone who simply trails off would hold the turn open forever.
 +    """
-+
+ 
      def __post_init__(self) -> None:
          """Verify settings post-initialization."""
-         if (self.noise_suppression_level < 0) or (self.noise_suppression_level > 4):
-@@ -953,9 +980,24 @@
+@@ -953,9 +987,24 @@
                      silence_seconds=self.audio_settings.silence_seconds
                  )
  
@@ -60,7 +71,7 @@
              )
          except asyncio.CancelledError, TimeoutError:
              raise  # expected
-@@ -1001,17 +1043,38 @@
+@@ -1001,17 +1050,38 @@
          self,
          audio_stream: AsyncIterable[EnhancedAudioChunk],
          stt_vad: VoiceCommandSegmenter | None,
@@ -99,7 +110,7 @@
                      # Silence detected at the end of voice command
                      self.process_event(
                          PipelineEvent(
-@@ -1033,6 +1096,35 @@
+@@ -1033,6 +1103,35 @@
  
              yield chunk.audio
  
@@ -136,8 +147,29 @@
          """Prepare recognizing an intent."""
          self._conversation_data = async_get_pipeline_conversation_data(
 --- a/homeassistant/components/assist_pipeline/vad.py	2026-08-18 04:52:05.196093772 +0000
-+++ b/homeassistant/components/assist_pipeline/vad.py	2026-08-18 05:13:13.340619266 +0000
-@@ -130,6 +130,23 @@
++++ b/homeassistant/components/assist_pipeline/vad.py	2026-08-18 05:39:31.249701490 +0000
+@@ -23,13 +23,17 @@
+     def to_seconds(sensitivity: VadSensitivity | str) -> float:
+         """Return seconds of silence for sensitivity level."""
+         sensitivity = VadSensitivity(sensitivity)
++        # Lower than upstream's 1.25 / 0.25 / 0.7 because turn detection now
++        # supplies the tolerance for mid-sentence pauses. Without it these
++        # numbers have to be *both* how fast the assistant answers and how long
++        # a pause it forgives, which is why upstream's are so long.
+         if sensitivity == VadSensitivity.RELAXED:
+-            return 1.25
++            return 0.7
+ 
+         if sensitivity == VadSensitivity.AGGRESSIVE:
+-            return 0.25
++            return 0.1
+ 
+-        return 0.7
++        return 0.25
+ 
+ 
+ class AudioBuffer:
+@@ -130,6 +134,23 @@
          self._reset_seconds_left = self.reset_seconds
          self.in_command = False
  

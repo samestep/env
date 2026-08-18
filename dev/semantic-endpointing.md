@@ -235,3 +235,22 @@ boundary carries over unchanged.
 Recommendation: switch the conversation agent to `ornith:35b-q4_K_M`. Left for a
 person to decide, because the eval is 15 scenarios against demo entities rather
 than a real house, and the assistant's manner of speaking is a matter of taste.
+
+
+## Defaults
+
+The settings above are no use if a real satellite never passes them, so the
+patch changes what the defaults are:
+
+- `turn_detection` defaults to **on**
+- `silence_seconds` defaults to **0.25**, upstream 0.7
+- `VadSensitivity` becomes relaxed 0.7 / default 0.25 / aggressive 0.1,
+  upstream 1.25 / 0.25 / 0.7
+
+Those are only safe *because* the model supplies the pause tolerance. Without it,
+`silence_seconds` has to be both how fast the assistant answers and how long a
+pause it forgives, which is why upstream's numbers are so long.
+
+Measured with no per-run settings at all: **940 ms** from end of speech to
+answer, against 1408 ms on the old defaults. Selecting "aggressive" takes it to
+~824 ms.
