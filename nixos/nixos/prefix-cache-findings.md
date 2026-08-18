@@ -934,3 +934,32 @@ pipeline run. The websocket API already accepted four of the five audio settings
 and this one was reachable only through the VAD sensitivity select entity that
 satellite integrations create, so it could not be tuned or even tested without
 buying hardware.
+
+
+## Choosing silence_seconds, with Silero
+
+Sweeping the knob now that it is settable per run, and separately measuring how
+long a mid-sentence pause survives before the command is cut off:
+
+| silence_seconds | latency to stt-end | longest pause survived |
+|---|---|---|
+| 0.25 (aggressive) | 376 ms | 250 ms |
+| 0.4 | 480 ms | 450 ms |
+| 0.5 | ~580 ms | 550 ms |
+| 0.7 (default) | 789 ms | 700 ms |
+| 1.25 (relaxed) | 1401 ms | 1300 ms |
+
+**Latency and pause tolerance are the same number.** They always were, for both
+VADs -- what differs is the constant added to each. microVAD's ~500 ms window
+added to both, so its floor was around 750 ms of latency even at the aggressive
+setting. Silero adds ~50 ms, so the fast end of the curve is reachable at all.
+That is the win: not a better tradeoff, but access to a part of the curve that
+was previously unreachable.
+
+So this is a genuine preference, not an optimisation. Production voice systems
+sit at 300-800 ms, which spans 0.25 to 0.7 here. 0.5 is a reasonable middle:
+~580 ms to respond, and half-second thinking pauses survive.
+
+No silence threshold can distinguish "still thinking" from "finished" -- they
+are acoustically identical, and only the words differ. That is what semantic
+endpointing is for.
