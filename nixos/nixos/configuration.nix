@@ -233,18 +233,20 @@
       # There must be exactly ONE marker in the prompt: two would mean two
       # checkpoints, and the on-device snapshot only holds one.
     };
-    # ~54 GB of downloads, pulled by ollama-model-loader.service after switch.
-    # qwen3.8 needs ollama >= 0.32.12; 26.05 ships 0.32.3, so it's out for now.
-    # The dense model is the assistant, despite being 5x slower to generate.
-    # ollama 0.32.3 faults with "CUDA error: an illegal memory access was
-    # encountered" when qwen35moe does constrained decoding for tool calls with
-    # array/enum parameters — which is exactly what Home Assistant sends. It is
-    # intermittent, poisons the runner's CUDA context, and does not reproduce on
-    # the dense model. Generation speed is not the binding constraint for voice
-    # anyway: a 30-token reply is under half a second either way.
+    # Pulled by ollama-model-loader.service after a switch. The conversation
+    # agent is chosen in Home Assistant's UI, so whatever it points at has to be
+    # declared here or a fresh machine would not have it.
+    #
+    # The dense model is the assistant. ollama 0.32.3 faulted with "CUDA error:
+    # an illegal memory access was encountered" when qwen35moe did constrained
+    # decoding for tool calls with array/enum parameters, which is exactly what
+    # Home Assistant sends; intermittent, and it poisoned the runner's CUDA
+    # context. Untested since 0.32.13, and worth retrying: the MoE models answer
+    # a short question in ~140 ms against ~310 ms for the dense ones, and now
+    # that prefill is ~0.1 s that difference is most of the model's cost.
     loadModels = [
-      "qwen3.6:27b-mtp-q8_0" # 30 GB, index 38. The assistant.
-      "qwen3.6:35b-a3b-q4_K_M" # 24 GB, index 32 — faster, but see above.
+      "qwen3.8:27b-mtp-q8_0" # 28 GiB. The assistant.
+      "qwen3.6:35b-a3b-q4_K_M" # 22 GiB, MoE — much faster, but see above.
     ];
   };
 
