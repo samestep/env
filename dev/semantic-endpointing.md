@@ -1,5 +1,62 @@
 # Semantic endpointing
 
+**Result: 1406 ms -> 600 ms** from the last sample of speech to the assistant's
+answer, and it now keeps listening through a mid-sentence pause, which no
+setting could do before.
+
+## What changed
+
+| | |
+|---|---|
+| Turn detection | Smart Turn v3 decides whether a pause is final, so `silence_seconds` no longer has to be long enough to forgive one |
+| `silence_seconds` | 0.7 -> 0.25 by default, 0.1 available; every 100 ms off it is 100 ms off the answer |
+| Speculative transcription | transcribes a snapshot taken when speech stops, during the wait, instead of after it |
+| Model | `ornith:35b-q4_K_M` scored 45/45 against 38/45 for the incumbent, and is faster |
+
+## The one thing to understand
+
+Silence cannot tell "still thinking" from "finished" -- they are acoustically
+identical and only the words differ. So with a silence threshold alone, how fast
+the assistant answers and how long a pause it forgives are **the same number**,
+and every setting is a compromise between them. A turn model separates them: the
+threshold governs the common case, the model holds the turn open when the
+utterance sounds unfinished.
+
+## Try it
+
+    dev/run-ha.sh                       # the development instance
+    dev/turn-test.py <clip>             # does it hold a pause?
+    dev/silence-sweep.py                # latency against pause tolerance
+    dev/stage-breakdown.py              # where the time goes
+    dev/eval.py 3 <model>...            # scenario scores, state reset each run
+    dev/model-compare.py                # models end to end
+    dev/smart-turn-probe.py <clip>      # the model's opinion, cut by cut
+
+Voice tests need a transcriber in the VM:
+
+    $(nix build --no-link --print-out-paths nixpkgs#wyoming-faster-whisper)/bin/wyoming-faster-whisper \
+      --model tiny-int8 --language en --uri tcp://127.0.0.1:10300 \
+      --data-dir ~/ha-dev/whisper --download-dir ~/ha-dev/whisper
+
+## Still open
+
+- **Recordings of the person who will use it.** Everything here is public data
+  and text-to-speech. The 6.1% of unfinished utterances the model cuts off at
+  threshold 0.9 is the number that matters, and it cannot be checked against a
+  corpus that does not contain your voice, your room or your phrasing.
+- **Speculating past transcription.** The conversation stage executes tool
+  calls, and a cancelled speculation cannot un-turn-on a light. Overlapping the
+  wait with the *model* rather than just the transcriber needs a way to defer
+  side effects.
+- **Streaming speech synthesis.** Home Assistant already pipes conversation
+  deltas into a TTS engine that advertises `supports_synthesize_streaming`, and
+  the Wyoming integration supports it. Whether Kokoro advertises it is untested
+  -- it would start audio on the first sentence instead of the last.
+- **Switching the live assistant to ornith.** Left deliberately for a person:
+  the eval is 15 scenarios against demo entities, not a house.
+
+---
+
 No silence threshold can tell "still thinking" from "finished": they are
 acoustically identical and only the words differ. Every setting we can reach
 trades response speed against how long a pause is tolerated, one for one.

@@ -9,6 +9,29 @@ rebuild of the real machine for every experiment.
     python3 dev/ha-ask.py "is the bed light on?"
     dev/run-ha.sh stop
 
+Voice and model experiments, all driven through `dev/halib.py`. See
+`dev/semantic-endpointing.md` for what they found:
+
+    dev/turn-test.py <clip>          # does it keep listening through a pause?
+    dev/silence-sweep.py             # latency against pause tolerance
+    dev/stage-breakdown.py           # where the milliseconds go
+    dev/e2e-compare.py               # old settings against new
+    dev/eval.py 3 <model>...         # scenario scores, state reset each run
+    dev/model-compare.py             # models, end to end
+    dev/toolcall-stress.py           # the tool-call path, repeatedly
+    dev/smart-turn-probe.py <clip>   # the turn model's opinion, cut by cut
+    dev/smart-turn-eval.py           # its accuracy on real labelled speech
+
+Anything that streams audio needs a transcriber in this VM, because the host's
+is bound to loopback:
+
+    $(nix build --no-link --print-out-paths nixpkgs#wyoming-faster-whisper)/bin/wyoming-faster-whisper \
+      --model tiny-int8 --language en --uri tcp://127.0.0.1:10300 \
+      --data-dir ~/ha-dev/whisper --download-dir ~/ha-dev/whisper
+
+`stt.demo_stt` cannot stand in for it: it accepts only stereo and the pipeline
+sends mono.
+
 State lives in `~/ha-dev`, the token in `scratch/hadev/token.txt`. Delete the
 directory to start over; the three scripts rebuild everything.
 
@@ -45,3 +68,18 @@ reachable from here; run local ones if a test needs them.
   missing.
 - `pkill -f hass` matches the shell running it. Use the bracketed pattern in
   `run-ha.sh`.
+
+## More things that cost an hour to find
+
+- **Websocket ids must increase.** Home Assistant rejects a lower id with
+  `id_reuse`, so `halib` hands them out centrally rather than letting callers
+  pick.
+- **Do not truncate `hass.log` while Home Assistant holds it open.** The write
+  offset stays where it was and the file fills with nul bytes, so `grep` finds
+  nothing and the log looks empty. Restart it instead.
+- **Subentry ids are not in the REST entry listing**, which reports only
+  `num_subentries`. They come from `config_entries/subentries/list` over the
+  websocket.
+- **Turn-detection verdicts log at debug level.** Without the `logger:` block in
+  `configuration.yaml` the decision is invisible and you can only infer it from
+  timing.
