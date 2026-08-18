@@ -726,8 +726,8 @@ fall below the threshold until 640 ms. HA's `silence_seconds` countdown only
 starts once it does.
 
 So the 1306 ms measured from end of speech to `stt-vad-end` is
-**640 ms of VAD hangover + 700 ms of silence_seconds**, and both parts are now
-accounted for. Nothing is lagging: HA's own audio timestamps track wall clock,
+**VAD hangover + silence_seconds**, and both parts are now accounted for.
+(The 640 ms figure came from one clip; see the multi-source measurement below.) Nothing is lagging: HA's own audio timestamps track wall clock,
 so the pipeline keeps up in real time.
 
 This makes lowering the threshold safer than it first appears. Tolerance for a
@@ -737,3 +737,40 @@ never registers as silence at all. `home-assistant-vad-silence.patch` sets it to
 
 The 640 ms floor belongs to the model. Beating it means a different VAD, not a
 different setting.
+
+
+## The hangover is real, and not a TTS artefact
+
+The 640 ms above rested on a single Piper clip, which is not enough to tell
+"this model always hangs on" from "this model mishandles unnaturally clean
+synthetic audio". Two controls:
+
+**Noise floor makes no difference.** Same utterance, varying what follows it,
+and with noise mixed through the speech as a real microphone would:
+
+    digital zero          640 ms      noise rms 32  everywhere   640 ms
+    noise rms 32          640 ms      noise rms 100 everywhere   640 ms
+    noise rms 1000        630 ms      noise rms 300 everywhere   640 ms
+
+**Real human speech behaves the same.** Cutting each clip mid-word, so speech is
+unambiguously ongoing at the cut, then feeding silence:
+
+| source | median release |
+|---|---|
+| REAL: JFK, 1961 | 480 ms |
+| REAL: LDC/TIMIT sentence | 600 ms |
+| TTS: Piper en-us-ryan-medium | 580 ms |
+| TTS: Kokoro | 530 ms |
+
+So it is inherent to the model, roughly **340-610 ms** depending on the clip,
+and the single-clip 640 ms was at the high end. Others have hit this: rhasspy
+/pymicro-vad issue 1 is exactly "vad end takes more time compared with the old
+one", from when Home Assistant 2024.8 switched to micro_vad.
+
+Method note: "release after the last audible sample" is not a sound measurement.
+It gave JFK 0 ms, because a noisy recording's tail is audible without being
+speech. Cut mid-speech instead.
+
+The remaining lever is a different VAD. Silero releases far faster and exposes a
+minimum-silence parameter. That is a bigger patch than a constant, but it is
+where the floor actually is.
