@@ -248,6 +248,21 @@
     ];
   };
 
+  # Home Assistant assembles the system prompt as: the configured prompt
+  # template, then the API preamble and the exposed entity overview, then
+  # anything extra. That puts unchanging content *after* the template, so a
+  # cache boundary placed at the end of the template would leave the entity
+  # overview outside the cached region -- around 300-400 tokens re-read on every
+  # request, roughly 200 ms, for content that never changes.
+  #
+  # The patch moves everything after the boundary marker to the very end
+  # instead, so the prompt is: unchanging instructions, preamble and entity
+  # overview | marker | current time and live states. See
+  # prefix-cache-findings.md.
+  services.home-assistant.package = pkgs.home-assistant.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./home-assistant-cache-boundary.patch ];
+  });
+
   # Voice assistant. With `prefer_local_intents` on (a per-pipeline setting,
   # off by default) the built-in sentence matcher answers anything it
   # recognises without involving the model, so "turn off the kitchen light"

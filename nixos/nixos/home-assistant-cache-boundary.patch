@@ -1,0 +1,56 @@
+--- a/homeassistant/components/conversation/chat_log.py	2026-08-18 00:32:39.616617684 +0000
++++ b/homeassistant/components/conversation/chat_log.py	2026-08-18 00:33:13.216071513 +0000
+@@ -31,6 +31,11 @@
+ ] = HassKey("conversation_chat_log_subscriptions")
+ LOGGER = logging.getLogger(__name__)
+ 
++# Marks the end of the unchanging part of the system prompt. A single special
++# token in the qwen tokenizers, so ordinary prompt text cannot produce it by
++# accident and it always tokenizes identically.
++CACHE_BOUNDARY = "<|fim_pad|>"
++
+ current_chat_log: ContextVar[ChatLog | None] = ContextVar(
+     "current_chat_log", default=None
+ )
+@@ -720,14 +725,24 @@
+             user_name = user.name
+ 
+         prompt_parts = []
+-        prompt_parts.append(
+-            await self._async_expand_prompt_template(
+-                llm_context,
+-                (user_llm_prompt or llm.DEFAULT_INSTRUCTIONS_PROMPT),
+-                llm_context.language,
+-                user_name,
+-            )
++        user_prompt = await self._async_expand_prompt_template(
++            llm_context,
++            (user_llm_prompt or llm.DEFAULT_INSTRUCTIONS_PROMPT),
++            llm_context.language,
++            user_name,
+         )
++        # Everything from CACHE_BOUNDARY onwards moves to the very end of the
++        # system prompt, so the parts that never change -- these instructions,
++        # the API preamble, the exposed entity overview -- form one contiguous
++        # prefix an inference server can cache, and the parts that change on
++        # every request sit after it.
++        #
++        # Without this the user's template comes first and the entity overview is
++        # appended after it, so a boundary placed in the template would leave
++        # that unchanging overview outside the cached region, re-read on every
++        # request for no reason.
++        user_prompt, boundary, dynamic_prompt = user_prompt.partition(CACHE_BOUNDARY)
++        prompt_parts.append(user_prompt)
+ 
+         if llm_api:
+             prompt_parts.append(llm_api.api_prompt)
+@@ -750,6 +765,9 @@
+         ):
+             prompt_parts.append(extra_system_prompt)
+ 
++        if boundary:
++            prompt_parts.append(boundary + dynamic_prompt)
++
+         prompt = "\n".join(prompt_parts)
+ 
+         self.llm_input_provided_index = len(self.content)

@@ -585,3 +585,31 @@ Home Assistant's prompt field is a Jinja template and a `<|fim_pad|>` typed into
 it tokenizes as the special token (verified: +1 token, against +4 for text of
 the same length). So HA can supply the boundary marker and everything after it,
 which is what makes this possible without further patching.
+
+
+## Home Assistant assembles the prompt in the wrong order for caching
+
+`chat_log.py` builds the system prompt as:
+
+1. the configured prompt template
+2. `llm_api.api_prompt` -- the API preamble plus a YAML dump of every exposed
+   entity
+3. the date and time, but only when no `GetDateTime` tool is offered
+4. `extra_system_prompt`
+
+So the entity overview lands *after* the template. A boundary marker at the end
+of the template would leave that overview -- 300-400 tokens that never change --
+outside the cached region, re-read on every request for around 200 ms. That is
+not the "inline these entities, tool-call for the rest" tradeoff; it is pure
+waste.
+
+`home-assistant-cache-boundary.patch` splits the template on the marker and
+appends the tail last, giving:
+
+    unchanging instructions, preamble, entity overview | marker | time, live states
+
+Note point 3: Home Assistant already injects the date and time itself, and
+suppresses it only because the Assist API offers `GetDateTimeTool`. Dropping
+that tool would get the time for free -- but into part 3, which is *before* the
+marker after this patch, so it would invalidate the cache every minute. Put the
+time after the marker instead.
