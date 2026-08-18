@@ -1,5 +1,5 @@
 --- a/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 04:52:05.196107157 +0000
-+++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 05:46:50.302759554 +0000
++++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 05:55:53.358056075 +0000
 @@ -521,8 +521,52 @@
      is_vad_enabled: bool = True
      """True if VAD is used to determine the end of the voice command."""
@@ -183,7 +183,7 @@
                      break
  
                  if stt_vad.in_command and (not sent_vad_start):
-@@ -1033,6 +1159,79 @@
+@@ -1033,6 +1159,85 @@
  
              yield chunk.audio
  
@@ -208,8 +208,14 @@
 +                    self.task = None
 +
 +            async def _transcribe(self, audio: bytes) -> stt.SpeechResult:
++                # Pad with the silence the full stream would have carried.
++                # Without it the snapshot ends abruptly on the last phoneme and
++                # transcription drifts: "set the bad light" for "set the bed
++                # light", and inconsistent capitalisation.
++                padded = audio + bytes(SAMPLE_WIDTH * SAMPLE_RATE // 4)
++
 +                async def once() -> AsyncGenerator[bytes]:
-+                    yield audio
++                    yield padded
 +
 +                assert run.stt_provider is not None
 +                return await run.stt_provider.async_process_audio_stream(metadata, once())

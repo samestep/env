@@ -280,6 +280,14 @@ have finished, which is cheap: whisper tiny on CPU.
 Verified that holding a pause still works with it on -- the JFK clip still
 reaches "ASK NOT", so the snapshot really is discarded when speech resumes.
 
+**The snapshot needs padding.** Ending it on the last phoneme, with none of the
+silence the full stream would carry, changes what the transcriber hears: across
+six clips two came out different, one of them a real mishearing ("set the bad
+light" for "set the bed light") and one only capitalisation. Appending 250 ms of
+silence to the snapshot makes all six identical. Worth checking again if the
+speech-to-text engine changes, because this is a property of the engine, not of
+the idea.
+
 
 ## Altogether
 
