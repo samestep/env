@@ -889,3 +889,26 @@ Beyond thresholds, the current direction in voice agents is semantic
 endpointing -- letting a model judge whether the transcript sounds finished
 rather than counting silence. That is plausible here eventually, given a local
 LLM answering in ~100 ms.
+
+
+## Building the Silero patch
+
+The first attempt failed:
+
+    ModuleNotFoundError: No module named 'pysilero_vad'
+    ====== 10 failed, 7230 passed, 2 skipped ======
+
+nixpkgs runs Home Assistant's test suite during the build, so the dependency
+has to be a package input. `services.home-assistant.extraPackages` is too late:
+it builds the service's runtime environment, not the package. Use
+
+    propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
+      pkgs.home-assistant.python3Packages.pysilero-vad
+    ];
+
+`home-assistant.passthru.python3Packages` is the matching interpreter's package
+set; `pkgs.python3Packages` would be the wrong one.
+
+Verified in the built output: `audio_enhancer.py` imports
+`SileroVoiceActivityDetector`, `pipeline.py` constructs
+`SileroVadSpeexEnhancer`, and the cache-boundary patch is still applied.

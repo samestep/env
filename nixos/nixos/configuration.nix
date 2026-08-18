@@ -277,12 +277,16 @@
       # larger than anything left anywhere else in the pipeline.
       ./home-assistant-silero-vad.patch
     ];
-  });
 
-  # audio_enhancer.py imports pysilero_vad after the patch above. The manifest
-  # change in that patch does not pull the dependency in, because nixpkgs
-  # resolves component requirements before patches are applied.
-  services.home-assistant.extraPackages = ps: [ ps.pysilero-vad ];
+    # audio_enhancer.py imports pysilero_vad after that patch. The manifest
+    # change in the patch does not pull it in, because nixpkgs resolves
+    # component requirements before patches are applied -- and it has to be a
+    # package input rather than services.home-assistant.extraPackages, because
+    # the test suite runs during the build and imports it too.
+    propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
+      pkgs.home-assistant.python3Packages.pysilero-vad
+    ];
+  });
 
   # Voice assistant. With `prefer_local_intents` on (a per-pipeline setting,
   # off by default) the built-in sentence matcher answers anything it
