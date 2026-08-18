@@ -41,6 +41,20 @@ home-assistant.overrideAttrs (old: {
     # fed audio cut mid-word, 60.6% of polls read as complete, because it judges
     # the prosody up to the cut. Silero still decides *when* to ask.
     ./home-assistant-smart-turn.patch
+
+    # Speculative execution of the conversation, not just the transcription.
+    # The wait for silence idles the model as well as the transcriber, and the
+    # model is the slower of the two, so the conversation starts on the
+    # speculative transcript and everything it produces is held back until the
+    # turn is confirmed: events buffered, speech not handed to the synthesiser,
+    # and any tool that would change something blocked mid-call.
+    #
+    # Held rather than abandoned, because the prefill and the tokens that chose
+    # the tool are still valid if the guess was right -- which it usually is.
+    # Reading the house runs immediately; llm.Tool.reads_only says which is
+    # which, and defaults to "acts", since a needless read costs milliseconds
+    # and a needless action cannot be undone.
+    ./home-assistant-speculative-intent.patch
   ];
 
   # audio_enhancer.py imports pysilero_vad after the Silero patch. The manifest

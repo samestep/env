@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Run a dev script with the packages they need.
+#
+#   dev/py dev/speculation-compare.py 3
+#
+# The scripts are plain Python, but the system interpreter does not carry
+# websockets (or numpy, for the turn-model ones), and which packages a bare
+# `python3` has is not something a repository should depend on.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+env=$(nix build --no-link --print-out-paths --impure --expr \
+  'with import <nixpkgs> {}; buildEnv {
+     name = "assist-dev";
+     paths = [
+       ffmpeg  # the clips are wav and mp3; the pipeline wants raw 16 kHz mono
+       (python3.withPackages (ps: with ps; [
+         websockets aiohttp numpy onnxruntime
+       ]))
+     ];
+   }' 2>/dev/null | tail -1)
+PATH="$env/bin:$PATH" exec "$env/bin/python" "$@"

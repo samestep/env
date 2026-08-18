@@ -1,0 +1,419 @@
+diff -ruN a/homeassistant/components/assist_pipeline/pipeline.py b/homeassistant/components/assist_pipeline/pipeline.py
+--- a/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 12:07:45.222634118 +0000
++++ b/homeassistant/components/assist_pipeline/pipeline.py	2026-08-18 12:15:40.098000182 +0000
+@@ -35,6 +35,7 @@
+     device_registry as dr,
+     entity_registry as er,
+     intent,
++    llm,
+ )
+ from homeassistant.helpers.collection import (
+     CHANGE_UPDATED,
+@@ -560,6 +561,19 @@
+     when the speaker turns out not to have finished.
+     """
+ 
++    speculative_intent: bool = True
++    """Start the conversation on the guess, not after the wait.
++
++    Transcribing early leaves the model idle for the rest of the wait, which is
++    the larger of the two. Starting it on the speculative transcript overlaps it
++    too, so the answer is often ready the moment the turn is confirmed.
++
++    Only tools that read anything may run on a guess; the first one that would
++    change something blocks until the turn is confirmed, keeping the prefill and
++    the tokens that chose it. Nothing is spoken and no event is emitted until
++    then either, so a guess that turns out wrong is invisible.
++    """
++
+     turn_max_seconds: float = 3.0
+     """Give up and end the command after this much silence, regardless.
+ 
+@@ -586,6 +600,36 @@
+         )
+ 
+ 
++class _Speculation:
++    """The conversation, run on a guess about what the speaker said.
++
++    Nothing it produces escapes until it is committed: pipeline events are
++    buffered, the speech stream is not handed to text-to-speech, and any tool
++    that would change something blocks in `llm.APIInstance.async_call_tool`.
++
++    Abandoning it is just a cancel. `conversation.async_get_chat_log` builds on a
++    copy and writes back only after the block it guards finishes, so a cancelled
++    speculation leaves nothing behind in the conversation history.
++    """
++
++    def __init__(self, text: str) -> None:
++        """Init the class."""
++        self.text = text
++        self.gate = asyncio.Event()
++        self.events: list[PipelineEvent] = []
++        self.task: asyncio.Task | None = None
++        self.speech: AsyncGenerator[str] | None = None
++        self.held: str | None = None
++
++    async def async_wait_to_act(self, tool_name: str) -> None:
++        """Hold a tool call until the guess is confirmed (`llm.Speculation`)."""
++        _LOGGER.debug("holding tool call %s until the turn is confirmed", tool_name)
++        self.held = tool_name
++        await self.gate.wait()
++        _LOGGER.debug("releasing tool call %s", tool_name)
++        self.held = None
++
++
+ @dataclass
+ class PipelineRun:
+     """Running context for a pipeline."""
+@@ -677,6 +721,19 @@
+     @callback
+     def process_event(self, event: PipelineEvent) -> None:
+         """Log an event and call listener."""
++        if (
++            pending := llm.speculation.get()
++        ) is not None and not pending.gate.is_set():
++            # Emitted by a speculative conversation, before it was committed.
++            # Hold it: a client that
++            # showed the answer to a question the speaker had not finished
++            # asking would be worse than a slower one. Replayed on commit, in
++            # order, after which this task emits directly like any other -- the
++            # client sees the same events at the same points it would have seen
++            # without any of this.
++            pending.events.append(event)
++            return
++
+         self.event_callback(event)
+         pipeline_data = self.hass.data[KEY_ASSIST_PIPELINE]
+         if self.id not in pipeline_data.pipeline_debug[self.pipeline.id]:
+@@ -718,6 +775,9 @@
+ 
+     async def end(self) -> None:
+         """Emit run end event."""
++        # A guess nobody committed: the run is over, so it will never be right.
++        self._abandon_speculative_intent()
++
+         # Signal end of stream to listeners
+         self._capture_chunk(None)
+ 
+@@ -925,6 +985,8 @@
+                     )
+ 
+     _speculate: Any = None
++    _speculation: _Speculation | None = None
++    _intent_context: tuple[str, str | None] | None = None
+     _turn_over: asyncio.Event | None = None
+ 
+     async def prepare_speech_to_text(self, metadata: stt.SpeechMetadata) -> None:
+@@ -1178,6 +1240,7 @@
+                 if self.task is not None:
+                     self.task.cancel()
+                     self.task = None
++                run._abandon_speculative_intent()
+ 
+             async def _transcribe(self, audio: bytes) -> stt.SpeechResult:
+                 # Pad with the silence the full stream would have carried.
+@@ -1190,7 +1253,14 @@
+                     yield padded
+ 
+                 assert run.stt_provider is not None
+-                return await run.stt_provider.async_process_audio_stream(metadata, once())
++                result = await run.stt_provider.async_process_audio_stream(
++                    metadata, once()
++                )
++                if result.result == stt.SpeechResultState.SUCCESS and result.text:
++                    # The wait is not over, but the words are. Start the
++                    # conversation on them; everything it produces is held.
++                    run._start_speculative_intent(result.text)
++                return result
+ 
+             async def take(self) -> str | None:
+                 """The transcript, if one was speculated and still applies."""
+@@ -1209,6 +1279,69 @@
+ 
+         return _Speculator()
+ 
++    @callback
++    def _start_speculative_intent(self, text: str) -> None:
++        """Run the conversation on a guess, holding back everything it produces.
++
++        The wait for silence is dead time for the model as well as the
++        transcriber, and the model is the slower of the two. Nothing here is
++        irreversible: read-only tools run, anything that acts blocks, and if the
++        speaker turns out to have been mid-sentence the task is cancelled.
++        """
++        if (
++            not self.audio_settings.speculative_intent
++            or self._speculation is not None
++            or self._intent_context is None
++        ):
++            return
++
++        conversation_id, extra_system_prompt = self._intent_context
++        speculation = _Speculation(text)
++
++        async def speculate() -> tuple[str, bool]:
++            """Mark this task, and everything it starts, as a guess."""
++            token = llm.speculation.set(speculation)
++            try:
++                return await self.recognize_intent(
++                    text, conversation_id, extra_system_prompt
++                )
++            finally:
++                llm.speculation.reset(token)
++
++        speculation.task = self.hass.async_create_task(
++            speculate(), name="assist_pipeline speculative intent"
++        )
++        self._speculation = speculation
++        _LOGGER.debug("speculating on: %s", text)
++
++    @callback
++    def _abandon_speculative_intent(self) -> None:
++        """The guess no longer applies, so throw the work away."""
++        speculation, self._speculation = self._speculation, None
++        if speculation is None or speculation.gate.is_set():
++            return
++
++        _LOGGER.debug("abandoning speculative conversation: %s", speculation.text)
++        if speculation.task is not None:
++            speculation.task.cancel()
++        # Its buffered events are dropped with it, and its speech generator was
++        # never handed to text-to-speech. Only this flag is shared with the run
++        # that replaces it, and leaving it set would stop that one streaming.
++        self._streamed_response_text = False
++
++    @callback
++    def _commit_speculative_intent(self, speculation: _Speculation) -> None:
++        """The guess was right: let everything it produced out, in order."""
++        events, speculation.events = speculation.events, []
++        for event in events:
++            self.process_event(event)
++
++        if speculation.speech is not None and self.tts_stream is not None:
++            self.tts_stream.async_set_message_stream(speculation.speech)
++
++        # Last, so that a tool released here cannot emit before the replay.
++        speculation.gate.set()
++
+     async def _turn_is_complete(self, turn_detector: Any, audio: bytearray) -> bool:
+         """Ask the turn model whether the speaker has finished.
+ 
+@@ -1281,6 +1414,24 @@
+ 
+         Returns (speech, all_targets_in_satellite_area).
+         """
++        speculating = llm.speculation.get()
++        if speculating is None and (speculation := self._speculation) is not None:
++            # A guess was started while waiting for the speaker to finish. If it
++            # guessed the same words, it is this call, already part-done.
++            self._speculation = None
++            if speculation.text == intent_input and speculation.task is not None:
++                _LOGGER.debug(
++                    "committing speculative conversation%s",
++                    f", releasing held {speculation.held}" if speculation.held else "",
++                )
++                self._commit_speculative_intent(speculation)
++                return await speculation.task
++
++            _LOGGER.debug(
++                "speculation missed: guessed %r, heard %r", speculation.text, intent_input
++            )
++            self._abandon_speculative_intent()
++
+         if self.intent_agent is None or self._conversation_data is None:
+             raise RuntimeError("Recognize intent was not prepared")
+ 
+@@ -1399,7 +1550,18 @@
+                 )
+ 
+                 assert self.tts_stream is not None
+-                self.tts_stream.async_set_message_stream(tts_input_stream_generator())
++                if speculating is not None:
++                    # Not yet. ResultStream keeps only the first stream it is
++                    # given, so wiring the guess here would make the real
++                    # reply's stream a silent no-op -- and the speaker would
++                    # answer a question that had not finished being asked. Held
++                    # until commit, by which point the queue behind it has a
++                    # head start.
++                    speculating.speech = tts_input_stream_generator()
++                else:
++                    self.tts_stream.async_set_message_stream(
++                        tts_input_stream_generator()
++                    )
+ 
+             user_input = conversation.ConversationInput(
+                 text=intent_input,
+@@ -1886,6 +2048,13 @@
+             device_id=self.device_id,
+             satellite_id=self.satellite_id,
+         )
++        if self.run.end_stage != PipelineStage.STT:
++            # What recognize_intent would be called with, so speech-to-text can
++            # start the conversation on its guess before this stage is reached.
++            self.run._intent_context = (  # noqa: SLF001
++                self.session.conversation_id,
++                self.conversation_extra_system_prompt,
++            )
+         current_stage: PipelineStage | None = self.run.start_stage
+ 
+         try:
+diff -ruN a/homeassistant/components/assist_pipeline/websocket_api.py b/homeassistant/components/assist_pipeline/websocket_api.py
+--- a/homeassistant/components/assist_pipeline/websocket_api.py	2026-08-18 12:11:30.560579218 +0000
++++ b/homeassistant/components/assist_pipeline/websocket_api.py	2026-08-18 12:11:30.573070618 +0000
+@@ -108,6 +108,7 @@
+                             vol.Optional("turn_threshold"): vol.Any(float, int),
+                             vol.Optional("turn_max_seconds"): vol.Any(float, int),
+                             vol.Optional("speculative_stt"): bool,
++                            vol.Optional("speculative_intent"): bool,
+                         }
+                     },
+                     extra=vol.ALLOW_EXTRA,
+@@ -233,6 +234,7 @@
+                     ("turn_threshold", float),
+                     ("turn_max_seconds", float),
+                     ("speculative_stt", bool),
++                    ("speculative_intent", bool),
+                 )
+                 if key in msg_input
+                 for value in (msg_input[key],)
+diff -ruN a/homeassistant/helpers/llm.py b/homeassistant/helpers/llm.py
+--- a/homeassistant/helpers/llm.py	2026-08-18 12:07:45.223546857 +0000
++++ b/homeassistant/helpers/llm.py	2026-08-18 12:08:44.979721712 +0000
+@@ -4,13 +4,14 @@
+ 
+ from abc import ABC, abstractmethod
+ from collections.abc import Callable
++from contextvars import ContextVar
+ from dataclasses import dataclass, field as dc_field
+ from datetime import timedelta
+ from decimal import Decimal
+ from enum import Enum
+ from functools import cache, partial
+ from operator import attrgetter
+-from typing import Any, cast
++from typing import Any, Protocol, cast
+ 
+ import slugify as unicode_slug
+ import voluptuous as vol
+@@ -186,6 +187,25 @@
+     external: bool = False
+ 
+ 
++class Speculation(Protocol):
++    """Something that may hold a tool call back until it is certain."""
++
++    async def async_wait_to_act(self, tool_name: str) -> None:
++        """Return once acting is allowed, or raise CancelledError if it never is."""
++
++
++speculation: ContextVar[Speculation | None] = ContextVar(
++    "llm_speculation", default=None
++)
++"""Set while a caller is running the conversation on a guess.
++
++The voice pipeline starts the conversation before it is certain the speaker has
++finished, to overlap the model with the wait. Reading the house is free to do on
++a guess; acting on it is not, so a tool that acts blocks here until the guess is
++confirmed and is cancelled outright if it is not.
++"""
++
++
+ class Tool:
+     """LLM Tool base class."""
+ 
+@@ -193,6 +213,15 @@
+     description: str | None = None
+     parameters: vol.Schema = vol.Schema({})
+ 
++    reads_only: bool = False
++    """True if calling this tool cannot change anything.
++
++    Only such a tool may run on a speculation. The default is False because the
++    cost of the two mistakes is not symmetric: running a reader needlessly wastes
++    a few milliseconds, while running an action that the speaker turns out not to
++    have asked for cannot be undone.
++    """
++
+     @abstractmethod
+     async def async_call(
+         self, hass: HomeAssistant, tool_input: ToolInput, llm_context: LLMContext
+@@ -233,6 +262,14 @@
+         else:
+             raise HomeAssistantError(f'Tool "{tool_input.tool_name}" not found')
+ 
++        if not tool.reads_only and (pending := speculation.get()) is not None:
++            # Running on a guess about what the speaker said. Hold here rather
++            # than abandon: the prefill and the tokens that produced this call
++            # are worth keeping, and if the guess was right they are all still
++            # valid. If it was wrong this task is cancelled and the call simply
++            # never happens.
++            await pending.async_wait_to_act(tool_input.tool_name)
++
+         return await tool.async_call(self.api.hass, tool_input, self.llm_context)
+ 
+ 
+@@ -250,6 +287,23 @@
+         raise NotImplementedError
+ 
+ 
++READ_ONLY_INTENTS = {
++    intent.INTENT_GET_STATE,
++    intent.INTENT_GET_CURRENT_DATE,
++    intent.INTENT_GET_CURRENT_TIME,
++    intent.INTENT_GET_TEMPERATURE,
++    intent.INTENT_TIMER_STATUS,
++    intent.INTENT_NEVERMIND,
++    INTENT_GET_WEATHER,
++}
++"""Intents that answer a question without changing anything.
++
++Most of these are in AssistAPI.IGNORE_INTENTS and so are not exposed as tools at
++all; they are listed anyway because another API may expose them, and because the
++answer to "does this intent act" should not depend on who is asking.
++"""
++
++
+ class IntentTool(Tool):
+     """LLM Tool representing an Intent."""
+ 
+@@ -260,6 +314,7 @@
+     ) -> None:
+         """Init the class."""
+         self.name = name
++        self.reads_only = intent_handler.intent_type in READ_ONLY_INTENTS
+         self.description = (
+             intent_handler.description or f"Execute Home Assistant {self.name} intent"
+         )
+@@ -1039,6 +1094,7 @@
+     """LLM Tool allowing querying a calendar."""
+ 
+     name = "calendar_get_events"
++    reads_only = True
+     description = (
+         "Get events from a calendar. "
+         "When asked if something happens, search the whole week. "
+@@ -1105,6 +1161,7 @@
+     """LLM Tool allowing querying a to-do list."""
+ 
+     name = "todo_get_items"
++    reads_only = True
+     description = (
+         "Query a to-do list to find out what items are on it. "
+         "Use this to answer questions like 'What's on my task list?' or 'Read my grocery list'. "
+@@ -1189,6 +1246,7 @@
+     """
+ 
+     name = "GetLiveContext"
++    reads_only = True
+     description = (
+         "Provides real-time information about the CURRENT state, value, or mode of devices, sensors, entities, or areas. "
+         "Use this tool for: "
+@@ -1293,6 +1351,7 @@
+     """Tool for getting the current date and time."""
+ 
+     name = "GetDateTime"
++    reads_only = True
+     description = "Provides the current date and time."
+ 
+     async def async_call(
