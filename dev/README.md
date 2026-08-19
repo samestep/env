@@ -28,6 +28,7 @@ Voice and model experiments, all driven through `dev/halib.py`. See
     dev/local-intent-test.py         # what an alias is worth
     dev/ollama-overhead.py <url> <model>  # time spent before inference starts
     dev/ollama-tap.py                # what Home Assistant really sends ollama
+    dev/host-e2e.py                  # the real machine, audio in to audio out
     dev/kokoro-stream-test.py <main.py>   # the synthesiser's protocol handling
 
 Run them with `dev/py`, which supplies websockets, numpy and ffmpeg; which

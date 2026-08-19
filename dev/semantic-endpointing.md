@@ -155,6 +155,52 @@ order things were fixed in changed which of them mattered.
 Below 366 ms means shortening the wait, which is the one number that trades
 directly against cutting people off. Everything else is saturated.
 
+## Measured on the host, with all of it running
+
+`dev/host-e2e.py` streams a clip to the real machine and times from the last
+sample of speech. The model side landed exactly as the ollama work predicted --
+first token 276 -> **128 ms**, first audio (text in) 474 -> **338 ms**.
+
+End to end, audio in to first byte of audio out:
+
+| | transcribed | answered | first audio |
+|---|---|---|---|
+| "Is the kitchen light on right now?" | 379 ms | 517 ms | 619 ms |
+| "Turn off the ceiling lights." (matches the entity name) | 379 ms | 379 ms | **379 ms** |
+
+The second row never reaches the model at all. It is the same local-intent path
+as before, now visible end to end.
+
+From the development instance's log, where the timeline is legible:
+
+    speech ends                        0 ms
+    speculative transcript ready     147 ms   <- conversation starts here
+    turn confirmed, committed        287 ms
+    answer complete                  434 ms
+
+So the wait is no longer the constraint: the answer is not ready until
+147 + 282 ms, and the turn was confirmed at 287. Two things are on the critical
+path one-for-one, and nothing else is:
+
+- **the model, 282 ms** -- the largest remaining item by far
+- **147 ms before the speculative transcript exists** -- Silero releasing,
+  a Wyoming round trip, and Parakeet itself
+
+### The wait is free up to about 0.35 s -- but only for questions
+
+Sweeping `silence_seconds` on the host, first audio for a question:
+
+    0.10   615 ms      0.40   660 ms
+    0.25   619 ms      0.70   950 ms
+
+0.10 and 0.25 are the same number, because the model is still working either
+way. The crossover is around 0.35 s.
+
+It is tempting to raise the default to 0.35 and get more pause tolerance for
+nothing. Do not: a command that matches an entity name is answered in 379 ms
+without the model, and for those the wait *is* the whole latency. Raising it
+would put 100 ms onto every one of them. 0.25 stays.
+
 ## Still open
 
 - **Recordings of the person who will use it.** Everything here is public data
