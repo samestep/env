@@ -1,0 +1,168 @@
+--- a/src/main.py	2026-08-18 12:27:48.912647149 +0000
++++ b/src/main.py	2026-08-18 12:28:06.790783727 +0000
+@@ -24,7 +24,13 @@
+ 
+ from wyoming.info import Attribution, TtsProgram, TtsVoice, TtsVoiceSpeaker, Describe, Info
+ from wyoming.server import AsyncServer
+-from wyoming.tts import Synthesize
++from wyoming.tts import (
++    Synthesize,
++    SynthesizeChunk,
++    SynthesizeStart,
++    SynthesizeStop,
++    SynthesizeStopped,
++)
+ from wyoming.audio import AudioChunk, AudioStart, AudioStop
+ from wyoming.event import Event
+ import re
+@@ -47,6 +53,21 @@
+     return [s.strip() for s in sentences if s.strip()]
+ 
+ 
++def take_complete_sentences(buffer: str) -> tuple[list[str], str]:
++    """Split off the sentences that are finished, keeping the rest buffered.
++
++    Streaming synthesis needs to start speaking before the text has finished
++    arriving, but only on sentences it will not have to revise. Everything up to
++    the last sentence-ending punctuation is safe to synthesise; the remainder
++    stays until more text arrives or the stream ends.
++    """
++    matches = list(re.finditer(r'[.!?](?=\s|$)', buffer))
++    if not matches:
++        return [], buffer
++    cut = matches[-1].end()
++    return split_into_sentences(buffer[:cut]), buffer[cut:]
++
++
+ def clean_text(text: str) -> str:
+     """Strip markup artifacts that LLMs sometimes include in responses.
+ 
+@@ -146,6 +167,13 @@
+         self._semaphore = synth_semaphore
+         self._cache = cache
+ 
++        # Streaming synthesis state, one stream at a time per connection.
++        self._stream_voice = default_voice
++        self._stream_buffer = ""
++        self._stream_started = False
++        self._streaming = False
++        self._stream_t0 = 0.0
++
+     async def handle_event(self, event: Event) -> bool:
+         """Handle Wyoming protocol events."""
+         if Describe.is_type(event.type):
+@@ -153,10 +181,63 @@
+             _LOGGER.debug("Sent info")
+             return True
+ 
++        if SynthesizeStart.is_type(event.type):
++            # Streaming request: text arrives in pieces as the client produces
++            # it, so speech can start on the first finished sentence instead of
++            # waiting for the last one.
++            start = SynthesizeStart.from_event(event)
++            self._stream_voice = (
++                start.voice.name
++                if start.voice is not None and start.voice.name
++                else self.default_voice
++            )
++            self._stream_buffer = ""
++            self._stream_started = False
++            self._streaming = True
++            self._stream_t0 = time.monotonic()
++            _LOGGER.debug("Streaming synthesis started: voice=%s", self._stream_voice)
++            return True
++
++        if SynthesizeChunk.is_type(event.type):
++            self._stream_buffer += SynthesizeChunk.from_event(event).text
++            ready, self._stream_buffer = take_complete_sentences(self._stream_buffer)
++            await self._speak(ready)
++            return True
++
++        if SynthesizeStop.is_type(event.type):
++            await self._speak(split_into_sentences(self._stream_buffer))
++            self._stream_buffer = ""
++            if not self._stream_started:
++                # Nothing was synthesised, but the client still needs a header
++                # before the stop, or it will wait for audio that never comes.
++                await self.write_event(
++                    AudioStart(
++                        rate=kokoro_onnx.config.SAMPLE_RATE, width=2, channels=1
++                    ).event()
++                )
++                self._stream_started = True
++            await self.write_event(AudioStop().event())
++            await self.write_event(SynthesizeStopped().event())
++            self._streaming = False
++            _LOGGER.info(
++                "Streamed synthesis: voice=%s, %.0fms",
++                self._stream_voice,
++                (time.monotonic() - self._stream_t0) * 1000,
++            )
++            return True
++
+         if not Synthesize.is_type(event.type):
+             _LOGGER.warning("Unexpected event: %s", event)
+             return True
+ 
++        if self._streaming:
++            # Home Assistant sends the whole message as a plain Synthesize after
++            # the chunks, "for backwards compatibility" with servers that do not
++            # stream. This one does, and has already said all of it: synthesising
++            # again would speak the reply twice and cost twice the GPU time.
++            _LOGGER.debug("Ignoring trailing Synthesize during a stream")
++            return True
++
+         try:
+             return await self._handle_synthesize(event)
+         except Exception as err:
+@@ -165,6 +246,42 @@
+             )
+             raise err
+ 
++    async def _speak(self, sentences: list[str]) -> None:
++        """Synthesise finished sentences and write them out as they are ready."""
++        wanted = [c for s in sentences if (c := clean_text(s))]
++        if not wanted:
++            return
++
++        # Serialised for the same reason the non-streaming path is: concurrent
++        # ONNX inference competes for CPU and makes everyone slower.
++        async with self._semaphore:
++            for sentence in wanted:
++                stream = self.kokoro.create_stream(
++                    sentence,
++                    voice=self._stream_voice,
++                    speed=self.default_speed,
++                    lang="en-us" if self._stream_voice.startswith("a") else "en-gb",
++                )
++                async for audio, _sample_rate in stream:
++                    if not self._stream_started:
++                        await self.write_event(
++                            AudioStart(
++                                rate=kokoro_onnx.config.SAMPLE_RATE,
++                                width=2,
++                                channels=1,
++                            ).event()
++                        )
++                        self._stream_started = True
++                    audio_int16 = (audio * 32767).astype(np.int16)
++                    await self.write_event(
++                        AudioChunk(
++                            audio=audio_int16.tobytes(),
++                            rate=kokoro_onnx.config.SAMPLE_RATE,
++                            width=2,
++                            channels=1,
++                        ).event()
++                    )
++
+     async def _handle_synthesize(self, event: Event) -> Optional[bool]:
+         try:
+             synthesize = Synthesize.from_event(event)
+@@ -382,6 +499,7 @@
+             installed=True,
+             voices=sorted(wyoming_voices, key=lambda v: v.name),
+             version=VERSION,
++            supports_synthesize_streaming=True,
+         )]
+     )
+ 

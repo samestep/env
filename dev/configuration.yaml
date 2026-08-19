@@ -1,0 +1,30 @@
+# Development Home Assistant, run in the agent VM. Copied to the config dir by
+# dev/run-ha.sh.
+#
+# Deliberately NOT default_config: that pulls dhcp, go2rtc, logbook, my, ssdp and
+# stream, which are not in the package's extraComponents, and when it fails to
+# set up everything it would have pulled in fails with it -- including
+# conversation and assist_pipeline.
+homeassistant:
+  name: Dev
+  time_zone: America/New_York
+  unit_system: us_customary
+  country: US
+
+http:
+api:
+websocket_api:
+config:
+
+conversation:
+assist_pipeline:
+
+# Fake lights and sensors, so the assistant has something to control.
+demo:
+
+# Turn detection logs its verdict at debug level; without this the decision is
+# invisible and a test can only infer it from timing.
+logger:
+  default: info
+  logs:
+    homeassistant.components.assist_pipeline: debug

@@ -1,0 +1,201 @@
+[
+ {
+  "id": "ctl_on",
+  "say": "Turn on the kitchen lights.",
+  "kind": "control",
+  "setup": {
+   "light.kitchen_lights": "off"
+  },
+  "expect_state": {
+   "light.kitchen_lights": "on"
+  },
+  "path": "local"
+ },
+ {
+  "id": "ctl_off",
+  "say": "Turn off the bed light.",
+  "kind": "control",
+  "setup": {
+   "light.bed_light": "on"
+  },
+  "expect_state": {
+   "light.bed_light": "off"
+  },
+  "path": "local"
+ },
+ {
+  "id": "ctl_compound",
+  "say": "Turn on the ceiling lights and the bed light.",
+  "kind": "control",
+  "setup": {
+   "light.ceiling_lights": "off",
+   "light.bed_light": "off"
+  },
+  "expect_state": {
+   "light.ceiling_lights": "on",
+   "light.bed_light": "on"
+  },
+  "path": "llm"
+ },
+ {
+  "id": "ctl_negated",
+  "say": "Turn off all the lights except the kitchen.",
+  "kind": "control",
+  "setup": {
+   "light.kitchen_lights": "on",
+   "light.bed_light": "on",
+   "light.ceiling_lights": "on"
+  },
+  "expect_state": {
+   "light.kitchen_lights": "on",
+   "light.bed_light": "off",
+   "light.ceiling_lights": "off"
+  },
+  "path": "llm"
+ },
+ {
+  "id": "ctl_missing",
+  "say": "Turn on the garage light.",
+  "kind": "graceful",
+  "expect_any": [
+   "don't",
+   "not",
+   "no ",
+   "cannot",
+   "can't",
+   "unable",
+   "couldn't"
+  ],
+  "path": "llm"
+ },
+ {
+  "id": "state_query",
+  "say": "Is the kitchen light on?",
+  "kind": "query",
+  "setup": {
+   "light.kitchen_lights": "on"
+  },
+  "expect_any": [
+   "yes",
+   "is on",
+   "currently on"
+  ],
+  "path": "llm"
+ },
+ {
+  "id": "weather",
+  "say": "What is the weather right now?",
+  "kind": "query",
+  "expect_any": [
+   "rain",
+   "cloud",
+   "sun",
+   "clear",
+   "degree",
+   "\u00b0",
+   "fair",
+   "snow"
+  ],
+  "path": "llm"
+ },
+ {
+  "id": "date",
+  "say": "What day is it today?",
+  "kind": "tool_date",
+  "expect_any": [
+   "august",
+   "2026"
+  ],
+  "path": "llm"
+ },
+ {
+  "id": "search_hit",
+  "say": "Who is the current president of the United States?",
+  "kind": "tool_search",
+  "expect_any": [
+   "trump"
+  ],
+  "path": "llm"
+ },
+ {
+  "id": "search_skip",
+  "say": "What is two plus two?",
+  "kind": "no_search",
+  "expect_any": [
+   "4",
+   "four"
+  ],
+  "max_seconds": 2.0,
+  "path": "llm"
+ },
+ {
+  "id": "chitchat",
+  "say": "Thanks, that's all.",
+  "kind": "no_search",
+  "expect_any": [
+   ""
+  ],
+  "max_seconds": 2.0,
+  "path": "llm"
+ },
+ {
+  "id": "multi",
+  "say": "Turn off the bed light and tell me the weather.",
+  "kind": "control",
+  "setup": {
+   "light.bed_light": "on"
+  },
+  "expect_state": {
+   "light.bed_light": "off"
+  },
+  "expect_any": [
+   "rain",
+   "cloud",
+   "sun",
+   "clear",
+   "degree",
+   "\u00b0",
+   "fair",
+   "snow"
+  ],
+  "path": "llm"
+ },
+ {
+  "id": "ctl_implicit",
+  "say": "It's too dark in the kitchen.",
+  "kind": "control",
+  "path": "llm",
+  "setup": {
+   "light.kitchen_lights": "off"
+  },
+  "expect_state": {
+   "light.kitchen_lights": "on"
+  }
+ },
+ {
+  "id": "ctl_bedtime",
+  "say": "I'm heading to bed, shut everything down.",
+  "kind": "control",
+  "path": "llm",
+  "setup": {
+   "light.kitchen_lights": "on",
+   "light.ceiling_lights": "on",
+   "light.bed_light": "on"
+  },
+  "expect_state": {
+   "light.kitchen_lights": "off",
+   "light.ceiling_lights": "off",
+   "light.bed_light": "off"
+  }
+ },
+ {
+  "id": "search_skip2",
+  "say": "What is the capital of France?",
+  "kind": "no_search",
+  "path": "llm",
+  "expect_any": [
+   "paris"
+  ],
+  "max_seconds": 2.5
+ }
+]

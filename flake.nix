@@ -1,7 +1,10 @@
 {
   inputs = {
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # nixos-unstable rather than nixpkgs-unstable: it gates on the NixOS test
+    # suite, and it runs ahead often enough to matter (it carried ollama 0.32.13
+    # while nixpkgs-unstable was still two days back on 0.32.7).
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,13 +40,118 @@
       moss,
     }:
     {
-      packages = {
-        x86_64-linux.home-manager = home-manager.packages.x86_64-linux.default;
-        aarch64-linux.home-manager = home-manager.packages.aarch64-linux.default;
-        aarch64-darwin.home-manager = home-manager.packages.aarch64-darwin.default;
-      };
+      # Patched ollama and Home Assistant, so the same definitions can be used
+      # from a NixOS config, a Home Manager config, another machine's `nix run`,
+      # or a Mac. See packages/prefix-cache-findings.md for what the patches do.
+      overlays.default = import ./packages/overlay.nix;
+
+      packages =
+        let
+          # Each patched package comes from the same nixpkgs the NixOS host takes
+          # it from, because the patches are version-specific: the Silero one
+          # does not apply to Home Assistant 2026.8.2 in unstable, only to the
+          # 2026.5.4 in stable. A development instance on a different version
+          # would not tell us anything transferable.
+          with-overlay =
+            input: system:
+            import input {
+              inherit system;
+              config.allowUnfree = true;
+              overlays = [ (import ./packages/overlay.nix) ];
+            };
+          patched =
+            system:
+            let
+              unstable = with-overlay nixpkgs system; # ollama: host takes it from here
+              stable = with-overlay nixpkgs-stable system; # home-assistant: ditto
+            in
+            {
+              inherit (unstable) ollama-patched;
+            }
+            // nixpkgs.lib.optionalAttrs (nixpkgs.lib.hasSuffix "linux" system) {
+              inherit (unstable) ollama-cuda-patched;
+              inherit (stable) home-assistant-patched;
+
+              # A Home Assistant that can run standalone, for the development
+              # instance in the agent VM. The NixOS module normally derives
+              # extraComponents from the configuration; running `hass` straight
+              # out of the package gets only the defaults, and the ollama config
+              # flow then fails with "Invalid handler specified".
+              #
+              # Same components as the real machine, so the two behave alike.
+              # Runnable wrapper: `nix run .#hass-dev -- -c ~/ha-dev`. The
+              # component dependencies live in passthru.pythonPath rather than in
+              # the package, which is why the NixOS module sets
+              # environment.PYTHONPATH from it; running `hass` directly without
+              # that gets "Invalid handler specified" for ollama.
+              hass-dev =
+                let
+                  ha = patched-for system;
+                in
+                stable.writeShellScriptBin "hass-dev" ''
+                  export PYTHONPATH=${ha.pythonPath}
+                  exec ${ha}/bin/hass "$@"
+                '';
+
+              home-assistant-dev = patched-for system;
+            };
+
+          patched-for =
+            system:
+            let
+              stable = with-overlay nixpkgs-stable system;
+            in
+            import ./packages/home-assistant.nix (
+              stable.home-assistant.override {
+                extraComponents = [
+                  # The NixOS module always adds these and running `hass` outside
+                  # the module does not. Without "frontend" the hass_frontend
+                  # module is missing, frontend setup fails, and Home Assistant
+                  # drops into recovery mode -- which ignores configuration.yaml
+                  # entirely, so nothing below loads and the failure looks
+                  # unrelated to the frontend.
+                  "application_credentials"
+                  "frontend"
+                  "hardware"
+                  "logger"
+                  "network"
+                  "system_health"
+                  "automation"
+                  "person"
+                  "scene"
+                  "script"
+                  "zone"
+
+                  # Same as the real machine.
+                  "assist_pipeline"
+                  "demo"
+                  "esphome"
+                  "met"
+                  "ollama"
+                  "radio_browser"
+                  "wyoming"
+                ];
+              }
+            );
+        in
+        {
+          x86_64-linux = {
+            home-manager = home-manager.packages.x86_64-linux.default;
+          }
+          // patched "x86_64-linux";
+          aarch64-linux = {
+            home-manager = home-manager.packages.aarch64-linux.default;
+          }
+          // patched "aarch64-linux";
+          aarch64-darwin = {
+            home-manager = home-manager.packages.aarch64-darwin.default;
+          }
+          // patched "aarch64-darwin";
+        };
       nixosConfigurations = {
         "nixos" = nixpkgs-stable.lib.nixosSystem {
+          # So the host can take individual packages from unstable.
+          specialArgs.nixpkgsUnstable = nixpkgs;
           modules = [ ./nixos/nixos/configuration.nix ];
         };
       };
