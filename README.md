@@ -365,9 +365,11 @@ Note that, without additional setup, this VM can only receive Tailscale SSH conn
 
 ## Local DERP relay
 
-All three VMs are on a [Tailscale](https://tailscale.com/) tailnet, but each one sits behind its own layer of NAT (libvirt's `virbr0`, Lima's `vzNAT`, Tart's `vmnet`), and both physical machines are behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT) on T-Mobile 5G home internet. Tailscale therefore can't establish a [direct connection](https://tailscale.com/kb/1257/connection-types) between any two of them, and instead relays all their traffic through a [DERP](https://tailscale.com/kb/1232/derp-servers) server in the cloud — up over the slow 5G _upload_ and back down. The upshot is that copying a file between two of my own VMs (say a `nix copy` between build machines) crawls at ~1 MB/s, slower than downloading the same file from the internet.
+All three VMs are on a [Tailscale](https://tailscale.com/) tailnet, but each one sits behind its own layer of NAT (libvirt's `virbr0`, Lima's `vzNAT`, Tart's `vmnet`), and both physical machines are behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT) on T-Mobile 5G home internet. With only Tailscale's cloud STUN servers to discover endpoints with, no two of them could find a [direct connection](https://tailscale.com/kb/1257/connection-types), so Tailscale relayed all their traffic through a [DERP](https://tailscale.com/kb/1232/derp-servers) server in the cloud — up over the slow 5G _upload_ and back down. The upshot is that copying a file between two of my own VMs (say a `nix copy` between build machines) crawls at ~1 MB/s, slower than downloading the same file from the internet.
 
-The fix is to run my own DERP relay on the always-on NixOS machine, so relayed traffic stays on the local network instead of hairpinning through the internet. It's configured in [`nixos/nixos/configuration.nix`](nixos/nixos/configuration.nix): a `derper` service, the firewall ports it needs, and `networking.networkmanager.wifi.powersave = false`. That last line is load-bearing — Tailscale chooses a relay purely by measured latency, and with Wi-Fi power saving on, this box's LAN round-trip was ~60–110 ms, no better than the cloud DERP, so Tailscale ignored the local one; with it off the hop is ~5 ms and the local relay wins. The NixOS machine does **not** join the tailnet: `derper` only forwards already-encrypted WireGuard packets, so it can neither read the traffic nor reach the VMs, and the point of keeping the hosts off the tailnet stands.
+The fix is to run my own DERP relay on the always-on NixOS machine, so relayed traffic stays on the local network instead of hairpinning through the internet. It's configured in [`nixos/nixos/configuration.nix`](nixos/nixos/configuration.nix): a `derper` service, the firewall ports it needs, and `networking.networkmanager.wifi.powersave = false`. That last line is load-bearing — Tailscale chooses a relay purely by measured latency, and with Wi-Fi power saving on, this box's LAN round-trip was ~60–110 ms, no better than the cloud DERP, so Tailscale ignored the local one; with it off the hop is ~1 ms and the local relay wins. (The macOS host has the same power-saving behavior and no equivalent knob to turn it off: its radio idles at ~4 ms but tails out past 60 ms, so latency involving VMs on _that_ machine stays lumpy until it moves to Ethernet.) The NixOS machine does **not** join the tailnet: `derper` only forwards already-encrypted WireGuard packets, so it can neither read the traffic nor reach the VMs, and the point of keeping the hosts off the tailnet stands.
+
+One consequence worth knowing, because it makes the relay look unused: at home the VMs mostly _don't_ relay through it. `derper` also answers STUN on 3478, and a STUN server on the **same LAN** hands a node back its LAN-side mapped endpoint — something the cloud STUN servers, which only ever see the CGNAT-side address, can't do. Given those endpoints, the per-VM NATs turn out to be port-preserving enough to hole-punch after all, and the two Linux VMs now hold a direct path (`192.168.12.130:39424` ↔ `192.168.12.10:41641`) that never touches the relay. So the local DERP does double duty on the LAN: the endpoint discovery that lets hole punching usually succeed, and the fallback for when it doesn't.
 
 No domain or ACME certificate is involved. Given an IP address for its `-hostname`, `derper` mints its own self-signed certificate, and the tailnet [DERP map](https://tailscale.com/kb/1118/custom-derp-servers) pins it by SHA256 hash. After the config is in place, a few manual steps finish the wiring:
 
@@ -417,8 +419,10 @@ No domain or ACME certificate is involved. Given an IP address for its `-hostnam
 4. Confirm the VMs pick it up:
 
    ```sh
-   tailscale netcheck            # "Home LAN" should be the nearest DERP, at ~5 ms
-   tailscale ping sandbox-amd64  # should report "via DERP(home)", not DERP(iad)
+   tailscale netcheck            # "Home LAN" should be the nearest DERP
+   tailscale ping sandbox-amd64  # the first pong may come "via DERP(home)" -- never
+                                 # DERP(iad) -- and should then upgrade to a direct
+                                 # 192.168.12.x address
    ```
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
