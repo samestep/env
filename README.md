@@ -582,6 +582,103 @@ sudo sysctl --system
 
 Verify with `unshare --user --map-root-user echo ok`.
 
+### Nested KVM breaks NixOS VM tests on `ubuntu` (Apple hypervisor)
+
+`ubuntu` runs with Tart's `--nested`, so `/dev/kvm` exists and nested KVM
+genuinely works: a stock guest boots to systemd in ~3s under `accel=kvm`. What
+does not work is the one QEMU configuration every NixOS test uses.
+
+With a shared `memory-backend-memfd` in play, any virtio device that DMAs into
+guest memory wedges the guest during early boot — it goes silent right after
+`STM32 USART driver initialized` and never reaches systemd. Either half alone is
+fine, and the same command under `accel=tcg` boots normally:
+
+| configuration (`-machine virt,gic-version=max -cpu max -smp 1`) | result |
+| --------------------------------------------------------------- | ------ |
+| kvm + memfd alone                                                 | boots  |
+| kvm + `virtio-rng-pci` alone                                      | boots  |
+| kvm + `virtio-gpu-pci` + memfd                                    | boots  |
+| kvm + `virtio-rng-pci` + memfd                                    | **hangs** |
+| kvm + `virtio-blk-pci` + memfd                                    | **hangs** |
+| tcg + `virtio-rng-pci` + memfd                                    | boots  |
+
+Reproduce with any NixOS system closure's kernel and initrd:
+
+```sh
+qemu-system-aarch64 -machine virt,gic-version=max,accel=kvm -cpu max -m 1024 \
+  -smp 1 -device virtio-rng-pci \
+  -object memory-backend-memfd,id=mem0,size=1024M,share=on \
+  -machine memory-backend=mem0 -nographic -no-reboot \
+  -kernel "$SYS/kernel" -initrd "$SYS/initrd" -append 'console=ttyAMA0'
+```
+
+Every Linux VM test hits both halves: `nixos/lib/testing/driver.nix` sets
+`virtualisation.qemu.enableSharedMemory = mkDefault isLinux` and `qemu-vm.nix`
+hardcodes `-device virtio-rng-pci`. Removing the memfd is **not** a workaround,
+though: a test built with `virtualisation.qemu.enableSharedMemory = false`
+(verified absent from the launch command) still dies on `Shell did not start in
+time` under KVM. So the memfd is one trigger among several — the full device set
+every test uses, 9p store mount included, has at least one more — and no known
+nixpkgs-level configuration makes these tests run here.
+
+This is **not** about nesting depth. `sandbox-amd64` is equally a nested guest
+(`systemd-detect-virt` reports `kvm`, `kvm_amd.nested=1`, same 7.0.0 kernel) and
+runs the identical configuration fine — `nixosTests.timezone` passes there under
+KVM in 52s. The difference is the hypervisor providing the nesting: AMD SVM
+under Linux versus Apple's Virtualization.framework, whose nested EL2 exposes
+neither VHE nor ECV, so KVM here comes up in `Hyp nVHE mode`.
+
+#### 6.8 fixes the hang but buys nothing
+
+The hang is a kernel regression, not a permanent property of the hypervisor.
+Booting `linux-image-6.8.0-138-generic` (still installed; one-time boot with
+`grub-reboot`) makes every variant of the reproducer above pass, including
+`virtio-rng-pci` + memfd, and a real `nixosTests.timezone` completes under KVM.
+
+It is still not worth pinning, because nested KVM here is no faster than
+emulation — in nVHE mode every guest exit traps through Apple's hypervisor:
+
+| `nixosTests.timezone` on 6.8.0-138 | duration | guest reaches nsncd |
+| ---------------------------------- | -------- | ------------------- |
+| KVM (`/dev/kvm` mode `0666`)        | 180.36s  | 37.9s               |
+| TCG (`/dev/kvm` mode `0660`)        | 166.12s  | 39.5s               |
+
+For comparison, `sandbox-amd64` runs the same test under real (non-Apple)
+nested KVM in 52s. So this machine's ceiling for aarch64 VM tests is ~170s
+whatever we do, and the only way to actually go faster is an aarch64 builder
+that is not behind Apple's hypervisor.
+
+#### Fail loudly rather than falling back to TCG
+
+Builds run as `nixbld*`, and Ubuntu ships `/dev/kvm` as `root:kvm` mode `0660`
+(`50-udev-default.rules`) with those users in no group but `nixbld`. QEMU in the
+sandbox therefore reported `failed to initialize kvm: Permission denied` and
+silently fell back to TCG — tests still passed, ~3x slower, and the breakage
+went unnoticed for five weeks. Do not widen `/dev/kvm` to "fix" that: at mode
+`0666` the tests hit the hang above, so `nixosTests.timezone` goes from passing
+in 179s to dying on `Shell did not start in time`.
+
+Silent degradation is the real hazard, so `ubuntu` no longer claims the features
+at all:
+
+```
+# /etc/nix/nix.conf
+system-features = benchmark big-parallel uid-range
+```
+
+Nix then refuses the work outright instead of quietly emulating it:
+
+```
+error: Cannot build '...-vm-test-run-timezone.drv'.
+       Reason: missing system features
+       Required features: {kvm, nixos-test}
+       Available features: {benchmark, big-parallel, uid-range}
+```
+
+Nothing else on the tailnet can build `aarch64-linux`, so aarch64 VM tests now
+fail visibly here rather than passing slowly. `npb` reports them as not-built
+instead of green. Restore the features once the hypervisor bug is fixed.
+
 ### Known wart: shared `/tmp` on the macOS builder
 
 `tahoe-vanilla` runs with `sandbox = false`, so builds share the host's real
