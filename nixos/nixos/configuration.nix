@@ -205,6 +205,24 @@
   # https://wiki.nixos.org/wiki/OpenRGB#Basic
   services.hardware.openrgb.enable = true;
 
+  # https://github.com/NixOS/nixpkgs/commit/41e401ae9fd81cf0e65c9b7a639c44050c3f9f99
+  hardware.logitech.wireless = {
+    enable = true;
+    enableGraphical = true;
+  };
+  systemd.user.services.solaar = {
+    description = "Solaar, the open source driver for Logitech devices";
+    wantedBy = [ "graphical-session.target" ];
+    partOf = [ "graphical-session.target" ];
+    after = [ "dbus.service" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.solaar}/bin/solaar --window hide --battery-icons regular";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+  };
+
   # Use Ghostty instead of muscle memory.
   environment.gnome.excludePackages = [
     pkgs.gnome-console
