@@ -25,7 +25,6 @@ in
     pkgs.git
     pkgs.nh # https://github.com/nix-community/nix-index/issues/317
     pkgs.nixfmt
-    pkgs.npb
 
     (pkgs.symlinkJoin {
       name = "samestep";
