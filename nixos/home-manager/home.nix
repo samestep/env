@@ -16,6 +16,7 @@
     packages = [
       pkgs.discord
       pkgs.gh
+      pkgs.gnomeExtensions.appindicator # Allow GNOME tray items.
       pkgs.obsidian
       pkgs.prismlauncher
       pkgs.vim
@@ -39,6 +40,14 @@
       # Don't go to sleep.
       "org/gnome/desktop/session".idle-delay = lib.hm.gvariant.mkUint32 0;
       "org/gnome/settings-daemon/plugins/power".sleep-inactive-ac-type = "nothing";
+
+      # Allow GNOME tray items.
+      "org/gnome/shell" = {
+        disable-user-extensions = false;
+        enabled-extensions = [
+          "appindicatorsupport@rgcjonas.gmail.com"
+        ];
+      };
     };
   };
 
