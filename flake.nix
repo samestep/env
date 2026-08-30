@@ -14,11 +14,6 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    npb = {
-      url = "github:samestep/npb";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-overlay.follows = "rust-overlay";
-    };
     moss = {
       url = "github:moss-lang/moss";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -33,7 +28,6 @@
       home-manager,
       nix-index-database,
       rust-overlay,
-      npb,
       moss,
     }:
     {
@@ -89,7 +83,6 @@
               system = "x86_64-linux";
               overlays = [
                 commaOverlay
-                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -107,7 +100,6 @@
               system = "aarch64-darwin";
               overlays = [
                 commaOverlay
-                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -125,7 +117,6 @@
               system = "x86_64-linux";
               overlays = [
                 commaOverlay
-                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -141,7 +132,6 @@
               system = "aarch64-linux";
               overlays = [
                 commaOverlay
-                npb.overlays.default
                 moss.overlays.default
               ];
             };
@@ -157,7 +147,6 @@
               system = "aarch64-darwin";
               overlays = [
                 commaOverlay
-                npb.overlays.default
                 moss.overlays.default
               ];
             };
