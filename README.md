@@ -363,4 +363,8 @@ sudo tailscale up --ssh --hostname=tahoe-vanilla
 
 Note that, without additional setup, this VM can only receive Tailscale SSH connections, and cannot SSH into other VMs on the tailnet.
 
+## [Windows](windows)
+
+A Windows 11 guest that runs *inside* the `x86_64-linux` VM via [dockur/windows](https://github.com/dockur/windows) and nested KVM, reachable over the tailnet by RDP or by SSH into a PowerShell prompt (the latter mirroring the Linux nested-SSH hops). See [`windows/`](windows) for setup, access, and why the ARM equivalent doesn't work.
+
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
