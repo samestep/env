@@ -5,17 +5,16 @@
   ...
 }:
 let
-  # Tart 2.33 made "tart run" own the main thread instead of nesting the AppKit
-  # run loop in Swift's async main, and since then SIGUSR2 no longer asks the
-  # guest OS to stop, so `bin/tart.py` can only kill the VM:
-  # https://github.com/cirruslabs/tart/pull/1260
-  tart = pkgs.tart.overrideAttrs (finalAttrs: _: {
-    version = "2.30.6";
-    src = pkgs.fetchurl {
-      url = "https://github.com/cirruslabs/tart/releases/download/${finalAttrs.version}/tart.tar.gz";
-      hash = "sha256-wepqDaJp1oRjGqEVrXUM/JO5gfAKc12AUkZUbfwwdx0=";
-    };
-  });
+  # https://github.com/openai/tart/pull/1324
+  tart = pkgs.tart.overrideAttrs (
+    finalAttrs: _: {
+      version = "2.30.6";
+      src = pkgs.fetchurl {
+        url = "https://github.com/cirruslabs/tart/releases/download/${finalAttrs.version}/tart.tar.gz";
+        hash = "sha256-wepqDaJp1oRjGqEVrXUM/JO5gfAKc12AUkZUbfwwdx0=";
+      };
+    }
+  );
 in
 {
   # Enabling this causes permission issues:
