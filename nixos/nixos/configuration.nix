@@ -24,11 +24,52 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
-  # Disable Wi-Fi power saving. The default lets the card sleep between packets,
-  # which added ~60-110 ms to every LAN round-trip here — enough that Tailscale
-  # rated this box's local DERP (below) as no faster than its cloud DERP and
-  # refused to use it. Off, the LAN hop is ~5 ms and the local DERP wins.
+  # Disable Wi-Fi power saving. This box is on Ethernet now, so its radio is out
+  # of the path entirely and this only matters on the Wi-Fi fallback — but there
+  # it is load-bearing: the default lets the card sleep between packets, which
+  # added ~60-110 ms to every LAN round-trip, enough that Tailscale rated this
+  # box's local DERP (below) as no faster than its cloud DERP and refused to use
+  # it. Off, the LAN hop is ~5 ms and the local DERP wins.
   networking.networkmanager.wifi.powersave = false;
+
+  # Static LAN address, declared on the wired connection. The DERP relay below is
+  # pinned to this IP by both its self-signed certificate and the tailnet DERP
+  # map, so it must not drift; the gateway (an Arcadyan TMO-G4AR) exposes no DHCP
+  # settings at all, so rather than a reservation we just sit *below* its pool,
+  # which hands out from the high end.
+  #
+  # Deliberately no `interface-name`: the profile binds to whatever Ethernet
+  # device is present, so it survives a NIC swap and needs no name from
+  # `hardware-configuration.nix`. NetworkManager will not apply an `ethernet`
+  # profile to libvirt's `virbr0` (a bridge) or its `vnet*` taps (tun devices),
+  # so there is nothing else here for it to match. Wi-Fi keeps its own profile,
+  # which holds the PSK and therefore stays off this repo, and stays on DHCP as a
+  # fallback — two interfaces claiming this address at once would be ARP flux.
+  networking.networkmanager.ensureProfiles.profiles.lan-wired = {
+    connection = {
+      id = "lan-wired";
+      type = "ethernet";
+      autoconnect = true;
+      autoconnect-priority = 100; # outrank NetworkManager's default wired profile
+    };
+    ipv4 = {
+      method = "manual";
+      address1 = "192.168.12.10/24,192.168.12.1"; # address,gateway
+      dns = "192.168.12.1;";
+    };
+    ipv6.method = "auto";
+  };
+
+  # `ensureProfiles` writes the keyfile and runs `nmcli connection reload`, but
+  # NetworkManager will not drop an already-active connection to adopt a newly
+  # appeared profile — so on its own a `switch` would leave the box on whatever
+  # DHCP lease it already had until the next reboot. Bringing it up explicitly is
+  # what makes the switch alone enough. At boot the profile autoconnects by
+  # itself and this is a no-op; `|| true` covers the boot ordering where the link
+  # is not up yet, so a not-yet-ready NIC cannot fail the unit.
+  systemd.services.NetworkManager-ensure-profiles.postStart = ''
+    ${config.networking.networkmanager.package}/bin/nmcli connection up lan-wired || true
+  '';
 
   # Set your time zone.
   time.timeZone = "America/New_York";
@@ -127,9 +168,7 @@
   #   journalctl -u derper | grep -A1 'Configure it in DERPMap'
   #
   # NB: the pinned IP below must stay put, or the cert/DERP-map pin will drift.
-  # This gateway (Arcadyan TMO-G4AR) has no DHCP settings to reserve one, so the
-  # box holds 192.168.12.10 as a static IP on its Wi-Fi connection (set once with
-  # `nmcli con mod`, below the gateway's DHCP pool so it can never collide).
+  # It is held by the `lan-wired` profile above; keep the two in sync.
   networking.firewall.allowedTCPPorts = [ 443 ]; # derper HTTPS (the DERP itself)
   networking.firewall.allowedUDPPorts = [ 3478 ]; # derper STUN (netcheck latency probe)
   systemd.services.derper = {

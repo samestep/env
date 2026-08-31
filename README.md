@@ -367,22 +367,23 @@ Note that, without additional setup, this VM can only receive Tailscale SSH conn
 
 All three VMs are on a [Tailscale](https://tailscale.com/) tailnet, but each one sits behind its own layer of NAT (libvirt's `virbr0`, Lima's `vzNAT`, Tart's `vmnet`), and both physical machines are behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT) on T-Mobile 5G home internet. With only Tailscale's cloud STUN servers to discover endpoints with, no two of them could find a [direct connection](https://tailscale.com/kb/1257/connection-types), so Tailscale relayed all their traffic through a [DERP](https://tailscale.com/kb/1232/derp-servers) server in the cloud — up over the slow 5G _upload_ and back down. The upshot is that copying a file between two of my own VMs (say a `nix copy` between build machines) crawls at ~1 MB/s, slower than downloading the same file from the internet.
 
-The fix is to run my own DERP relay on the always-on NixOS machine, so relayed traffic stays on the local network instead of hairpinning through the internet. It's configured in [`nixos/nixos/configuration.nix`](nixos/nixos/configuration.nix): a `derper` service, the firewall ports it needs, and `networking.networkmanager.wifi.powersave = false`. That last line is load-bearing — Tailscale chooses a relay purely by measured latency, and with Wi-Fi power saving on, this box's LAN round-trip was ~60–110 ms, no better than the cloud DERP, so Tailscale ignored the local one; with it off the hop is ~1 ms and the local relay wins. (The macOS host has the same power-saving behavior and no equivalent knob to turn it off: its radio idles at ~4 ms but tails out past 60 ms, so latency involving VMs on _that_ machine stays lumpy until it moves to Ethernet.) The NixOS machine does **not** join the tailnet: `derper` only forwards already-encrypted WireGuard packets, so it can neither read the traffic nor reach the VMs, and the point of keeping the hosts off the tailnet stands.
+The fix is to run my own DERP relay on the always-on NixOS machine, so relayed traffic stays on the local network instead of hairpinning through the internet. It's configured in [`nixos/nixos/configuration.nix`](nixos/nixos/configuration.nix): a `derper` service, the firewall ports it needs, the static LAN address the relay is pinned to, and `networking.networkmanager.wifi.powersave = false`. That last line was load-bearing while this box was wireless — Tailscale chooses a relay purely by measured latency, and with Wi-Fi power saving on, its LAN round-trip was ~60–110 ms, no better than the cloud DERP, so Tailscale ignored the local one; with it off the hop is ~1 ms and the local relay wins. The box is on Ethernet now, so its radio is out of the path entirely and the line only matters on the Wi-Fi fallback. The NixOS machine does **not** join the tailnet: `derper` only forwards already-encrypted WireGuard packets, so it can neither read the traffic nor reach the VMs, and the point of keeping the hosts off the tailnet stands.
+
+Moving this box to Ethernet was worth doing on its own. Every byte between two VMs used to cross the air twice — host radio to the access point, access point to this box's radio — and pinging it from the `ubuntu` VM measured 8.2 / 49.4 / 490 ms (min/avg/max). Wired, the same ping is 2.6 / 9.4 / 43 ms, which is indistinguishable from pinging the gateway itself: everything above the gateway's own number had been this box's radio. The macOS host is still wireless and still has the same power-saving behavior with no equivalent knob to turn it off — a single hop from a VM there to the gateway averages ~10 ms and tails past 70 ms — so latency involving VMs on _that_ machine stays lumpy until it moves to Ethernet too.
 
 One consequence worth knowing, because it makes the relay look unused: at home the VMs mostly _don't_ relay through it. `derper` also answers STUN on 3478, and a STUN server on the **same LAN** hands a node back its LAN-side mapped endpoint — something the cloud STUN servers, which only ever see the CGNAT-side address, can't do. Given those endpoints, the per-VM NATs turn out to be port-preserving enough to hole-punch after all, and the two Linux VMs now hold a direct path (`192.168.12.130:39424` ↔ `192.168.12.10:41641`) that never touches the relay. So the local DERP does double duty on the LAN: the endpoint discovery that lets hole punching usually succeed, and the fallback for when it doesn't.
 
-No domain or ACME certificate is involved. Given an IP address for its `-hostname`, `derper` mints its own self-signed certificate, and the tailnet [DERP map](https://tailscale.com/kb/1118/custom-derp-servers) pins it by SHA256 hash. After the config is in place, a few manual steps finish the wiring:
+No domain or ACME certificate is involved. Given an IP address for its `-hostname`, `derper` mints its own self-signed certificate, and the tailnet [DERP map](https://tailscale.com/kb/1118/custom-derp-servers) pins it by SHA256 hash. After the config is in place, a few more steps finish the wiring:
 
-1. Pin the NixOS machine's IP, so the address `derper`'s certificate is issued for — and pinned to — doesn't drift. This gateway (an Arcadyan TMO-G4AR) exposes no DHCP settings at all, so rather than a reservation the box just holds a static address _below_ the gateway's DHCP pool (which hands out from the high end), set once on its Wi-Fi connection:
+1. Pin the NixOS machine's IP, so the address `derper`'s certificate is issued for — and pinned to — doesn't drift. This gateway (an Arcadyan TMO-G4AR) exposes no DHCP settings at all, so rather than a reservation the box just holds a static address _below_ the gateway's DHCP pool, which hands out from the high end. On Ethernet there is no PSK to keep off this repo, so the whole profile is declarative — `networking.networkmanager.ensureProfiles.profiles.lan-wired` in `configuration.nix` — and a `nixos-rebuild switch` is all it takes.
+
+   Wi-Fi stays as a DHCP fallback. If its profile still carries the manual address from when this box was wireless, clear it once, because two interfaces claiming `192.168.12.10` on one LAN is ARP flux and the relay's traffic can drift silently back onto the radio:
 
    ```sh
-   nmcli -t -f NAME,TYPE con show --active | grep wireless  # find the connection name
-   sudo nmcli con mod "$CONN" ipv4.method manual \
-     ipv4.addresses 192.168.12.10/24 ipv4.gateway 192.168.12.1 ipv4.dns 192.168.12.1
-   sudo nmcli con up "$CONN"
+   nmcli -t -f NAME,TYPE con show | grep wireless  # find the connection name
+   sudo nmcli con mod "$CONN" ipv4.method auto \
+     ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
    ```
-
-   This modifies the existing connection in place, so the Wi-Fi PSK stays on the box — nothing secret lands in this repo. (On Ethernet it could instead be declared with `networking.interfaces`, no secret involved.)
 
 2. Rebuild, then read the ready-to-paste DERP node JSON (including the `sha256-raw:` certificate pin) that `derper` logs on first start:
 
@@ -424,5 +425,7 @@ No domain or ACME certificate is involved. Given an IP address for its `-hostnam
                                  # DERP(iad) -- and should then upgrade to a direct
                                  # 192.168.12.x address
    ```
+
+If the address ever does drift, the failure is quiet and total rather than merely slow. `tailscale netcheck` drops `Home LAN` from its latency list and picks a cloud DERP; endpoint discovery falls back to the cloud STUN servers, which only ever see the CGNAT-side address; and with no LAN-side endpoints to hole-punch with, the VMs lose *every* path to each other, not just the fast one — `tailscale ping` and `ssh` both just time out. `derper` itself keeps running throughout and still serves its `CN=192.168.12.10` certificate, only at the wrong address, so the tell is `ping 192.168.12.10` failing from a VM while `openssl s_client -connect <new-ip>:443` still answers.
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
