@@ -3,5 +3,6 @@
     "defaultMode": "acceptEdits"
   },
   "autoMemoryEnabled": false,
+  "cleanupPeriodDays": 3650,
   "theme": "auto"
 }
