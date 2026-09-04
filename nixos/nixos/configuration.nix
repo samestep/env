@@ -214,6 +214,13 @@
   virtualisation.libvirtd.nss.enable = true;
   virtualisation.libvirtd.onShutdown = "shutdown"; # Else DHCP leases disappear.
 
+  # The libvirt NSS module only works when nscd is running, but resolvconf
+  # restarts nscd every time NetworkManager rewrites `/etc/resolv.conf`. With
+  # both Ethernet and Wi-Fi coming up at boot, that exceeds systemd's default
+  # rate limit of five starts in ten seconds, leaving nscd dead until reboot.
+  # https://github.com/NixOS/nixpkgs/issues/148306
+  systemd.services.nscd.unitConfig.StartLimitIntervalSec = 0;
+
   # Build virt-install with Ubuntu 26.04 support.
   nixpkgs.overlays = [
     (final: prev: {
