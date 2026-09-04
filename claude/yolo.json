@@ -3,6 +3,7 @@
     "defaultMode": "bypassPermissions"
   },
   "autoMemoryEnabled": false,
+  "cleanupPeriodDays": 3650,
   "skipDangerousModePermissionPrompt": true,
   "theme": "auto",
   "agentPushNotifEnabled": true
