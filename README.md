@@ -237,6 +237,21 @@ Avoid ten-second hangs by enabling Ubuntu to resolve the local hostname:
 echo "127.0.1.1 $(hostname)" | sudo tee -a /etc/hosts
 ```
 
+Avoid another class of ten-second hangs by telling Ubuntu to ignore the DNS search domains it gets over DHCP. The host's `vmnet` DHCP server relays the Mac's own resolver search domains (e.g. leftover `*.cmu.edu` entries from a network the laptop was once on) into the VM, and Ubuntu appends them to public names like `github.com`; if any of those domains points at an unreachable resolver, every lookup stalls for ten seconds. Drop them:
+
+```sh
+sudo tee /etc/netplan/60-no-search-domains.yaml <<'EOF' >/dev/null
+network:
+  version: 2
+  ethernets:
+    all:
+      dhcp4-overrides:
+        use-domains: false
+EOF
+sudo chmod 600 /etc/netplan/60-no-search-domains.yaml
+sudo netplan apply
+```
+
 Next, install Nix:
 
 ```sh
