@@ -122,15 +122,16 @@
 
   # Local Tailscale DERP relay, so traffic between my VMs stays on the LAN; see
   # README.md. Self-signed and pinned by hash in the tailnet DERP map.
-  networking.firewall.allowedTCPPorts = [ 443 ]; # DERP
+  # Unprivileged ports throughout, so the service needs no capabilities; the
+  # plain-HTTP listener is off because its default port 80 would need one.
+  networking.firewall.allowedTCPPorts = [ 8443 ]; # DERP
   networking.firewall.allowedUDPPorts = [ 3478 ]; # STUN
   systemd.services.derper = {
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
+      ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -a :8443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
       DynamicUser = true;
       StateDirectory = "derper"; # keeps the key and self-signed cert, so the pin is stable
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ]; # bind :443 unprivileged
     };
   };
 

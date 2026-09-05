@@ -31,7 +31,7 @@ nix run ~/github/samestep/env#home-manager switch
 
 You may need to log out and back in to see everything installed in the GNOME applications launcher.
 
-The configuration also runs `derper`, a Tailscale [DERP](https://tailscale.com/kb/1232/derp-servers) relay, so that the VMs below can talk to each other over the LAN instead of over the Internet. Each VM sits behind its own NAT and the home connection is behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT), so without a STUN server on the LAN, Tailscale never learns the VMs' LAN-side endpoints and relays every packet through a cloud DERP, up the slow 5G uplink and back. `derper` is pinned to the static address `192.168.12.10` declared in [`configuration.nix`](nixos/nixos/configuration.nix); on first start it mints a self-signed certificate for that address and logs the DERP-map entry to paste into the tailnet policy:
+The configuration also runs `derper`, a Tailscale [DERP](https://tailscale.com/kb/1232/derp-servers) relay, so that the VMs below can talk to each other over the LAN instead of over the Internet. Each VM sits behind its own NAT and the home connection is behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT), so without a STUN server on the LAN, Tailscale never learns the VMs' LAN-side endpoints and relays every packet through a cloud DERP, up the slow 5G uplink and back. `derper` is pinned to the static address `192.168.12.10` declared in [`configuration.nix`](nixos/nixos/configuration.nix); on first start it mints a self-signed certificate for that address and logs the DERP-map entry to paste into the tailnet policy (add `"DERPPort": 8443` to it, since `derper` listens on an unprivileged port and its logged entry omits the port):
 
 ```sh
 journalctl -u derper | grep -A1 'Configure it in DERPMap'
@@ -54,7 +54,7 @@ Add that entry to the [tailnet policy file](https://login.tailscale.com/admin/ac
           "HostName": "192.168.12.10",
           "IPv4": "192.168.12.10",
           "IPv6": "none",
-          "DERPPort": 443,
+          "DERPPort": 8443,
           "CertName": "sha256-raw:..."
         }
       ]
@@ -63,7 +63,7 @@ Add that entry to the [tailnet policy file](https://login.tailscale.com/admin/ac
 }
 ```
 
-From a VM at home, `tailscale netcheck` should then list `Home LAN` as the nearest DERP, and `tailscale ping` to another VM should settle on a direct `192.168.12.x` address. Because the relay is only reachable on the LAN, a VM that is away from home currently cannot reach the VMs that are at home, only the other way around. If the NixOS machine ever loses that address, the VMs lose every path to each other; the tell is `ping 192.168.12.10` failing from a VM while `openssl s_client -connect <new-ip>:443` still answers with a `CN=192.168.12.10` certificate. Changes to the `lan-wired` profile take effect on reboot or with `sudo nmcli connection up lan-wired`, and the Wi-Fi profile must not also claim `.10` (it once did, from a one-off `nmcli con mod`).
+From a VM at home, `tailscale netcheck` should then list `Home LAN` as the nearest DERP, and `tailscale ping` to another VM should settle on a direct `192.168.12.x` address. Because the relay is only reachable on the LAN, a VM that is away from home currently cannot reach the VMs that are at home, only the other way around. If the NixOS machine ever loses that address, the VMs lose every path to each other; the tell is `ping 192.168.12.10` failing from a VM while `openssl s_client -connect <new-ip>:8443` still answers with a `CN=192.168.12.10` certificate. Changes to the `lan-wired` profile take effect on reboot or with `sudo nmcli connection up lan-wired`, and the Wi-Fi profile must not also claim `.10` (it once did, from a one-off `nmcli con mod`).
 
 ## [macOS](macos)
 
