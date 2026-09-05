@@ -219,6 +219,40 @@ Start up the VM, optionally using the [`--nested`](https://tart.run/faq/#nested-
 tart run --no-graphics --nested ubuntu
 ```
 
+### Cellular hotspot MTU
+
+When the Mac is connected to the Internet through a cellular hotspot, the end-to-end path may not support the 1500-byte MTU that Tart's NAT interface advertises, causing a [path MTU black hole](https://en.wikipedia.org/wiki/Path_MTU_Discovery#Problems). DNS, `ping`, and TCP handshakes may still work, while HTTPS connections hang after sending the TLS ClientHello, so tools such as Git and Claude Code time out.
+
+Lower the Tart network interface's MTU (use 1280 if 1400 still fails):
+
+```sh
+sudo ip link set dev enp0s1 mtu 1400
+```
+
+To make this persist across reboots, create a Netplan override, substituting the interface name and MAC address reported by `ip route get 8.8.8.8` and `ip link show enp0s1`:
+
+```sh
+sudo tee /etc/netplan/99-tart-mtu.yaml >/dev/null <<'EOF'
+network:
+  version: 2
+  ethernets:
+    tart:
+      match:
+        macaddress: "9e:a0:61:3b:12:50"
+      mtu: 1400
+EOF
+sudo chmod 600 /etc/netplan/99-tart-mtu.yaml
+sudo netplan generate
+sudo netplan apply
+```
+
+Verify the setting and HTTPS connectivity:
+
+```sh
+ip link show enp0s1
+git ls-remote https://github.com/git/git.git >/dev/null
+```
+
 Leave that running and, in a different terminal, give the VM your public SSH key give the VM your public SSH key so you don't need to type the password each time you connect:
 
 ```sh
