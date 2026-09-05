@@ -24,27 +24,13 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
-  # Disable Wi-Fi power saving. This box is on Ethernet now, so its radio is out
-  # of the path entirely and this only matters on the Wi-Fi fallback — but there
-  # it is load-bearing: the default lets the card sleep between packets, which
-  # added ~60-110 ms to every LAN round-trip, enough that Tailscale rated this
-  # box's local DERP (below) as no faster than its cloud DERP and refused to use
-  # it. Off, the LAN hop is ~5 ms and the local DERP wins.
-  networking.networkmanager.wifi.powersave = false;
-
-  # Static LAN address, declared on the wired connection. The DERP relay below is
-  # pinned to this IP by both its self-signed certificate and the tailnet DERP
-  # map, so it must not drift; the gateway (an Arcadyan TMO-G4AR) exposes no DHCP
-  # settings at all, so rather than a reservation we just sit *below* its pool,
-  # which hands out from the high end.
-  #
-  # Deliberately no `interface-name`: the profile binds to whatever Ethernet
-  # device is present, so it survives a NIC swap and needs no name from
-  # `hardware-configuration.nix`. NetworkManager will not apply an `ethernet`
-  # profile to libvirt's `virbr0` (a bridge) or its `vnet*` taps (tun devices),
-  # so there is nothing else here for it to match. Wi-Fi keeps its own profile,
-  # which holds the PSK and therefore stays off this repo, and stays on DHCP as a
-  # fallback — two interfaces claiming this address at once would be ARP flux.
+  # Static LAN address on the wired connection. The DERP relay below is pinned
+  # to this IP by both its self-signed certificate and the tailnet DERP map, so
+  # it must not drift. The gateway exposes no DHCP settings, so instead of a
+  # reservation this sits below its pool, which hands out from the high end.
+  # No `interface-name`, so it binds to whatever Ethernet device is present;
+  # NetworkManager won't match an `ethernet` profile to libvirt's bridge or taps.
+  # Wi-Fi keeps its own (imperative, PSK-holding) profile as a DHCP fallback.
   networking.networkmanager.ensureProfiles.profiles.lan-wired = {
     connection = {
       id = "lan-wired";
@@ -60,13 +46,9 @@
     ipv6.method = "auto";
   };
 
-  # `ensureProfiles` writes the keyfile and runs `nmcli connection reload`, but
-  # NetworkManager will not drop an already-active connection to adopt a newly
-  # appeared profile — so on its own a `switch` would leave the box on whatever
-  # DHCP lease it already had until the next reboot. Bringing it up explicitly is
-  # what makes the switch alone enough. At boot the profile autoconnects by
-  # itself and this is a no-op; `|| true` covers the boot ordering where the link
-  # is not up yet, so a not-yet-ready NIC cannot fail the unit.
+  # `ensureProfiles` only reloads NetworkManager, which won't drop an active
+  # connection to adopt a new profile, so without this a `switch` wouldn't take
+  # effect until reboot. At boot the profile autoconnects and this is a no-op.
   systemd.services.NetworkManager-ensure-profiles.postStart = ''
     ${config.networking.networkmanager.package}/bin/nmcli connection up lan-wired || true
   '';
@@ -152,37 +134,24 @@
   # Enable the OpenSSH daemon.
   # services.openssh.enable = true;
 
-  # Local Tailscale DERP relay. My sandbox VMs are on the tailnet but each sits
-  # behind per-VM NAT, and both physical machines are behind T-Mobile 5G CGNAT,
-  # so Tailscale can never punch a direct path and relays everything through a
-  # distant cloud DERP — up over the slow 5G uplink and back (~1 MB/s). Running a
-  # DERP here, on the always-on LAN box, keeps that relay on the local network:
-  # the VMs prefer it (lowest latency) at home and fall back to Tailscale's cloud
-  # DERPs when away. This host does NOT join the tailnet — derper only forwards
-  # already-encrypted WireGuard traffic, so it can neither read nor reach the VMs.
-  #
-  # Self-signed and cert-pinned in the tailnet DERP map, so no domain or ACME is
-  # involved. Given an IP-address -hostname, derper mints its own cert on first
-  # start and logs the exact DERPMap node JSON (including the `sha256-raw:` pin)
-  # to paste into the tailnet policy. Read it after deploying with:
-  #   journalctl -u derper | grep -A1 'Configure it in DERPMap'
-  #
-  # NB: the pinned IP below must stay put, or the cert/DERP-map pin will drift.
-  # It is held by the `lan-wired` profile above; keep the two in sync.
-  networking.firewall.allowedTCPPorts = [ 443 ]; # derper HTTPS (the DERP itself)
-  networking.firewall.allowedUDPPorts = [ 3478 ]; # derper STUN (netcheck latency probe)
+  # Local Tailscale DERP relay, so traffic between my VMs stays on the LAN
+  # instead of hairpinning through a cloud DERP over 5G; see README.md. This
+  # host does not join the tailnet: derper only forwards already-encrypted
+  # WireGuard packets. Self-signed and pinned by hash in the tailnet DERP map,
+  # so no domain or ACME is involved.
+  networking.firewall.allowedTCPPorts = [ 443 ]; # DERP
+  networking.firewall.allowedUDPPorts = [ 3478 ]; # STUN
   systemd.services.derper = {
     description = "Tailscale DERP relay (self-signed, LAN-only)";
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     serviceConfig = {
-      # -c holds derper's own private key (created on first start). derper only
-      # defaults this path when run as root; under DynamicUser it must be explicit.
+      # derper only defaults the -c key path when run as root.
       ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -a :443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
       DynamicUser = true;
       StateDirectory = "derper"; # persists the self-signed cert, so the pin is stable
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ]; # bind :443 as the dynamic user
+      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
       Restart = "on-failure";
     };
   };
