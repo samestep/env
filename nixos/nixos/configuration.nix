@@ -24,6 +24,21 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
+  # Static LAN address on the wired connection, which the DERP relay below is
+  # pinned to (see README.md). The gateway offers no DHCP reservations, so this
+  # sits below its pool. Changes take effect on reboot or `nmcli connection up`.
+  networking.networkmanager.ensureProfiles.profiles.lan-wired = {
+    connection = {
+      id = "lan-wired"; # required by the NixOS option, not by NetworkManager
+      type = "ethernet";
+    };
+    ipv4 = {
+      method = "manual";
+      address1 = "192.168.12.10/24,192.168.12.1"; # address,gateway
+      dns = "192.168.12.1;";
+    };
+  };
+
   # Set your time zone.
   time.timeZone = "America/New_York";
 
@@ -105,11 +120,20 @@
   # Enable the OpenSSH daemon.
   # services.openssh.enable = true;
 
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
+  # Local Tailscale DERP relay, so traffic between my VMs stays on the LAN; see
+  # README.md. Self-signed and pinned by hash in the tailnet DERP map.
+  # Unprivileged ports throughout, so the service needs no capabilities; the
+  # plain-HTTP listener is off because its default port 80 would need one.
+  networking.firewall.allowedTCPPorts = [ 8443 ]; # DERP
+  networking.firewall.allowedUDPPorts = [ 3478 ]; # STUN
+  systemd.services.derper = {
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -a :8443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
+      DynamicUser = true;
+      StateDirectory = "derper"; # keeps the key and self-signed cert, so the pin is stable
+    };
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
