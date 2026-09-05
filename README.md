@@ -397,4 +397,366 @@ sudo tailscale up --ssh --hostname=tahoe-vanilla
 
 Note that, without additional setup, this VM can only receive Tailscale SSH connections, and cannot SSH into other VMs on the tailnet.
 
+## Nix remote builders
+
+The `ubuntu` VM (`aarch64-linux`) coordinates builds across the tailnet,
+offloading `x86_64-linux` to `sandbox-amd64` and `aarch64-darwin` to
+`tahoe-vanilla` over Tailscale SSH. This is what `npd -s x86_64-linux -s
+aarch64-linux -s aarch64-darwin` relies on. Beyond the SSH setup above, there are
+two non-obvious gotchas: declaring each builder's capabilities, and Ubuntu's
+AppArmor user-namespace restriction.
+
+### Declaring the builders
+
+On the coordinator, point `/etc/nix/nix.conf` at a machines file:
+
+```
+builders = @/etc/nix/machines
+builders-use-substitutes = false
+```
+
+and list one builder per line in `/etc/nix/machines`:
+
+```
+ssh://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - <base64 host key>
+ssh://agent-amd64@sandbox-amd64.tail1a09f6.ts.net x86_64-linux - 8 1 big-parallel,benchmark,kvm,nixos-test,uid-range - <base64 host key>
+```
+
+The fields are `URI system ssh-key max-jobs speed-factor features
+mandatory-features base64-host-key`. SSH goes through the `~/.ssh/tailnet` config
+(from the `tailnet` script), connecting as the user in each URI; because the
+nix-daemon runs builds as root, root — not just your user — must be able to reach
+each builder.
+
+The 4th field is the **coordinator's** slot count for that builder — how many
+derivations it will keep in flight there — and is unrelated to that builder's
+own `max-jobs` in its `nix.conf`, which governs only builds the machine starts
+for itself. The coordinator's own system gets no line in `machines`; its local
+parallelism comes from its own `max-jobs`, and **Nix defaults that to 1**. So a
+coordinator that never sets it builds its own architecture strictly serially
+while fanning 6 and 8 jobs out to the two remotes. In `npb` that shows up as the
+local system apparently having far more work left than the others, long after
+both remotes have gone idle — the queues are the same size, the local one just
+drains one derivation at a time.
+
+The **features** field (6th) is the gotcha. Nix only dispatches a derivation to a
+builder whose line advertises **every** feature in the derivation's
+`requiredSystemFeatures`. NixOS VM tests — e.g. `lixPackageSets.*.lix.tests.misc`
+and `.lix.tests.installer` — set `requiredSystemFeatures = [ "kvm" "nixos-test" ]`,
+so the `x86_64-linux` line must advertise both (plus `uid-range`, used by some
+sandbox tests). If it doesn't, those derivations have no eligible builder and npd
+reports them as `❔` ("couldn't try to build") — even though `sandbox-amd64` fully
+supports them. Match the list to what the builder actually offers, which you can
+read on the builder itself:
+
+```sh
+ssh sandbox-amd64 'nix show-config | grep system-features'
+# system-features = benchmark big-parallel kvm nixos-test uid-range
+```
+
+The `tahoe-vanilla` line deliberately omits `kvm`/`nixos-test`: it can't run Linux
+VM tests. After editing `/etc/nix/machines`, restart the daemon so it re-reads the
+file:
+
+```sh
+sudo systemctl restart nix-daemon
+```
+
+### Capping build parallelism for memory
+
+Each builder runs with `cores = 0`, i.e. one compile job per core (nixpkgs hands
+`make`/`ninja` `-j$NIX_BUILD_CORES` = every core). That silently assumes each
+compile fits in roughly a gigabyte, which holds for almost everything — but a few
+packages are far heavier. `foundationdb` is the worst offender seen so far: its
+Flow actor compiler expands each source file into an enormous single translation
+unit, and with `-O3` (plus `-DUSE_LTO=ON` on Linux) a single `cc1plus` peaks at
+3–4 GiB. One job per core then asks for several times the RAM the machine has, and
+the result is OOM-killed compilers on Linux (`g++: fatal error: Killed signal
+terminated program cc1plus`, visible in `dmesg` as `Out of memory: Killed process
+… (cc1plus)`) and a thrashing, glacially slow build on macOS (the memory
+compressor swaps instead of killing, so it survives but crawls).
+
+The scarce resource is **RAM per core**, not total RAM or total cores — and all
+three builders are high-core / modest-RAM boxes, the worst shape for this:
+
+| builder         | system        | RAM    | cores | RAM/core |
+| --------------- | ------------- | ------ | ----- | -------- |
+| `ubuntu`        | aarch64-linux | 31 GiB | 18    | 1.7 GiB  |
+| `sandbox-amd64` | x86_64-linux  | 60 GiB | 32    | 1.9 GiB  |
+| `tahoe-vanilla` | aarch64-darwin | 16 GiB | 18   | 0.9 GiB  |
+
+Capping `cores` is what that incident called for, but `cores` bounds only
+**one** job. The real budget is `max-jobs × cores`, so sizing `cores` to `RAM ÷
+4 GiB` while leaving `max-jobs` alone quietly assumes `max-jobs = 1`. On the
+coordinator that happened to be true, because 1 is Nix's default and nothing had
+ever set it; on `sandbox-amd64`, `max-jobs = 8` with `cores = 12` meant up to 96
+concurrent compilers on 32 CPUs. Budget the two together, against each machine's
+CPU count:
+
+| machine         | CPU | RAM    | `cores` | jobs | compile slots              |
+| --------------- | --- | ------ | ------- | ---- | -------------------------- |
+| `ubuntu`        | 18  | 31 GiB | 4       | 4    | 16 (2 left for the driver) |
+| `sandbox-amd64` | 32  | 60 GiB | 4       | 8    | 32                         |
+| `tahoe-vanilla` | 18  | 16 GiB | 3       | 6    | 18                         |
+
+`jobs × cores ≈ CPU count` is the whole rule. Overshooting it isn't more
+concurrency, just more contention — a machine cannot run more compilers than it
+has cores, and oversubscription spends cache locality and RAM headroom for
+nothing. Keeping `cores` near 4 lets a lone heavy package still parallelize
+while leaving room for several packages in flight, which is what a mass rebuild
+actually wants. `ubuntu` stops two CPUs short because it is also the driver:
+`npb`, `nix-eval-jobs`, `nom`, and NAR decompression for both remotes' outputs
+all run there.
+
+The RAM tail is deliberately **not** budgeted for. Per-job memory is nowhere
+near normally distributed — nearly everything fits in well under a gigabyte, and
+a handful of packages want 3–4 GiB per compiler — so a budget that survived a
+concurrent pair of `foundationdb`-class builds would have to throttle the other
+99.9% to match, and no setting can tell the two apart in advance. Run at CPU
+width and accept the occasional OOM instead. In `npb` that costs a sticky
+`Failed` observation plus `DepFailed` on its dependents, cleared by re-running
+with `--retry` or by the drv building out of band — recoverable and rare, where
+the throttle would be permanent and universal.
+
+`cores` lives in each machine's own `nix.conf`, so it belongs on the machine,
+not in the `npb` invocation (which has no flag to forward it):
+
+```sh
+# ubuntu (aarch64-linux, 18 CPU / 31 GiB) — the driver, so leave 2 CPUs idle
+printf 'cores = 4\nmax-jobs = 4\n' | sudo tee -a /etc/nix/nix.conf
+
+# sandbox-amd64 (x86_64-linux, 32 CPU / 60 GiB) — its max-jobs was already 8
+ssh sandbox-amd64 "echo 'cores = 4' | sudo tee -a /etc/nix/nix.conf"
+
+# tahoe-vanilla (aarch64-darwin, 18 CPU / 16 GiB) — /etc/nix/nix.conf is
+# Determinate-managed (and sets max-jobs = auto), so append to the user include
+# it already sources, which is read after and overrides it
+ssh tahoe-vanilla "printf 'cores = 3\nmax-jobs = 6\n' | sudo tee -a /etc/nix/nix.custom.conf"
+```
+
+Because the builders above are `ssh://` (legacy `nix-store --serve`, not
+`ssh-ng://`), the coordinator does **not** forward its own `cores` to them — each
+build uses the remote machine's value — and a fresh serve process per SSH
+connection re-reads `nix.conf`, so no daemon restart is needed; the coordinator's
+local `aarch64-linux` builds pick it up from its own `nix.conf` the same way.
+Verify:
+
+```sh
+nix config show | grep -E '^(cores|max-jobs) '
+ssh sandbox-amd64 nix config show | grep -E '^(cores|max-jobs) '
+ssh tahoe-vanilla nix config show | grep -E '^(cores|max-jobs) '
+```
+
+The cap is still coarse — it throttles every build, not just the hungry ones —
+but a machine-wide `cores` value is the only place a *machine's* RAM-per-core
+limit can be expressed today; see the note below on where a per-package or
+memory-aware fix would truly belong.
+
+### Building from `sandbox-amd64` instead
+
+`ubuntu` is the usual coordinator, but `sandbox-amd64` has its own
+`/etc/nix/machines` and can drive all three systems too. Two things to know.
+
+Its `aarch64-linux` line originally pointed at
+`ssh://agent-arm64@sandbox-arm64`, a VM since deleted and replaced by `ubuntu` —
+a stale entry costs you a hang against a host that no longer answers rather than
+an error, so repoint it (and give each builder the slot count its own `cores`
+implies, so both coordinators agree):
+
+```
+ssh://admin@ubuntu.tail1a09f6.ts.net aarch64-linux - 4 1 big-parallel,benchmark,kvm,nixos-test,uid-range - -
+ssh://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - -
+```
+
+Both key fields are `-`: Tailscale SSH handles authentication, so no identity
+file is needed, and host verification falls to root's `known_hosts` rather than a
+key pinned in the line.
+
+Second, the direction matters for **trust**. A remote builder imports store
+paths into the target, so the user in the URI must appear in the *target's*
+`trusted-users`. `sandbox-amd64` already lists `agent-amd64` for connections
+from `ubuntu`; `ubuntu` had only the default `root`, so builds arriving from
+`sandbox-amd64` as `admin` failed with `error: you are not privileged to build
+input-addressed derivations`. Grant it (no real escalation — `admin` already has
+passwordless `sudo`):
+
+```sh
+echo 'trusted-users = root admin' | sudo tee -a /etc/nix/nix.conf
+sudo systemctl restart nix-daemon
+```
+
+Unlike `cores` and `max-jobs`, which every new client re-reads from `nix.conf`,
+`trusted-users` is read once when the daemon starts — so this one **does** need
+the restart, and the restart kills in-flight builds, so do it when nothing is
+building. Verify from the other side:
+
+```sh
+ssh sandbox-amd64 'nix build --no-link --impure --expr \
+  "(import <nixpkgs> { system = \"aarch64-linux\"; }).runCommand \"probe\" {} \"echo hi > \$out\""'
+```
+
+### AppArmor user namespaces (Ubuntu builders)
+
+Ubuntu 23.10+ blocks unprivileged user namespaces by default
+(`kernel.apparmor_restrict_unprivileged_userns = 1`). Builds that create nested
+user namespaces — notably nix's and lix's own functional test suites — then fail:
+`unshare --user --map-root-user true` reports `Operation not permitted`, and e.g.
+lix's `installcheck` suite goes from `Fail: 0` to `Fail: 14`. Because the failure
+depends on the host's LSM policy rather than the derivation, it's effectively an
+impurity, and it shows up as a spurious build failure on these VMs while the same
+derivation builds fine on Hydra.
+
+NixOS and macOS are unaffected; the two Ubuntu VMs (`ubuntu` and `sandbox-amd64`)
+need the restriction disabled persistently:
+
+```sh
+echo 'kernel.apparmor_restrict_unprivileged_userns = 0' | sudo tee /etc/sysctl.d/99-nix-userns.conf
+sudo sysctl --system
+```
+
+Verify with `unshare --user --map-root-user echo ok`.
+
+### Nested KVM breaks NixOS VM tests on `ubuntu` (Apple hypervisor)
+
+`ubuntu` runs with Tart's `--nested`, so `/dev/kvm` exists and nested KVM
+genuinely works: a stock guest boots to systemd in ~3s under `accel=kvm`. What
+does not work is the one QEMU configuration every NixOS test uses.
+
+With a shared `memory-backend-memfd` in play, any virtio device that DMAs into
+guest memory wedges the guest during early boot — it goes silent right after
+`STM32 USART driver initialized` and never reaches systemd. Either half alone is
+fine, and the same command under `accel=tcg` boots normally:
+
+| configuration (`-machine virt,gic-version=max -cpu max -smp 1`) | result |
+| --------------------------------------------------------------- | ------ |
+| kvm + memfd alone                                                 | boots  |
+| kvm + `virtio-rng-pci` alone                                      | boots  |
+| kvm + `virtio-gpu-pci` + memfd                                    | boots  |
+| kvm + `virtio-rng-pci` + memfd                                    | **hangs** |
+| kvm + `virtio-blk-pci` + memfd                                    | **hangs** |
+| tcg + `virtio-rng-pci` + memfd                                    | boots  |
+
+Reproduce with any NixOS system closure's kernel and initrd:
+
+```sh
+qemu-system-aarch64 -machine virt,gic-version=max,accel=kvm -cpu max -m 1024 \
+  -smp 1 -device virtio-rng-pci \
+  -object memory-backend-memfd,id=mem0,size=1024M,share=on \
+  -machine memory-backend=mem0 -nographic -no-reboot \
+  -kernel "$SYS/kernel" -initrd "$SYS/initrd" -append 'console=ttyAMA0'
+```
+
+Every Linux VM test hits both halves: `nixos/lib/testing/driver.nix` sets
+`virtualisation.qemu.enableSharedMemory = mkDefault isLinux` and `qemu-vm.nix`
+hardcodes `-device virtio-rng-pci`. Removing the memfd is **not** a workaround,
+though: a test built with `virtualisation.qemu.enableSharedMemory = false`
+(verified absent from the launch command) still dies on `Shell did not start in
+time` under KVM. So the memfd is one trigger among several — the full device set
+every test uses, 9p store mount included, has at least one more — and no known
+nixpkgs-level configuration makes these tests run here.
+
+This is **not** about nesting depth. `sandbox-amd64` is equally a nested guest
+(`systemd-detect-virt` reports `kvm`, `kvm_amd.nested=1`, same 7.0.0 kernel) and
+runs the identical configuration fine — `nixosTests.timezone` passes there under
+KVM in 52s. The difference is the hypervisor providing the nesting: AMD SVM
+under Linux versus Apple's Virtualization.framework, whose nested EL2 exposes
+neither VHE nor ECV, so KVM here comes up in `Hyp nVHE mode`.
+
+#### 6.8 fixes the hang but buys nothing
+
+The hang is a kernel regression, not a permanent property of the hypervisor.
+Booting `linux-image-6.8.0-138-generic` (still installed; one-time boot with
+`grub-reboot`) makes every variant of the reproducer above pass, including
+`virtio-rng-pci` + memfd, and a real `nixosTests.timezone` completes under KVM.
+
+It is still not worth pinning, because nested KVM here is no faster than
+emulation — in nVHE mode every guest exit traps through Apple's hypervisor:
+
+| `nixosTests.timezone` on 6.8.0-138 | duration | guest reaches nsncd |
+| ---------------------------------- | -------- | ------------------- |
+| KVM (`/dev/kvm` mode `0666`)        | 180.36s  | 37.9s               |
+| TCG (`/dev/kvm` mode `0660`)        | 166.12s  | 39.5s               |
+
+For comparison, `sandbox-amd64` runs the same test under real (non-Apple)
+nested KVM in 52s. So this machine's ceiling for aarch64 VM tests is ~170s
+whatever we do, and the only way to actually go faster is an aarch64 builder
+that is not behind Apple's hypervisor.
+
+#### Fail loudly rather than falling back to TCG
+
+Builds run as `nixbld*`, and Ubuntu ships `/dev/kvm` as `root:kvm` mode `0660`
+(`50-udev-default.rules`) with those users in no group but `nixbld`. QEMU in the
+sandbox therefore reported `failed to initialize kvm: Permission denied` and
+silently fell back to TCG — tests still passed, ~3x slower, and the breakage
+went unnoticed for five weeks. Do not widen `/dev/kvm` to "fix" that: at mode
+`0666` the tests hit the hang above, so `nixosTests.timezone` goes from passing
+in 179s to dying on `Shell did not start in time`.
+
+Silent degradation is the real hazard, so `ubuntu` no longer claims the features
+at all:
+
+```
+# /etc/nix/nix.conf
+system-features = benchmark big-parallel uid-range
+```
+
+Nix then refuses the work outright instead of quietly emulating it:
+
+```
+error: Cannot build '...-vm-test-run-timezone.drv'.
+       Reason: missing system features
+       Required features: {kvm, nixos-test}
+       Available features: {benchmark, big-parallel, uid-range}
+```
+
+Nothing else on the tailnet can build `aarch64-linux`, so aarch64 VM tests now
+fail visibly here rather than passing slowly. `npb` reports them as not-built
+instead of green. Restore the features once the hypervisor bug is fixed.
+
+### Known wart: shared `/tmp` on the macOS builder
+
+`tahoe-vanilla` runs with `sandbox = false`, so builds share the host's real
+`/tmp`. Tests that hardcode `/tmp` paths can then collide across builds: a
+directory created by one `_nixbld` user persists and blocks a later build running
+as a different `_nixbld` user (`PermissionError`). The concrete case seen so far
+is nixpkgs' `nixos-rebuild-ng` `test_make_tmpdir`, which uses `/tmp/not-too-long`
+and `/tmp/long…`. Clear the leftovers to unblock:
+
+```sh
+ssh tahoe-vanilla 'sudo rm -rf /tmp/not-too-long /tmp/long*'
+```
+
+The real fix is upstream (the test shouldn't hardcode shared `/tmp` paths); this
+is unrelated to whatever change triggered the rebuild.
+
+### Where the parallelism fix really belongs
+
+The per-machine `cores` cap above is the right place for a *machine's* RAM/core
+limit, but it's coarse: it throttles every build, not the handful that actually
+overcommit memory. A complete fix needs two facts that live in two different
+places — a package's peak memory per compile job, and a machine's RAM per core —
+and no layer combines them today:
+
+- **Per package, in nixpkgs.** A known-heavy derivation can pin its own compile
+  parallelism regardless of the builder, which spares every downstream user
+  (especially low-RAM CI) rather than just this tailnet. The established idiom is
+  `env.NIX_BUILD_CORES = <n>;` — e.g. `pkgs/applications/emulators/libretro/cores/mame2015.nix`
+  sets `8` for exactly this reason. A conservative cap on
+  [`foundationdb`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/fo/foundationdb/package.nix)
+  would prevent the OOM class while being invisible on Hydra's high-RAM builders
+  (the serial LTO link dominates its wall-clock anyway). The still-cleaner version
+  is an upstream CMake compile job pool (`CMAKE_JOB_POOL_COMPILE`), but the
+  one-line nixpkgs cap is the lowest-friction PR.
+- **In Nix itself.** Both `cores` and `max-jobs` are memory-blind — the scheduler
+  treats every job as equal cost. The only quantitative-ish hook that exists,
+  `requiredSystemFeatures = [ "big-parallel" ]`, is a boolean opt-in, not a memory
+  budget. The truly general fix is memory-aware scheduling: let a derivation
+  declare an expected footprint and have Nix bound concurrency by available RAM.
+  That's a long-standing gap, and it's where an everyone-benefits fix ultimately
+  lives.
+
+Until then: the machine-wide `cores` cap here is the pragmatic floor, and a
+package-level `env.NIX_BUILD_CORES` in nixpkgs is the highest-leverage thing to
+upstream.
+
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager
