@@ -31,6 +31,40 @@ nix run ~/github/samestep/env#home-manager switch
 
 You may need to log out and back in to see everything installed in the GNOME applications launcher.
 
+The configuration also runs `derper`, a Tailscale [DERP](https://tailscale.com/kb/1232/derp-servers) relay, so that the VMs below can talk to each other over the LAN instead of over the Internet. Each VM sits behind its own NAT and the home connection is behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT), so without a STUN server on the LAN, Tailscale never learns the VMs' LAN-side endpoints and relays every packet through a cloud DERP, up the slow 5G uplink and back. `derper` is pinned to the static address `192.168.12.10` declared in [`configuration.nix`](nixos/nixos/configuration.nix); on first start it mints a self-signed certificate for that address and logs the DERP-map entry to paste into the tailnet policy:
+
+```sh
+journalctl -u derper | grep -A1 'Configure it in DERPMap'
+```
+
+Add that entry to the [tailnet policy file](https://login.tailscale.com/admin/acls/file) under `derpMap`, wrapped in a custom region (IDs 900–999 are reserved for these), leaving `OmitDefaultRegions` as `false`:
+
+```json
+"derpMap": {
+  "OmitDefaultRegions": false,
+  "Regions": {
+    "900": {
+      "RegionID": 900,
+      "RegionCode": "home",
+      "RegionName": "Home LAN",
+      "Nodes": [
+        {
+          "Name": "home1",
+          "RegionID": 900,
+          "HostName": "192.168.12.10",
+          "IPv4": "192.168.12.10",
+          "IPv6": "none",
+          "DERPPort": 443,
+          "CertName": "sha256-raw:..."
+        }
+      ]
+    }
+  }
+}
+```
+
+From a VM at home, `tailscale netcheck` should then list `Home LAN` as the nearest DERP, and `tailscale ping` to another VM should settle on a direct `192.168.12.x` address. Because the relay is only reachable on the LAN, a VM that is away from home currently cannot reach the VMs that are at home, only the other way around. If the NixOS machine ever loses that address, the VMs lose every path to each other; the tell is `ping 192.168.12.10` failing from a VM while `openssl s_client -connect <new-ip>:443` still answers with a `CN=192.168.12.10` certificate. Changes to the `lan-wired` profile take effect on reboot or with `sudo nmcli connection up lan-wired`, and the Wi-Fi profile must not also claim `.10` (it once did, from a one-off `nmcli con mod`).
+
 ## [macOS](macos)
 
 This machine has an Apple Silicon chip and runs macOS.
@@ -362,57 +396,5 @@ sudo tailscale up --ssh --hostname=tahoe-vanilla
 ```
 
 Note that, without additional setup, this VM can only receive Tailscale SSH connections, and cannot SSH into other VMs on the tailnet.
-
-## Local DERP relay
-
-All three VMs are on a [Tailscale](https://tailscale.com/) tailnet, but each one sits behind its own layer of NAT (libvirt's `virbr0`, Lima's `vzNAT`, Tart's `vmnet`), and both physical machines are behind [CGNAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT) on T-Mobile 5G home internet. With only Tailscale's cloud STUN servers to discover endpoints with, no two of them could find a [direct connection](https://tailscale.com/kb/1257/connection-types), so Tailscale relayed all their traffic through a [DERP](https://tailscale.com/kb/1232/derp-servers) server in the cloud — up over the slow 5G _upload_ and back down, at ~1 MB/s between two of my own VMs.
-
-The fix is to run my own DERP relay on the always-on NixOS machine, which is wired to the router, so relayed traffic stays on the LAN. It's configured in [`nixos/nixos/configuration.nix`](nixos/nixos/configuration.nix): a `derper` service, its firewall ports, and a static LAN address for the relay to be pinned to. The NixOS machine does **not** join the tailnet: `derper` only forwards already-encrypted WireGuard packets, so it can neither read the traffic nor reach the VMs.
-
-At home the VMs mostly _don't_ relay through it, which makes it look unused. `derper` also answers STUN on 3478, and a STUN server on the same LAN hands a node back its LAN-side mapped endpoint, which the cloud STUN servers, seeing only the CGNAT-side address, can't. Given those endpoints, the per-VM NATs turn out to hole-punch after all, and the VMs hold a direct path (e.g. `192.168.12.130:39424` ↔ `192.168.12.10:41641`). So the local DERP does double duty: endpoint discovery, and the relay fallback for when that fails.
-
-No domain or ACME certificate is involved. Given an IP address for its `-hostname`, `derper` mints its own self-signed certificate, and the tailnet [DERP map](https://tailscale.com/kb/1118/custom-derp-servers) pins it by SHA256 hash. After the config is in place, a few more steps finish the wiring:
-
-1. Rebuild, then read the ready-to-paste DERP node JSON (including the `sha256-raw:` certificate pin) that `derper` logs on first start:
-
-   ```sh
-   journalctl -u derper | grep -A1 'Configure it in DERPMap'
-   ```
-
-2. Add it to the tailnet policy under Access Controls, wrapped in a custom region. `OmitDefaultRegions` must stay `false` so the cloud DERPs remain a fallback when I'm away from home:
-
-   ```json
-   "derpMap": {
-     "OmitDefaultRegions": false,
-     "Regions": {
-       "900": {
-         "RegionID": 900,
-         "RegionCode": "home",
-         "RegionName": "Home LAN",
-         "Nodes": [
-           {
-             "Name": "home1",
-             "RegionID": 900,
-             "HostName": "192.168.12.10",
-             "IPv4": "192.168.12.10",
-             "IPv6": "none",
-             "DERPPort": 443,
-             "CertName": "sha256-raw:..."
-           }
-         ]
-       }
-     }
-   }
-   ```
-
-3. Confirm the VMs pick it up:
-
-   ```sh
-   tailscale netcheck            # "Home LAN" should be the nearest DERP
-   tailscale ping sandbox-amd64  # may start "via DERP(home)", never DERP(iad),
-                                 # then upgrade to a direct 192.168.12.x address
-   ```
-
-If the box ever loses `192.168.12.10`, the failure is quiet and total rather than merely slow: `Home LAN` drops out of `tailscale netcheck`, endpoint discovery falls back to the cloud STUN servers, and with no LAN-side endpoints to hole-punch with, the VMs lose _every_ path to each other. The tell is `ping 192.168.12.10` failing from a VM while `openssl s_client -connect <new-ip>:443` still answers with a `CN=192.168.12.10` certificate. This happened once, when the address lived only on the Wi-Fi profile (set by hand with `nmcli con mod`) and moving the box to Ethernet dropped it; that is why it is declared in `configuration.nix` now. The Wi-Fi profile must not also claim `.10`, or two interfaces fight over it — if it still does, reset it once with `nmcli con mod "$CONN" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""`.
 
 [flakes]: https://wiki.nixos.org/wiki/Flakes#Other_Distros,_without_Home-Manager

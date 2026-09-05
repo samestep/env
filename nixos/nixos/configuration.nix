@@ -24,34 +24,20 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
-  # Static LAN address on the wired connection. The DERP relay below is pinned
-  # to this IP by both its self-signed certificate and the tailnet DERP map, so
-  # it must not drift. The gateway exposes no DHCP settings, so instead of a
-  # reservation this sits below its pool, which hands out from the high end.
-  # No `interface-name`, so it binds to whatever Ethernet device is present;
-  # NetworkManager won't match an `ethernet` profile to libvirt's bridge or taps.
-  # Wi-Fi keeps its own (imperative, PSK-holding) profile as a DHCP fallback.
+  # Static LAN address on the wired connection, which the DERP relay below is
+  # pinned to (see README.md). The gateway offers no DHCP reservations, so this
+  # sits below its pool. Changes take effect on reboot or `nmcli connection up`.
   networking.networkmanager.ensureProfiles.profiles.lan-wired = {
     connection = {
-      id = "lan-wired";
+      id = "lan-wired"; # required by the NixOS option, not by NetworkManager
       type = "ethernet";
-      autoconnect = true;
-      autoconnect-priority = 100; # outrank NetworkManager's default wired profile
     };
     ipv4 = {
       method = "manual";
       address1 = "192.168.12.10/24,192.168.12.1"; # address,gateway
       dns = "192.168.12.1;";
     };
-    ipv6.method = "auto";
   };
-
-  # `ensureProfiles` only reloads NetworkManager, which won't drop an active
-  # connection to adopt a new profile, so without this a `switch` wouldn't take
-  # effect until reboot. At boot the profile autoconnects and this is a no-op.
-  systemd.services.NetworkManager-ensure-profiles.postStart = ''
-    ${config.networking.networkmanager.package}/bin/nmcli connection up lan-wired || true
-  '';
 
   # Set your time zone.
   time.timeZone = "America/New_York";
@@ -134,25 +120,17 @@
   # Enable the OpenSSH daemon.
   # services.openssh.enable = true;
 
-  # Local Tailscale DERP relay, so traffic between my VMs stays on the LAN
-  # instead of hairpinning through a cloud DERP over 5G; see README.md. This
-  # host does not join the tailnet: derper only forwards already-encrypted
-  # WireGuard packets. Self-signed and pinned by hash in the tailnet DERP map,
-  # so no domain or ACME is involved.
+  # Local Tailscale DERP relay, so traffic between my VMs stays on the LAN; see
+  # README.md. Self-signed and pinned by hash in the tailnet DERP map.
   networking.firewall.allowedTCPPorts = [ 443 ]; # DERP
   networking.firewall.allowedUDPPorts = [ 3478 ]; # STUN
   systemd.services.derper = {
-    description = "Tailscale DERP relay (self-signed, LAN-only)";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
     serviceConfig = {
-      # derper only defaults the -c key path when run as root.
-      ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -a :443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
+      ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
       DynamicUser = true;
-      StateDirectory = "derper"; # persists the self-signed cert, so the pin is stable
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
-      Restart = "on-failure";
+      StateDirectory = "derper"; # keeps the key and self-signed cert, so the pin is stable
+      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ]; # bind :443 unprivileged
     };
   };
 
