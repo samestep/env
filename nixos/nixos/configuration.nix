@@ -2,7 +2,12 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
@@ -197,7 +202,18 @@
   };
 
   # https://wiki.nixos.org/wiki/OpenRGB#Basic
-  services.hardware.openrgb.enable = true;
+  services.hardware.openrgb = {
+    enable = true;
+    # Restore whatever the lights were doing when the machine was shut down.
+    startupProfile = "last";
+  };
+  # `ExecStop` runs while the server is still up, so this `openrgb` invocation
+  # autoconnects to it as an SDK client and saves a snapshot of every device.
+  # The system service has no `$HOME`, so OpenRGB's config directory falls back
+  # to the working directory `/var/lib/OpenRGB`, which is also where
+  # `startupProfile` is loaded from.
+  systemd.services.openrgb.serviceConfig.ExecStop =
+    "${lib.getExe config.services.hardware.openrgb.package} --save-profile last";
 
   # https://github.com/NixOS/nixpkgs/commit/41e401ae9fd81cf0e65c9b7a639c44050c3f9f99
   hardware.logitech.wireless = {
