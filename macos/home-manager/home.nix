@@ -4,18 +4,6 @@
   symlink,
   ...
 }:
-let
-  # https://github.com/openai/tart/pull/1324
-  tart = pkgs.tart.overrideAttrs (
-    finalAttrs: _: {
-      version = "2.30.6";
-      src = pkgs.fetchurl {
-        url = "https://github.com/cirruslabs/tart/releases/download/${finalAttrs.version}/tart.tar.gz";
-        hash = "sha256-wepqDaJp1oRjGqEVrXUM/JO5gfAKc12AUkZUbfwwdx0=";
-      };
-    }
-  );
-in
 {
   # Enabling this causes permission issues:
   # https://github.com/nix-community/home-manager/pull/8031
@@ -36,7 +24,7 @@ in
           "--prefix"
           "PATH"
           ":"
-          (lib.makeBinPath [ tart ])
+          (lib.makeBinPath [ pkgs.tart ])
         ];
       } ../../bin/tart.py)
     ];
