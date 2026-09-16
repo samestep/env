@@ -384,8 +384,8 @@ builders-use-substitutes = false
 and list one builder per line in `/etc/nix/machines`:
 
 ```
-ssh://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - <base64 host key>
-ssh://agent-amd64@sandbox-amd64.tail1a09f6.ts.net x86_64-linux - 8 1 big-parallel,benchmark,kvm,nixos-test,uid-range - <base64 host key>
+ssh-ng://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - <base64 host key>
+ssh-ng://agent-amd64@sandbox-amd64.tail1a09f6.ts.net x86_64-linux - 8 1 big-parallel,benchmark,kvm,nixos-test,uid-range - <base64 host key>
 ```
 
 The fields are `URI system ssh-key max-jobs speed-factor features
@@ -393,6 +393,31 @@ mandatory-features base64-host-key`. SSH goes through the `~/.ssh/tailnet` confi
 (from the `tailnet` script), connecting as the user in each URI; because the
 nix-daemon runs builds as root, root — not just your user — must be able to reach
 each builder.
+
+Use `ssh-ng://`, not `ssh://`. The two differ only in what runs on the far end:
+[`ssh://`](https://nix.dev/manual/nix/latest/store/types/ssh-store) is the legacy
+protocol that spawns `nix-store --serve` per connection, while
+[`ssh-ng://`](https://nix.dev/manual/nix/latest/store/types/experimental-ssh-store)
+speaks the regular daemon protocol to `nix-daemon --stdio`. Neither compresses
+anything on the wire (both stream raw NARs), so for one big path they are equally
+fast — but the legacy protocol pays several round trips per store path, and that
+adds up over the Wi-Fi hop to `sandbox-amd64` (3–16 ms RTT). Measured from
+`ubuntu` with `nix copy`, remote paths deleted between runs:
+
+| workload → `sandbox-amd64`                 | `ssh://`          | `ssh-ng://`        |
+| ------------------------------------------ | ----------------- | ------------------ |
+| one 256 MiB file                           | 22 MiB/s          | 25 MiB/s           |
+| closure of `git` (88 paths, 409 MiB)       | 18.5 s (22 MiB/s) | 14.2 s (29 MiB/s)  |
+| 200 paths of 64 KiB                        | 4.0 s (50/s)      | 0.67 s (300/s)     |
+
+`ssh-ng://` is at the link's iperf3 ceiling; `ssh://` is 30% slower on a real
+closure and 6× slower on a closure of many tiny paths (the `.drv`-heavy shape a
+mass rebuild produces), and it degrades far worse when the link is busy or lossy:
+with another transfer saturating the link, the same closure took 147 s over
+`ssh://` against 37 s over `ssh-ng://`. To `tahoe-vanilla` (sub-millisecond RTT on
+the same host) the difference is small, but there is no reason to mix. The
+`?compress=true` store parameter just adds `-C` to `ssh`, and neither builder's
+`sshd` offers compression anyway, so it is a no-op here.
 
 The 4th field is the **coordinator's** slot count for that builder — how many
 derivations it will keep in flight there — and is unrelated to that builder's
@@ -500,12 +525,12 @@ ssh sandbox-amd64 "echo 'cores = 4' | sudo tee -a /etc/nix/nix.conf"
 ssh tahoe-vanilla "printf 'cores = 3\nmax-jobs = 6\n' | sudo tee -a /etc/nix/nix.custom.conf"
 ```
 
-Because the builders above are `ssh://` (legacy `nix-store --serve`, not
-`ssh-ng://`), the coordinator does **not** forward its own `cores` to them — each
-build uses the remote machine's value — and a fresh serve process per SSH
-connection re-reads `nix.conf`, so no daemon restart is needed; the coordinator's
-local `aarch64-linux` builds pick it up from its own `nix.conf` the same way.
-Verify:
+The coordinator does **not** forward its own `cores` to the builders — each
+build uses the remote machine's value (verified with both `ssh://` and
+`ssh-ng://` by building a derivation that writes out `$NIX_BUILD_CORES`) — and
+each SSH connection starts a fresh `nix-daemon --stdio` that re-reads `nix.conf`,
+so no daemon restart is needed; the coordinator's local `aarch64-linux` builds
+pick it up from its own `nix.conf` the same way. Verify:
 
 ```sh
 nix config show | grep -E '^(cores|max-jobs) '
@@ -524,14 +549,14 @@ memory-aware fix would truly belong.
 `/etc/nix/machines` and can drive all three systems too. Two things to know.
 
 Its `aarch64-linux` line originally pointed at
-`ssh://agent-arm64@sandbox-arm64`, a VM since deleted and replaced by `ubuntu` —
+`agent-arm64@sandbox-arm64`, a VM since deleted and replaced by `ubuntu` —
 a stale entry costs you a hang against a host that no longer answers rather than
 an error, so repoint it (and give each builder the slot count its own `cores`
 implies, so both coordinators agree):
 
 ```
-ssh://admin@ubuntu.tail1a09f6.ts.net aarch64-linux - 4 1 big-parallel,benchmark,kvm,nixos-test,uid-range - -
-ssh://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - -
+ssh-ng://admin@ubuntu.tail1a09f6.ts.net aarch64-linux - 4 1 big-parallel,benchmark,kvm,nixos-test,uid-range - -
+ssh-ng://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - -
 ```
 
 Both key fields are `-`: Tailscale SSH handles authentication, so no identity
