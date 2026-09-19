@@ -20,7 +20,6 @@ in
       export CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL=1
       exec ${pkgs.claude-code}/bin/claude "$@"
     '')
-    pkgs.cloc
     pkgs.comma
     pkgs.git
     pkgs.nh # https://github.com/nix-community/nix-index/issues/317
@@ -50,7 +49,6 @@ in
   ];
 
   home.file = {
-    ".config/cloc" = symlink "cloc";
     ".gitconfig" = symlink ".gitconfig";
   };
 
