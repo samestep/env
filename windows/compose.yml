@@ -1,0 +1,25 @@
+services:
+  windows:
+    image: dockurr/windows
+    container_name: windows
+    environment:
+      VERSION: "11"
+      RAM_SIZE: "8G"
+      CPU_CORES: "2"
+      DISK_SIZE: "64G"
+      USERNAME: "agent"
+      PASSWORD: "password"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8006:8006      # web viewer (noVNC)
+      - 3389:3389/tcp  # RDP
+      - 3389:3389/udp
+      - 2222:22        # SSH (OpenSSH Server in the guest; see README)
+    volumes:
+      - ./storage:/storage
+    restart: always
+    stop_grace_period: 2m

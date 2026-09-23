@@ -8,3 +8,12 @@ Host ubuntu
 
 Host tahoe-vanilla
   User admin
+
+# The Windows guest inside sandbox-amd64 (see windows/). RemoteCommand runs the
+# inner ssh *on* sandbox-amd64 so it authenticates with that host's key (which is
+# in the guest's authorized_keys); a plain ProxyJump would auth end-to-end and
+# prompt for a password. `ssh win-amd64` drops straight into PowerShell.
+Host win-amd64
+  User agent-amd64
+  RequestTTY force
+  RemoteCommand ssh -tt -o StrictHostKeyChecking=accept-new -p 2222 agent@localhost
