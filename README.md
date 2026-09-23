@@ -237,6 +237,12 @@ Avoid ten-second hangs by enabling Ubuntu to resolve the local hostname:
 echo "127.0.1.1 $(hostname)" | sudo tee -a /etc/hosts
 ```
 
+The cirruslabs image is currently Ubuntu 24.04, whose default `sshd_config` only has `AcceptEnv LANG LC_*`, so [allow Ghostty's environment forwarding over SSH](https://ghostty.org/docs/features/shell-integration#remote-sshd-configuration) (Ubuntu 26.04's default already accepts `COLORTERM`, so this becomes redundant once the image updates):
+
+```sh
+echo AcceptEnv COLORTERM TERM_PROGRAM TERM_PROGRAM_VERSION | sudo tee /etc/ssh/sshd_config.d/101-color.conf
+```
+
 Next, install Nix:
 
 ```sh
