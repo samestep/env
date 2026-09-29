@@ -393,8 +393,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send(404, {"error": "not found"})
 
 
+def kill_leftover_containers():
+    """`docker run` clients die with the service, but their containers keep
+    running under dockerd; stop any we started so they don't hold the GPU."""
+    ids = subprocess.run(
+        [DOCKER, "ps", "-q", "--filter", "name=^finetune-"],
+        capture_output=True, text=True,
+    ).stdout.split()
+    if ids:
+        subprocess.run([DOCKER, "kill", *ids], capture_output=True)
+
+
 def recover():
     """Requeue jobs that were queued or interrupted when the service stopped."""
+    kill_leftover_containers()
     for jid in sorted(os.listdir(JOBS), key=lambda j: os.path.getmtime(os.path.join(JOBS, j))):
         try:
             st = read_status(jid)

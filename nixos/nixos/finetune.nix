@@ -60,6 +60,8 @@ in
     };
     serviceConfig = {
       ExecStart = "${pkgs.python3}/bin/python3 ${./finetune/server.py}";
+      # Containers outlive the `docker run` clients systemd kills on stop.
+      ExecStopPost = "${pkgs.bash}/bin/sh -c '${pkgs.docker}/bin/docker ps -q --filter name=^finetune- | ${pkgs.findutils}/bin/xargs -r ${pkgs.docker}/bin/docker kill'";
       User = "finetune";
       Group = "finetune";
       StateDirectory = "finetune";
