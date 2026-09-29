@@ -8,6 +8,10 @@ by a client: every command line is fixed here, and client values only ever
 reach a generated JSON config after type and range checks.
 
 API (all JSON unless noted):
+  GET    /serve                  the llama-server currently up, if any
+  POST   /serve                  serve {"job": id, "file": "<.gguf>", "ctx": n, "parallel": n}
+                                 (OpenAI-compatible API on FINETUNE_SERVE_PORT)
+  DELETE /serve                  stop it
   GET    /jobs                   list jobs
   POST   /jobs                   submit {"config": {...}, "data": "<jsonl>"}
   GET    /jobs/<id>              one job's status
@@ -31,6 +35,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 STATE = os.environ.get("FINETUNE_STATE", "/var/lib/finetune")
 LISTEN = os.environ.get("FINETUNE_LISTEN", "0.0.0.0")
 PORT = int(os.environ.get("FINETUNE_PORT", "11500"))
+# llama-server for a finished job's GGUF, published only on this address.
+SERVE_BIND = os.environ.get("FINETUNE_SERVE_BIND", "192.168.122.1")
+SERVE_PORT = int(os.environ.get("FINETUNE_SERVE_PORT", "11501"))
+SERVE_NAME = "finetune-serve"
 ALLOWED_MODELS = json.loads(os.environ.get("FINETUNE_ALLOWED_MODELS", "[]"))
 TRAIN_IMAGE = os.environ["FINETUNE_TRAIN_IMAGE"]
 CONVERT_IMAGE = os.environ["FINETUNE_CONVERT_IMAGE"]
@@ -83,6 +91,7 @@ DEFAULTS = {
 lock = threading.Lock()
 queue = []  # job ids, oldest first
 running = {"id": None, "container": None}
+serving = {}  # the llama-server currently up, if any
 
 
 def job_dir(jid):
@@ -196,6 +205,33 @@ def train_config(c):
     }
 
 
+def stop_server():
+    subprocess.run([DOCKER, "rm", "-f", SERVE_NAME], capture_output=True)
+    with lock:
+        serving.clear()
+
+
+def start_server(jid, name, ctx, parallel):
+    if name not in {f["name"] for f in output_files(jid)} or not name.endswith(".gguf"):
+        raise ValueError("file must be one of this job's .gguf outputs")
+    stop_server()
+    cmd = [
+        DOCKER, "run", "-d", "--name", SERVE_NAME,
+        "--device", "nvidia.com/gpu=all",
+        "-p", f"{SERVE_BIND}:{SERVE_PORT}:8080",
+        "-v", f"{os.path.join(JOBS, jid, 'out')}:/models:ro",
+        "--entrypoint", "/app/llama-server", CONVERT_IMAGE,
+        "--host", "0.0.0.0", "--port", "8080", "-m", f"/models/{name}",
+        "-ngl", "999", "-c", str(ctx), "-np", str(parallel), "--flash-attn", "on",
+    ]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr.strip()[-500:])
+    with lock:
+        serving.update(job=jid, file=name, ctx=ctx, parallel=parallel,
+                       url=f"http://{SERVE_BIND}:{SERVE_PORT}", started=time.time())
+
+
 def unload_ollama(log):
     if not OLLAMA:
         return
@@ -243,6 +279,9 @@ def run_job(jid):
         json.dump(train_config(c), f, indent=1)
     with open(os.path.join(d, "log.txt"), "a") as log:
         unload_ollama(log)
+        if serving:
+            log.write(f"stopping llama-server for job {serving.get('job')}\n")
+            stop_server()
         write_status(jid, state="running", step="train", started=time.time())
         run_step(jid, "train", TRAIN_IMAGE, ["axolotl", "train", "/job/train.yml"], log)
         if not c["merge"]:
@@ -315,6 +354,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         p, q = self.parts()
         try:
+            if p == ["serve"]:
+                up = subprocess.run([DOCKER, "ps", "-q", "--filter", f"name=^{SERVE_NAME}$"],
+                                    capture_output=True, text=True).stdout.strip()
+                return self.send(200, dict(serving, running=bool(up)))
             if p == ["jobs"]:
                 ids = sorted(os.listdir(JOBS), key=lambda j: os.path.getmtime(os.path.join(JOBS, j)))
                 return self.send(200, [dict(read_status(j), id=j) for j in ids])
@@ -345,6 +388,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         p, _ = self.parts()
+        if p == ["serve"]:
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                body = json.loads(self.rfile.read(length)) if 0 < length < 2**16 else {}
+                jid, name = body["job"], body["file"]
+                ctx = int(body.get("ctx", 8192)); par = int(body.get("parallel", 1))
+                if not (512 <= ctx <= 131072 and 1 <= par <= 16):
+                    raise ValueError("ctx must be in [512, 131072], parallel in [1, 16]")
+                if running["id"] is not None:
+                    raise ValueError("a training job is running")
+                job_dir(jid)
+                start_server(jid, name, ctx, par)
+                return self.send(200, dict(serving))
+            except KeyError:
+                return self.send(404, {"error": "job or file not found"})
+            except (ValueError, TypeError, json.JSONDecodeError, RuntimeError) as e:
+                return self.send(400, {"error": str(e)})
         if p != ["jobs"]:
             return self.send(404, {"error": "not found"})
         try:
@@ -376,6 +436,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         p, _ = self.parts()
+        if p == ["serve"]:
+            stop_server()
+            return self.send(200, {"serving": False})
         try:
             if len(p) != 2 or p[0] != "jobs":
                 raise KeyError()

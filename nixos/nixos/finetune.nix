@@ -11,6 +11,7 @@
 
 let
   port = 11500;
+  servePort = 11501;
 
   # Pinned by digest; bump deliberately. Axolotl trains and merges LoRAs,
   # llama.cpp converts the merged weights to GGUF and quantizes them.
@@ -51,6 +52,8 @@ in
       FINETUNE_STATE = "/var/lib/finetune";
       FINETUNE_LISTEN = "0.0.0.0";
       FINETUNE_PORT = toString port;
+      FINETUNE_SERVE_BIND = "192.168.122.1";
+      FINETUNE_SERVE_PORT = toString servePort;
       FINETUNE_ALLOWED_MODELS = builtins.toJSON allowedModels;
       FINETUNE_TRAIN_IMAGE = trainImage;
       FINETUNE_CONVERT_IMAGE = convertImage;
@@ -71,5 +74,10 @@ in
     };
   };
 
-  networking.firewall.interfaces."virbr0".allowedTCPPorts = [ port ];
+  # servePort: llama-server for a finished job, which Docker publishes on
+  # 192.168.122.1 only (Docker's own port rules bypass this firewall).
+  networking.firewall.interfaces."virbr0".allowedTCPPorts = [
+    port
+    servePort
+  ];
 }
