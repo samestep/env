@@ -197,6 +197,9 @@ def train_config(c):
         "tf32": True,
         "gradient_checkpointing": True,
         "flash_attention": True,
+        # The flash-attn kernel rejects attention dropout, which some model
+        # configs (e.g. Seed-OSS) enable by default.
+        "overrides_of_model_config": {"attention_dropout": 0.0},
         "logging_steps": 5,
         "evals_per_epoch": 4 if c["val_set_size"] > 0 else 0,
         "saves_per_epoch": 1,
