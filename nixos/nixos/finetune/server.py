@@ -218,7 +218,7 @@ def run_step(jid, name, image, args, log):
     container = f"finetune-{jid}-{name}"
     cmd = [
         DOCKER, "run", "--rm", "--name", container,
-        "--device", "nvidia.com/gpu=all", "--ipc=host",
+        "--device", "nvidia.com/gpu=all", "--shm-size=16g",
         "-v", f"{os.path.join(JOBS, jid)}:/job",
         "-v", f"{HF_CACHE}:/hf", "-e", "HF_HOME=/hf",
         "--entrypoint", args[0], image, *args[1:],
@@ -347,7 +347,12 @@ class Handler(BaseHTTPRequestHandler):
         p, _ = self.parts()
         if p != ["jobs"]:
             return self.send(404, {"error": "not found"})
-        length = int(self.headers.get("Content-Length", "0"))
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = -1
+        if length < 0:
+            return self.send(400, {"error": "bad Content-Length"})
         if length > MAX_DATA_BYTES + 2**20:
             return self.send(413, {"error": "too large"})
         try:
