@@ -1,7 +1,7 @@
 """A small job runner for fine-tuning local models on this machine's GPU.
 
-Guests on the libvirt bridge submit a dataset plus a handful of whitelisted
-hyperparameters; this server turns them into a training config, runs pinned
+Guests on the libvirt bridge submit a dataset, a Hugging Face base model and a
+handful of whitelisted hyperparameters; this server turns them into a training config, runs pinned
 containers (train, merge, convert to GGUF, quantize) one job at a time, and
 serves back the logs and the resulting files. It never runs anything supplied
 by a client: every command line is fixed here, and client values only ever
@@ -43,7 +43,11 @@ PORT = int(os.environ.get("FINETUNE_PORT", "11500"))
 SERVE_BIND = os.environ.get("FINETUNE_SERVE_BIND", "192.168.122.1")
 SERVE_PORT = int(os.environ.get("FINETUNE_SERVE_PORT", "11501"))
 SERVE_NAME = "finetune-serve"
-ALLOWED_MODELS = json.loads(os.environ.get("FINETUNE_ALLOWED_MODELS", "[]"))
+# Any public Hugging Face repo with safetensors weights up to this size. Code
+# shipped in a repo is never run (trust_remote_code stays off), and pickled
+# weights are never loaded.
+MAX_MODEL_BYTES = int(os.environ.get("FINETUNE_MAX_MODEL_BYTES", str(150 * 2**30)))
+HF_API = "https://huggingface.co/api/models/"
 TRAIN_IMAGE = os.environ["FINETUNE_TRAIN_IMAGE"]
 CONVERT_IMAGE = os.environ["FINETUNE_CONVERT_IMAGE"]
 FORWARD_SCRIPT = os.environ["FINETUNE_FORWARD_SCRIPT"]
@@ -58,7 +62,13 @@ os.makedirs(HF_CACHE, exist_ok=True)
 
 # name: (type, min, max) for numbers, or a tuple of allowed strings.
 PARAMS = {
-    "base_model": tuple(ALLOWED_MODELS),
+    "base_model": None,  # checked by check_model
+    # sft trains on "dataset_type" rows; the preference objectives take
+    # {"prompt", "chosen", "rejected"} rows (dpo, ipo, simpo) or
+    # {"prompt", "completion", "label": bool} rows (kto).
+    "objective": ("sft", "dpo", "ipo", "simpo", "kto"),
+    "rl_beta": (float, 0.001, 10.0),
+    "simpo_gamma": (float, 0.0, 10.0),
     "dataset_type": ("completion", "input_output", "chat_template"),
     "adapter": ("qlora", "lora"),
     "lora_r": (int, 4, 256),
@@ -76,6 +86,9 @@ PARAMS = {
     "merge": (True, False),
 }
 DEFAULTS = {
+    "objective": "sft",
+    "rl_beta": 0.1,
+    "simpo_gamma": 0.5,
     "dataset_type": "input_output",
     "adapter": "qlora",
     "lora_r": 32,
@@ -178,9 +191,39 @@ def validate(cfg, params=PARAMS, defaults=DEFAULTS):
         elif v not in rule:
             raise ValueError(f"{k} must be one of {list(rule)}")
         out[k] = v
-    if params is PARAMS and "base_model" not in out:
-        raise ValueError(f"base_model is required; allowed: {ALLOWED_MODELS}")
+    if params is PARAMS:
+        out["base_model"] = check_model(out.get("base_model"))
     return out
+
+
+model_ok = {}  # repo -> True once checked
+
+
+def check_model(name):
+    if not isinstance(name, str) or not re.fullmatch(r"[\w][\w.-]*/[\w][\w.-]*", name) \
+            or ".." in name:
+        raise ValueError("base_model must be a Hugging Face repo id like owner/name")
+    if name in model_ok:
+        return name
+    try:
+        with urllib.request.urlopen(HF_API + name + "?blobs=true", timeout=30) as r:
+            info = json.load(r)
+    except Exception as e:
+        raise ValueError(f"can't look up {name} on Hugging Face (missing, gated or private?): {e}")
+    if info.get("gated") or info.get("private") or info.get("disabled"):
+        raise ValueError(f"{name} is gated or private")
+    files = info.get("siblings", [])
+    weights = [f for f in files if f["rfilename"].endswith(".safetensors")]
+    if not weights:
+        raise ValueError(f"{name} has no safetensors weights")
+    size = sum(f.get("size") or 0 for f in weights)
+    if size > MAX_MODEL_BYTES:
+        raise ValueError(f"{name} weights are {size / 2**30:.0f} GiB; the limit is "
+                         f"{MAX_MODEL_BYTES / 2**30:.0f} GiB")
+    if (info.get("config") or {}).get("auto_map"):
+        raise ValueError(f"{name} needs custom code, which is never run here")
+    model_ok[name] = True
+    return name
 
 
 def number_list(v, name, lo, hi):
@@ -225,7 +268,7 @@ def validate_forward_data(text, mode):
     return n
 
 
-def validate_data(text, dataset_type):
+def validate_data(text, dataset_type, objective="sft"):
     if len(text.encode()) > MAX_DATA_BYTES:
         raise ValueError("data too large")
     n = 0
@@ -233,11 +276,20 @@ def validate_data(text, dataset_type):
         if not line.strip():
             continue
         row = json.loads(line)
-        if dataset_type == "completion" and not isinstance(row.get("text"), str):
+        if not isinstance(row, dict):
+            raise ValueError(f"line {i}: rows must be objects")
+        if objective in ("dpo", "ipo", "simpo"):
+            if any(not isinstance(row.get(k), str) for k in ("prompt", "chosen", "rejected")):
+                raise ValueError(f"line {i}: {objective} rows need string prompt, chosen, rejected")
+        elif objective == "kto":
+            if any(not isinstance(row.get(k), str) for k in ("prompt", "completion")) \
+                    or not isinstance(row.get("label"), bool):
+                raise ValueError(f"line {i}: kto rows need string prompt, completion and bool label")
+        elif dataset_type == "completion" and not isinstance(row.get("text"), str):
             raise ValueError(f"line {i}: completion rows need a string 'text'")
-        if dataset_type == "input_output" and not isinstance(row.get("segments"), list):
+        elif dataset_type == "input_output" and not isinstance(row.get("segments"), list):
             raise ValueError(f"line {i}: input_output rows need a 'segments' list")
-        if dataset_type == "chat_template" and not isinstance(row.get("messages"), list):
+        elif dataset_type == "chat_template" and not isinstance(row.get("messages"), list):
             raise ValueError(f"line {i}: chat_template rows need a 'messages' list")
         n += 1
     if n == 0:
@@ -250,7 +302,26 @@ def train_config(c):
     ds = {"path": "/job/data.jsonl", "type": c["dataset_type"]}
     if c["dataset_type"] == "chat_template":
         ds["field_messages"] = "messages"
-    return {
+    rl = {}
+    if c["objective"] != "sft":
+        # Plain-text user_defined formats, so base models need no chat template.
+        if c["objective"] == "kto":
+            ds = {"path": "/job/data.jsonl", "split": "train", "type": {
+                "field_prompt": "prompt", "field_completion": "completion", "field_label": "label",
+                "prompt_format": "{prompt}", "completion_format": "{completion}"}}
+        else:
+            ds = {"path": "/job/data.jsonl", "split": "train", "type": {
+                "field_prompt": "prompt", "field_chosen": "chosen", "field_rejected": "rejected",
+                "prompt_format": "{prompt}", "chosen_format": "{chosen}",
+                "rejected_format": "{rejected}"}}
+        rl = {"rl": "dpo" if c["objective"] == "ipo" else c["objective"],
+              "rl_beta": c["rl_beta"], "remove_unused_columns": False}
+        if c["objective"] == "ipo":
+            rl["dpo_loss_type"] = ["ipo"]
+        if c["objective"] == "simpo":
+            rl["simpo_gamma"] = c["simpo_gamma"]
+    return rl | {
+        "trust_remote_code": False,
         "base_model": c["base_model"],
         "load_in_4bit": c["adapter"] == "qlora",
         "adapter": c["adapter"],
@@ -263,8 +334,8 @@ def train_config(c):
         "val_set_size": c["val_set_size"],
         "output_dir": "/job/out/adapter",
         "sequence_len": c["sequence_len"],
-        "sample_packing": c["dataset_type"] == "completion",
-        "pad_to_sequence_len": c["dataset_type"] == "completion",
+        "sample_packing": c["dataset_type"] == "completion" and not rl,
+        "pad_to_sequence_len": c["dataset_type"] == "completion" and not rl,
         "micro_batch_size": c["micro_batch_size"],
         "gradient_accumulation_steps": c["gradient_accumulation_steps"],
         "num_epochs": c["num_epochs"],
@@ -516,7 +587,7 @@ class Handler(BaseHTTPRequestHandler):
                 rows = validate_forward_data(body.get("data", ""), cfg["mode"])
             else:
                 cfg = validate(body.get("config", {}))
-                rows = validate_data(body.get("data", ""), cfg["dataset_type"])
+                rows = validate_data(body.get("data", ""), cfg["dataset_type"], cfg["objective"])
         except KeyError:
             return self.send(404, {"error": "source job not found"})
         except (ValueError, TypeError, json.JSONDecodeError, AttributeError) as e:

@@ -35,10 +35,11 @@ quant = {
     "8bit": BitsAndBytesConfig(load_in_8bit=True),
     "bf16": None,
 }[c["precision"]]
-tok = AutoTokenizer.from_pretrained(c["base_model"])
+tok = AutoTokenizer.from_pretrained(c["base_model"], trust_remote_code=False)
 base = AutoModelForCausalLM.from_pretrained(
     c["base_model"], quantization_config=quant, torch_dtype=torch.bfloat16,
-    device_map="cuda", attn_implementation="sdpa",
+    device_map="cuda", attn_implementation="sdpa", trust_remote_code=False,
+    use_safetensors=True,
 )
 model = PeftModel.from_pretrained(base, "/adapter").eval()
 layers = [m for m in model.modules() if isinstance(m, LoraLayer)]
