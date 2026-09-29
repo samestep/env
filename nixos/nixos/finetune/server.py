@@ -298,8 +298,11 @@ def run_job(jid):
             q = c["quantize"]
             run_step(jid, "quantize", CONVERT_IMAGE,
                      ["/app/llama-quantize", "/job/out/model-bf16.gguf", f"/job/out/model-{q}.gguf", q], log)
-            os.remove(os.path.join(d, "out", "model-bf16.gguf"))
-        shutil.rmtree(os.path.join(d, "out", "adapter", "merged"), ignore_errors=True)
+            run_step(jid, "rm-bf16", CONVERT_IMAGE, ["rm", "-f", "/job/out/model-bf16.gguf"], log)
+        # The merged weights (tens of GB) are only an intermediate. Containers
+        # run as root, so their files are root-owned: delete them from one.
+        write_status(jid, step="cleanup")
+        run_step(jid, "cleanup", CONVERT_IMAGE, ["rm", "-rf", "/job/out/adapter/merged"], log)
 
 
 def worker():
