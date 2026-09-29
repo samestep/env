@@ -61,6 +61,8 @@ in
       FINETUNE_ALLOWED_MODELS = builtins.toJSON allowedModels;
       FINETUNE_TRAIN_IMAGE = trainImage;
       FINETUNE_CONVERT_IMAGE = convertImage;
+      # Run in the training image for scoring/generation with an adapter.
+      FINETUNE_FORWARD_SCRIPT = "${./finetune/forward.py}";
       # If ollama is running, its resident models are unloaded before each
       # training run so the GPU's memory is free.
       FINETUNE_OLLAMA_URL = "http://127.0.0.1:11434";

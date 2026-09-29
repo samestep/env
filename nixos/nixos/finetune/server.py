@@ -14,6 +14,10 @@ API (all JSON unless noted):
   DELETE /serve                  stop it
   GET    /jobs                   list jobs
   POST   /jobs                   submit {"config": {...}, "data": "<jsonl>"}
+  POST   /jobs/<id>/forward      queue a scoring or generation run with finished
+                                 training job <id>'s adapter, {"config": {...},
+                                 "data": "<jsonl>"}; see ./forward.py. Results
+                                 are the new job's out/results.jsonl
   GET    /jobs/<id>              one job's status
   GET    /jobs/<id>/log?tail=N   plain-text log (last N lines)
   GET    /jobs/<id>/files        list output files
@@ -42,6 +46,7 @@ SERVE_NAME = "finetune-serve"
 ALLOWED_MODELS = json.loads(os.environ.get("FINETUNE_ALLOWED_MODELS", "[]"))
 TRAIN_IMAGE = os.environ["FINETUNE_TRAIN_IMAGE"]
 CONVERT_IMAGE = os.environ["FINETUNE_CONVERT_IMAGE"]
+FORWARD_SCRIPT = os.environ["FINETUNE_FORWARD_SCRIPT"]
 OLLAMA = os.environ.get("FINETUNE_OLLAMA_URL", "")  # unload models before training
 DOCKER = os.environ.get("FINETUNE_DOCKER", "docker")
 MAX_DATA_BYTES = int(os.environ.get("FINETUNE_MAX_DATA_BYTES", str(512 * 2**20)))
@@ -88,6 +93,35 @@ DEFAULTS = {
     "merge": True,
 }
 
+# Forward runs: same rule format, plus the lists checked in validate_forward.
+FORWARD_PARAMS = {
+    "mode": ("score", "generate"),
+    "precision": ("4bit", "8bit", "bf16"),
+    "max_len": (int, 16, 32768),
+    "top_k": (int, 0, 20),
+    "max_new_tokens": (int, 1, 4096),
+    "n": (int, 1, 16),
+    "temperature": (float, 0.01, 5.0),
+    "top_p": (float, 0.01, 1.0),
+    "plausibility": (float, 0.0, 1.0),
+    "seed": (int, 0, 2**31 - 1),
+    "scales": None,
+    "weights": None,
+}
+FORWARD_DEFAULTS = {
+    "mode": "score",
+    "precision": "4bit",
+    "max_len": 4096,
+    "top_k": 0,
+    "max_new_tokens": 512,
+    "n": 1,
+    "temperature": 0.8,
+    "top_p": 1.0,
+    "plausibility": 0.0,
+    "seed": 42,
+    "scales": [0.0, 1.0],
+}
+
 lock = threading.Lock()
 queue = []  # job ids, oldest first
 running = {"id": None, "container": None}
@@ -120,15 +154,18 @@ def write_status(jid, **kw):
     os.replace(path + ".tmp", path)
 
 
-def validate(cfg):
+def validate(cfg, params=PARAMS, defaults=DEFAULTS):
     if not isinstance(cfg, dict):
         raise ValueError("config must be an object")
-    unknown = set(cfg) - set(PARAMS)
+    unknown = set(cfg) - set(params)
     if unknown:
         raise ValueError(f"unknown config keys: {sorted(unknown)}")
-    out = dict(DEFAULTS)
+    out = dict(defaults)
     for k, v in cfg.items():
-        rule = PARAMS[k]
+        rule = params[k]
+        if rule is None:
+            out[k] = v
+            continue
         if rule and isinstance(rule[0], type):
             t, lo, hi = rule
             if isinstance(v, bool) or not isinstance(v, (int, float)):
@@ -141,9 +178,51 @@ def validate(cfg):
         elif v not in rule:
             raise ValueError(f"{k} must be one of {list(rule)}")
         out[k] = v
-    if "base_model" not in out:
+    if params is PARAMS and "base_model" not in out:
         raise ValueError(f"base_model is required; allowed: {ALLOWED_MODELS}")
     return out
+
+
+def number_list(v, name, lo, hi):
+    if not (isinstance(v, list) and 1 <= len(v) <= 4) or any(
+        isinstance(x, bool) or not isinstance(x, (int, float)) or not lo <= x <= hi for x in v
+    ):
+        raise ValueError(f"{name} must be a list of 1-4 numbers in [{lo}, {hi}]")
+    return [float(x) for x in v]
+
+
+def validate_forward(cfg, src):
+    """A forward run's config; the base model comes from source job `src`."""
+    st = read_status(src)
+    adapter = os.path.join(job_dir(src), "out", "adapter", "adapter_config.json")
+    if st.get("config", {}).get("kind") == "forward" or st.get("state") != "done" \
+            or not os.path.exists(adapter):
+        raise ValueError("source must be a finished training job with an adapter")
+    out = validate(cfg, FORWARD_PARAMS, FORWARD_DEFAULTS)
+    out["scales"] = number_list(out["scales"], "scales", 0.0, 2.0)
+    out["weights"] = number_list(
+        out.get("weights", [1.0] + [0.0] * (len(out["scales"]) - 1)), "weights", -8.0, 8.0)
+    if len(out["weights"]) != len(out["scales"]):
+        raise ValueError("weights must be as long as scales")
+    return dict(out, kind="forward", source=src, base_model=st["config"]["base_model"])
+
+
+def validate_forward_data(text, mode):
+    if len(text.encode()) > MAX_DATA_BYTES:
+        raise ValueError("data too large")
+    n = 0
+    for i, line in enumerate(text.splitlines(), 1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        need = ("text",) if mode == "score" else ("prompt",)
+        if not isinstance(row, dict) or any(not isinstance(row.get(k), str) for k in need) \
+                or not isinstance(row.get("prompt", ""), str):
+            raise ValueError(f"line {i}: {mode} rows need string {' and '.join(need)}")
+        n += 1
+    if n == 0:
+        raise ValueError("no rows")
+    return n
 
 
 def validate_data(text, dataset_type):
@@ -253,11 +332,12 @@ def unload_ollama(log):
         log.write(f"ollama unload skipped: {e}\n")
 
 
-def run_step(jid, name, image, args, log):
+def run_step(jid, name, image, args, log, mounts=()):
     container = f"finetune-{jid}-{name}"
     cmd = [
         DOCKER, "run", "--rm", "--name", container,
         "--device", "nvidia.com/gpu=all", "--shm-size=16g",
+        *[a for m in mounts for a in ("-v", m)],
         "-v", f"{os.path.join(JOBS, jid)}:/job",
         "-v", f"{HF_CACHE}:/hf", "-e", "HF_HOME=/hf",
         "--entrypoint", args[0], image, *args[1:],
@@ -278,13 +358,20 @@ def run_job(jid):
     with open(os.path.join(d, "config.json")) as f:
         c = json.load(f)
     os.makedirs(os.path.join(d, "out"), exist_ok=True)
-    with open(os.path.join(d, "train.yml"), "w") as f:
-        json.dump(train_config(c), f, indent=1)
+    if c.get("kind") != "forward":
+        with open(os.path.join(d, "train.yml"), "w") as f:
+            json.dump(train_config(c), f, indent=1)
     with open(os.path.join(d, "log.txt"), "a") as log:
         unload_ollama(log)
         if serving:
             log.write(f"stopping llama-server for job {serving.get('job')}\n")
             stop_server()
+        if c.get("kind") == "forward":
+            write_status(jid, state="running", step="forward", started=time.time())
+            adapter = os.path.join(JOBS, c["source"], "out", "adapter")
+            run_step(jid, "forward", TRAIN_IMAGE, ["python3", "/runner/forward.py"], log,
+                     mounts=[f"{adapter}:/adapter:ro", f"{FORWARD_SCRIPT}:/runner/forward.py:ro"])
+            return
         write_status(jid, state="running", step="train", started=time.time())
         run_step(jid, "train", TRAIN_IMAGE, ["axolotl", "train", "/job/train.yml"], log)
         if not c["merge"]:
@@ -411,7 +498,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(404, {"error": "job or file not found"})
             except (ValueError, TypeError, json.JSONDecodeError, RuntimeError) as e:
                 return self.send(400, {"error": str(e)})
-        if p != ["jobs"]:
+        forward = len(p) == 3 and p[0] == "jobs" and p[2] == "forward"
+        if p != ["jobs"] and not forward:
             return self.send(404, {"error": "not found"})
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -423,9 +511,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(413, {"error": "too large"})
         try:
             body = json.loads(self.rfile.read(length))
-            cfg = validate(body.get("config", {}))
-            rows = validate_data(body.get("data", ""), cfg["dataset_type"])
-        except (ValueError, json.JSONDecodeError, AttributeError) as e:
+            if forward:
+                cfg = validate_forward(body.get("config", {}), p[1])
+                rows = validate_forward_data(body.get("data", ""), cfg["mode"])
+            else:
+                cfg = validate(body.get("config", {}))
+                rows = validate_data(body.get("data", ""), cfg["dataset_type"])
+        except KeyError:
+            return self.send(404, {"error": "source job not found"})
+        except (ValueError, TypeError, json.JSONDecodeError, AttributeError) as e:
             return self.send(400, {"error": str(e)})
         jid = secrets.token_hex(6)
         d = os.path.join(JOBS, jid)
