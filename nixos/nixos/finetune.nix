@@ -22,8 +22,12 @@ let
   # /var/lib/finetune/hf after the first download.
   allowedModels = [
     "Qwen/Qwen3.8-27B" # dense, QLoRA fits in 48 GB
-    "Qwen/Qwen3-14B-Base" # largest dense *base* model; cheaper runs
+    "Qwen/Qwen3-14B-Base" # largest dense Qwen base model; cheaper runs
     "Qwen/Qwen3.5-9B-Base" # fast iteration
+    # Largest ungated dense base models; the woSyn variant was pretrained
+    # without synthetic instruction data. QLoRA fits in 48 GB.
+    "ByteDance-Seed/Seed-OSS-36B-Base"
+    "ByteDance-Seed/Seed-OSS-36B-Base-woSyn"
   ];
 in
 {
