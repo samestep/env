@@ -120,6 +120,7 @@ FORWARD_PARAMS = {
     "seed": (int, 0, 2**31 - 1),
     "scales": None,
     "weights": None,
+    "stop": None,
 }
 FORWARD_DEFAULTS = {
     "mode": "score",
@@ -247,6 +248,10 @@ def validate_forward(cfg, src):
         out.get("weights", [1.0] + [0.0] * (len(out["scales"]) - 1)), "weights", -8.0, 8.0)
     if len(out["weights"]) != len(out["scales"]):
         raise ValueError("weights must be as long as scales")
+    out["stop"] = out.get("stop", [])
+    if not (isinstance(out["stop"], list) and len(out["stop"]) <= 4
+            and all(isinstance(x, str) and 0 < len(x) <= 32 for x in out["stop"])):
+        raise ValueError("stop must be a list of up to 4 strings of 1-32 characters")
     return dict(out, kind="forward", source=src, base_model=st["config"]["base_model"])
 
 

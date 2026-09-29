@@ -13,7 +13,8 @@ mode "generate": for each row {"id", "prompt"}, n samples from a mixture of
   scales [1, 0] and weights [1 + a, -a] this is contrastive decoding
   (fine-tuned vs base); "plausibility" > 0 restricts sampling to tokens whose
   probability under the first scale is at least that fraction of its top
-  token's.
+  token's. Generation ends at the end-of-sequence token or at any of the
+  "stop" strings, which are cut from the sample.
 """
 
 import json
@@ -121,8 +122,14 @@ def generate(row):
             if nxt == tok.eos_token_id:
                 break
             new.append(nxt)
+            tail = tok.decode(new[-16:])
+            if any(x in tail for x in c["stop"]):
+                break
             x = torch.tensor([[nxt]], device="cuda")
-        samples.append(tok.decode(new))
+        text = tok.decode(new)
+        for x in c["stop"]:
+            text = text.split(x)[0]
+        samples.append(text)
     return {"id": row.get("id"), "samples": samples}
 
 
