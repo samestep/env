@@ -84,6 +84,9 @@ PARAMS = {
     "seed": (int, 0, 2**31 - 1),
     "quantize": ("none", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M"),
     "merge": (True, False),
+    # Continue training a finished job's adapter (same base model) instead of
+    # starting a fresh one; its rank and alpha then come from that adapter.
+    "init_from": None,
 }
 DEFAULTS = {
     "objective": "sft",
@@ -194,6 +197,17 @@ def validate(cfg, params=PARAMS, defaults=DEFAULTS):
         out[k] = v
     if params is PARAMS:
         out["base_model"] = check_model(out.get("base_model"))
+        if "init_from" in out:
+            src = out["init_from"]
+            try:
+                st = read_status(src)
+                ok = os.path.exists(os.path.join(job_dir(src), "out", "adapter", "adapter_config.json"))
+            except (KeyError, FileNotFoundError, TypeError):
+                ok = False
+            if not ok or st.get("state") != "done" or st["config"].get("kind") == "forward":
+                raise ValueError("init_from must be a finished training job with an adapter")
+            if st["config"]["base_model"] != out["base_model"]:
+                raise ValueError("init_from job used a different base_model")
     return out
 
 
@@ -330,6 +344,7 @@ def train_config(c):
         "base_model": c["base_model"],
         "load_in_4bit": c["adapter"] == "qlora",
         "adapter": c["adapter"],
+        **({"lora_model_dir": "/init_adapter"} if c.get("init_from") else {}),
         "lora_r": c["lora_r"],
         "lora_alpha": c["lora_alpha"],
         "lora_dropout": c["lora_dropout"],
@@ -449,7 +464,9 @@ def run_job(jid):
                      mounts=[f"{adapter}:/adapter:ro", f"{FORWARD_SCRIPT}:/runner/forward.py:ro"])
             return
         write_status(jid, state="running", step="train", started=time.time())
-        run_step(jid, "train", TRAIN_IMAGE, ["axolotl", "train", "/job/train.yml"], log)
+        init = [f"{os.path.join(JOBS, c['init_from'], 'out', 'adapter')}:/init_adapter:ro"] \
+            if c.get("init_from") else []
+        run_step(jid, "train", TRAIN_IMAGE, ["axolotl", "train", "/job/train.yml"], log, mounts=init)
         if not c["merge"]:
             return
         write_status(jid, step="merge")
