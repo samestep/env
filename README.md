@@ -366,11 +366,12 @@ Note that, without additional setup, this VM can only receive Tailscale SSH conn
 ## Nix remote builders
 
 The `ubuntu` VM (`aarch64-linux`) coordinates builds across the tailnet,
-offloading `x86_64-linux` to `sandbox-amd64` and `aarch64-darwin` to
-`tahoe-vanilla` over Tailscale SSH. This is what `npd -s x86_64-linux -s
-aarch64-linux -s aarch64-darwin` relies on. Beyond the SSH setup above, there are
-two non-obvious gotchas: declaring each builder's capabilities, and Ubuntu's
-AppArmor user-namespace restriction.
+offloading `x86_64-linux` to `sandbox-amd64` over Tailscale SSH and
+`aarch64-darwin` to `tahoe-vanilla` over plain SSH on the MacBook's internal VM
+network. This is what `npd -s x86_64-linux -s aarch64-linux -s aarch64-darwin`
+relies on. Beyond the SSH setup above, there are a few non-obvious gotchas:
+keeping the Mac builder off Tailscale, keeping the MacBook off Wi-Fi, declaring
+each builder's capabilities, and Ubuntu's AppArmor user-namespace restriction.
 
 ### Declaring the builders
 
@@ -384,15 +385,15 @@ builders-use-substitutes = false
 and list one builder per line in `/etc/nix/machines`:
 
 ```
-ssh-ng://admin@tahoe-vanilla.tail1a09f6.ts.net aarch64-darwin - 6 1 big-parallel,benchmark - <base64 host key>
+ssh-ng://admin@192.168.2.2 aarch64-darwin /root/.ssh/nix-builder 6 1 big-parallel,benchmark - <base64 host key>
 ssh-ng://agent-amd64@sandbox-amd64.tail1a09f6.ts.net x86_64-linux - 8 1 big-parallel,benchmark,kvm,nixos-test,uid-range - <base64 host key>
 ```
 
 The fields are `URI system ssh-key max-jobs speed-factor features
-mandatory-features base64-host-key`. SSH goes through the `~/.ssh/tailnet` config
-(from the `tailnet` script), connecting as the user in each URI; because the
-nix-daemon runs builds as root, root — not just your user — must be able to reach
-each builder.
+mandatory-features base64-host-key`. Because the nix-daemon runs builds as root,
+root — not just your user — must be able to reach each builder. For
+`sandbox-amd64` that goes through Tailscale SSH, which needs no key; for
+`tahoe-vanilla` it is the macOS `sshd` with a dedicated key, set up below.
 
 Use `ssh-ng://`, not `ssh://`. The two differ only in what runs on the far end:
 [`ssh://`](https://nix.dev/manual/nix/latest/store/types/ssh-store) is the legacy
@@ -401,7 +402,8 @@ protocol that spawns `nix-store --serve` per connection, while
 speaks the regular daemon protocol to `nix-daemon --stdio`. Neither compresses
 anything on the wire (both stream raw NARs), so for one big path they are equally
 fast — but the legacy protocol pays several round trips per store path, and that
-adds up over the Wi-Fi hop to `sandbox-amd64` (3–16 ms RTT). Measured from
+adds up on a slow hop, like the then-jittery path to `sandbox-amd64` (3–16 ms
+RTT; see [below](#keeping-the-macbook-off-wi-fi) for the likely cause). Measured from
 `ubuntu` with `nix copy`, remote paths deleted between runs:
 
 | workload → `sandbox-amd64`                 | `ssh://`          | `ssh-ng://`        |
@@ -452,6 +454,79 @@ file:
 ```sh
 sudo systemctl restart nix-daemon
 ```
+
+### Keeping the Mac builder off Tailscale
+
+`ubuntu` and `tahoe-vanilla` run on the same MacBook and share its internal VM
+network (`192.168.2.3` and `192.168.2.2`), where raw TCP moves ~7 Gbit/s each way
+(iperf3). Through Tailscale the same pair manages ~800 Mbit/s `ubuntu` →
+`tahoe-vanilla` and only ~250 Mbit/s back: WireGuard is CPU-bound everywhere, and
+on macOS the userspace `tailscaled` has none of the
+[segmentation offloads](https://tailscale.com/blog/more-throughput) it uses on
+Linux, so it encrypts and sends one packet per syscall (~265% CPU for
+`tailscaled` plus ~185% `kernel_task` while sending). Every output a darwin build
+produces flows Mac → `ubuntu`, which is that slow direction. Timing `nix copy` of
+the `rustc` closure (12 paths, 1.72 GB) between the two:
+
+| route                           | `ubuntu` → `tahoe-vanilla` | `tahoe-vanilla` → `ubuntu` |
+| ------------------------------- | -------------------------- | -------------------------- |
+| Tailscale SSH (`tahoe-vanilla`) | 21.5 s (640 Mbit/s)        | 38.7 s (355 Mbit/s)        |
+| plain SSH (`192.168.2.2`)       | 5.7 s (2426 Mbit/s)        | 7.0 s (1980 Mbit/s)        |
+
+So point the darwin builder at the internal address. That bypasses Tailscale SSH,
+so root needs a real key, authorized on the Mac (which needs Remote Login on,
+`sudo systemsetup -setremotelogin on`):
+
+```sh
+sudo ssh-keygen -t ed25519 -N '' -C 'root@ubuntu nix remote builds' -f /root/.ssh/nix-builder
+ssh tahoe-vanilla "echo '$(sudo cat /root/.ssh/nix-builder.pub)' >> ~/.ssh/authorized_keys"
+```
+
+The host key to pin is the macOS `sshd`'s, which here is the same key the
+Tailscale SSH line had already pinned:
+
+```sh
+ssh-keyscan -t ed25519 192.168.2.2 2>/dev/null | cut -d' ' -f2- | tr -d '\n' | base64 -w0
+```
+
+No `?remote-program=` is needed: non-interactive `sshd` sessions on the Mac
+already have `/nix/var/nix/profiles/default/bin` on `PATH`. The address comes
+from the MacBook's VM DHCP and has survived reboots so far; if it ever changes,
+the darwin line fails to connect until updated. Verify end to end with a probe
+that must run on the Mac (`sandbox = false` there, so `/bin/sh` is fine):
+
+```sh
+nix build --no-link -L --impure --expr 'derivation {
+  name = "probe-${toString builtins.currentTime}"; system = "aarch64-darwin";
+  builder = "/bin/sh"; args = [ "-c" "echo $NIX_BUILD_CORES > $out" ]; }'
+# copying path '/nix/store/…-probe-…' from 'ssh-ng://admin@192.168.2.2'...
+```
+
+A 1 GiB random-data variant of that probe builds and lands back on `ubuntu` in
+7.4 s.
+
+`builders-use-substitutes = false` suits this layout: the coordinator fetches each
+dependency from `cache.nixos.org` once (~200–250 Mbit/s over the shared home
+uplink) and fans it out over links that are all faster than that.
+
+### Keeping the MacBook off Wi-Fi
+
+With the MacBook on Ethernet **and** Wi-Fi, the menu bar shows Ethernet, but the
+MacBook keeps both LAN addresses (`192.168.12.231` and `.232` at the time) and
+its NAT sent `ubuntu`'s traffic out over Wi-Fi while `tahoe-vanilla`'s went over
+Ethernet. The Wi-Fi leg (likely its power saving) added 2–250 ms of jitter to
+everything between `ubuntu` and `sandbox-amd64` — pinging `.231` from
+`sandbox-amd64` averaged 88 ms against a steady 1.2 ms to `.232`. Turning Wi-Fi
+off fixed it:
+
+| `ubuntu` ↔ `sandbox-amd64` | ping (min/avg/max)  | iperf3 → / ← (Mbit/s) |
+| -------------------------- | ------------------- | --------------------- |
+| MacBook on Wi-Fi too       | 2.1 / 59 / 211 ms   | 787 / 518             |
+| Ethernet only              | 1.1 / 1.4 / 1.7 ms  | 889 / 684             |
+
+The tell is two `192.168.12.x` addresses on the MacBook (`ifconfig | grep
+192.168.12`), or a `tailscale ping` from `sandbox-amd64` landing on a different
+MacBook address for each VM.
 
 ### Capping build parallelism for memory
 
@@ -546,7 +621,11 @@ memory-aware fix would truly belong.
 ### Building from `sandbox-amd64` instead
 
 `ubuntu` is the usual coordinator, but `sandbox-amd64` has its own
-`/etc/nix/machines` and can drive all three systems too. Two things to know.
+`/etc/nix/machines` and can drive all three systems too. It is the slower
+choice: it can reach the Mac only through Tailscale, so darwin outputs come back
+at ~355 Mbit/s instead of ~2 Gbit/s, and its direct path to `tahoe-vanilla`
+needs NAT hole punching between libvirt's NAT and the MacBook's, which sometimes
+fails and falls back to the `home` DERP relay. Two more things to know.
 
 Its `aarch64-linux` line originally pointed at
 `agent-arm64@sandbox-arm64`, a VM since deleted and replaced by `ubuntu` —
