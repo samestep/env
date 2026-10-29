@@ -53,12 +53,14 @@ in
   };
 
   programs = {
-    eza.enable = true;
-
     direnv = {
       enable = true;
       nix-direnv.enable = true;
     };
+
+    eza.enable = true;
+
+    fzf.enable = true;
 
     nix-index.enable = false; # Comma obviates this slow command-not-found hook.
 
