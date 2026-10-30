@@ -53,6 +53,12 @@ in
   };
 
   programs = {
+    # Setting this at all makes Bash save timestamps, which keeps multiline
+    # commands intact when it reads the history file back in.
+    bash.initExtra = ''
+      HISTTIMEFORMAT=""
+    '';
+
     direnv = {
       enable = true;
       nix-direnv.enable = true;
