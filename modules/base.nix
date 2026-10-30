@@ -60,7 +60,10 @@ in
 
     eza.enable = true;
 
-    fzf.enable = true;
+    fzf = {
+      enable = true;
+      defaultOptions = [ "--layout=reverse" ];
+    };
 
     nix-index.enable = false; # Comma obviates this slow command-not-found hook.
 
