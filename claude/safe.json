@@ -1,6 +1,17 @@
 {
   "permissions": {
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "allow": ["Read", "Bash"],
+    "ask": ["WebFetch", "Bash(dangerouslyDisableSandbox:true)"],
+    "deny": ["WebSearch"]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "failIfUnavailable": true,
+    "network": {
+      "strictAllowlist": true
+    }
   },
   "autoMemoryEnabled": false,
   "cleanupPeriodDays": 3650,
