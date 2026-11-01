@@ -2,6 +2,10 @@
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
+# no unrestricted web search
+[features]
+apps = false
+
 [notice]
 hide_rate_limit_model_nudge = true
 
