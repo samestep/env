@@ -51,6 +51,7 @@
   "git.autofetch": true,
   "git.confirmSync": false,
   "git.openRepositoryInParentFolders": "never",
+  "ocaml.sandbox": { "kind": "global" }, // Unset gives null -> error popup.
   "python.terminal.activateEnvironment": false, // Don't print on every command.
   "rust-analyzer.check.command": "clippy",
   "terminal.integrated.allowChords": false,
