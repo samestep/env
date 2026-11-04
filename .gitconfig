@@ -2,6 +2,7 @@
 	adog = log --all --date-order --oneline --graph
 	bdog = log --branches --date-order --oneline --graph
 	dog = log --date-order --oneline --graph
+	goto = !git fetch && git update-index -q --refresh && git reset --keep
 	root = rev-parse --show-toplevel
 [core]
 	editor = vim
