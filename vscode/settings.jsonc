@@ -57,6 +57,7 @@
   "terminal.integrated.allowChords": false,
   "terminal.integrated.inheritEnv": false, // Weird stuff happens otherwise.
   "terminal.integrated.suggest.enabled": false,
+  "tinymist.formatterPrintWidth": 80, // typstyle's own default.
   "tinymist.preview.invertColors": "auto",
   "vsrocq.proof.mode": 1, // Don't gate LSP facilities behind keybinds.
   "window.customTitleBarVisibility": "never",
