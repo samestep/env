@@ -5,5 +5,9 @@ sandbox_mode = "danger-full-access"
 [notice]
 hide_rate_limit_model_nudge = true
 
+[tui]
+screen_reader_detection_done = true
+
 [tui.model_availability_nux]
 "gpt-5.6-sol" = 4
+"gpt-6.1-sol" = 4
