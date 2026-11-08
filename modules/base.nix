@@ -40,6 +40,7 @@ in
         (pkgs.writers.writePython3Bin "doing" { } ../bin/doing.py)
         (pkgs.writers.writePython3Bin "flake" { } ../bin/flake.py)
         (pkgs.writers.writePython3Bin "ghcode" { } ../bin/ghcode.py)
+        (pkgs.writers.writePython3Bin "moss" { } ../bin/moss.py)
         (pkgs.writers.writePython3Bin "scratch" { } ../bin/scratch.py)
         (pkgs.writers.writePython3Bin "shell" { } ../bin/shell.py)
         (pkgs.writers.writePython3Bin "title" { } ../bin/title.py)
