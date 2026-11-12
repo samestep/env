@@ -1,5 +1,6 @@
-"""Select a compiler with `moss switch FLAKE`; forward other arguments."""
+"""Select a compiler with `moss switch [--bootstrap] FLAKE`."""
 
+import argparse
 import json
 import os
 import re
@@ -32,14 +33,25 @@ def resolve(reference: str) -> tuple[str, str]:
     return revision.lower(), metadata["url"]
 
 
-def switch(cache: Path, reference: str) -> None:
+def replace_link(link: Path, destination: str) -> None:
+    temporary = link.with_name(f".{link.name}-{os.getpid()}")
+    temporary.unlink(missing_ok=True)
+    try:
+        temporary.symlink_to(destination)
+        temporary.replace(link)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def switch(cache: Path, reference: str, *, bootstrap: bool = False) -> None:
     revision, reference = resolve(reference)
     cache.mkdir(parents=True, exist_ok=True)
     target = cache / revision
     current = cache / "current"
-    if not target.exists():
+    package = target
+    if bootstrap or not target.exists():
         command = ["nix", "build", "--no-link", "--print-out-paths"]
-        if current.exists():
+        if not bootstrap and current.exists():
             deriver = subprocess.check_output(
                 ["nix-store", "--query", "--deriver", str(current.resolve())],
                 encoding="utf8",
@@ -62,29 +74,32 @@ def switch(cache: Path, reference: str) -> None:
             """
             command += ["--impure", "--expr", expression]
         else:
-            print("moss: bootstrapping first compiler", file=sys.stderr)
+            print("moss: selecting the bootstrap package", file=sys.stderr)
             command.append(reference)
-        output = subprocess.check_output(command, encoding="utf8").strip()
-        target.unlink(missing_ok=True)
-        target.symlink_to(output)
-    if not (target / "bin/moss").is_file():
-        raise ValueError(f"not a complete Moss package: {target}")
-    temporary = cache / f".current-{os.getpid()}"
-    temporary.unlink(missing_ok=True)
-    try:
-        temporary.symlink_to(revision)
-        temporary.replace(current)
-    finally:
-        temporary.unlink(missing_ok=True)
+        package = Path(subprocess.check_output(
+            command, encoding="utf8",
+        ).strip())
+    if not package.is_absolute() or not (package / "bin/moss").is_file():
+        raise ValueError(f"not a complete Moss package: {package}")
+    if package != target:
+        replace_link(target, str(package))
+    replace_link(current, revision)
 
 
 def main() -> None:
     args = sys.argv[1:]
     cache = cache_root()
     if args[:1] == ["switch"]:
-        if len(args) != 2:
-            raise ValueError("usage: moss switch FLAKE")
-        switch(cache, args[1])
+        parser = argparse.ArgumentParser(
+            prog="moss switch", allow_abbrev=False,
+        )
+        parser.add_argument(
+            "--bootstrap", action="store_true",
+            help="select the revision's bootstrapped package",
+        )
+        parser.add_argument("flake", metavar="FLAKE")
+        options = parser.parse_args(args[1:])
+        switch(cache, options.flake, bootstrap=options.bootstrap)
     else:
         executable = (cache / "current/bin/moss").resolve()
         if not executable.is_file():
