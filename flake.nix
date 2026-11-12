@@ -17,7 +17,6 @@
     moss = {
       url = "github:moss-lang/moss";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-overlay.follows = "rust-overlay";
     };
   };
   outputs =
