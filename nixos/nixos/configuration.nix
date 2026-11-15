@@ -125,20 +125,26 @@
   # Enable the OpenSSH daemon.
   # services.openssh.enable = true;
 
-  # Local Tailscale DERP relay, so traffic between my VMs stays on the LAN; see
-  # README.md. Self-signed and pinned by hash in the tailnet DERP map.
-  # Unprivileged ports throughout, so the service needs no capabilities; the
-  # plain-HTTP listener is off because its default port 80 would need one.
-  networking.firewall.allowedTCPPorts = [ 8443 ]; # DERP
-  networking.firewall.allowedUDPPorts = [ 3478 ]; # STUN
-  systemd.services.derper = {
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.tailscale.derper}/bin/derper -c /var/lib/derper/derper.key -a :8443 -http-port -1 -certmode manual -certdir /var/lib/derper -hostname 192.168.12.10";
-      DynamicUser = true;
-      StateDirectory = "derper"; # keeps the key and self-signed cert, so the pin is stable
-    };
+  # LAN peer relay.
+  services.tailscale = {
+    enable = true;
+    disableTaildrop = true;
+    extraSetFlags = [
+      "--accept-dns=false"
+      # Shields up suppresses peer-relay grants along with incoming connections.
+      "--shields-up=false"
+      "--netfilter-mode=off"
+      "--ssh=false"
+      "--relay-server-port=40000"
+      "--relay-server-static-endpoints=192.168.12.10:40000"
+    ];
   };
+  # Apply before general port allowances, with Tailscale's netfilter rules disabled.
+  networking.firewall.extraCommands = ''
+    ip46tables -I nixos-fw -i tailscale0 -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP
+    iptables -w -A nixos-fw -s 192.168.12.0/24 -d 192.168.12.10 -p udp --dport 40000 -j nixos-fw-accept
+    iptables -w -A nixos-fw -i virbr0 -s 192.168.122.0/24 -d 192.168.12.10 -p udp --dport 40000 -j nixos-fw-accept
+  '';
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
