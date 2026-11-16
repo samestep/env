@@ -12,7 +12,6 @@
 {
   imports = [
     ./hardware-configuration.nix # Include the results of the hardware scan.
-    ./home-assistant.nix
   ];
 
   # Bootloader.

@@ -37,7 +37,10 @@
       };
       nixosConfigurations = {
         "nixos" = nixpkgs-stable.lib.nixosSystem {
-          modules = [ ./nixos/nixos/configuration.nix ];
+          modules = [
+            ./nixos/nixos/configuration.nix
+            ./home-assistant
+          ];
         };
       };
       homeConfigurations =
