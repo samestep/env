@@ -1,13 +1,17 @@
 { ... }:
 
 {
-  imports = [ ./qwen-asr.nix ];
+  imports = [
+    ./ollama.nix
+    ./qwen-asr.nix
+  ];
 
   services.home-assistant = {
     enable = true;
     extraComponents = [
       "esphome"
       "tplink"
+      "ollama"
       "met"
       "radio_browser"
       "wyoming"
