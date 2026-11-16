@@ -1,6 +1,9 @@
+{ ... }:
+
 {
   imports = [
     ./ollama.nix
+    ./qwen-asr.nix
   ];
 
   services.home-assistant = {
@@ -17,7 +20,8 @@
   };
   services.wyoming.faster-whisper.servers.assist = {
     enable = true;
-    model = "base.en";
+    sttLibrary = "sherpa";
+    model = "auto";
     language = "en";
     device = "cpu";
     uri = "tcp://127.0.0.1:10300";
