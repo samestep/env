@@ -5,6 +5,7 @@
     ./kokoro.nix
     ./ollama.nix
     ./qwen-asr.nix
+    ./zigbee.nix
   ];
 
   services.home-assistant = {
@@ -14,6 +15,7 @@
       "tplink"
       "ollama"
       "met"
+      "mqtt"
       "radio_browser"
       "wyoming"
     ];
