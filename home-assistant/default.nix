@@ -1,9 +1,14 @@
 {
+  imports = [
+    ./ollama.nix
+  ];
+
   services.home-assistant = {
     enable = true;
     extraComponents = [
       "esphome"
       "tplink"
+      "ollama"
       "met"
       "radio_browser"
       "wyoming"
