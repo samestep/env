@@ -89,8 +89,10 @@ class Recognizer:
         started = time.monotonic()
         vocabulary = self.vocabulary.snapshot
         with torch.inference_mode():
+            # Let Qwen emit its no-language/no-speech result. Forcing English
+            # bypasses that decision and can turn silence into vocabulary text.
             inputs = self.processor.apply_transcription_request(
-                audio=audio, language="English", prompt=vocabulary.prompt
+                audio=audio, language=None, prompt=vocabulary.prompt
             ).to(self.model.device, self.model.dtype)
             output = self.model.generate(
                 **inputs, max_new_tokens=1024, do_sample=False,

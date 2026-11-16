@@ -44,6 +44,9 @@ class SelectionTests(unittest.TestCase):
     def select(self, candidates):
         return qwen.select_transcript(candidates, self.vocabulary)
 
+    def test_no_speech_first_choice_is_not_replaced_by_device_command(self):
+        self.assertEqual(self.select(["", "Turn on the couch lamp."]), ("", 1))
+
     def test_recovers_real_alternative(self):
         self.assertEqual(self.select([
             "Turn on the capsule.", "Turn on the capsule lamp.", "Turn on the couch lamp."
