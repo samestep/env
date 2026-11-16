@@ -2,6 +2,7 @@
 
 {
   imports = [
+    ./kokoro.nix
     ./ollama.nix
     ./qwen-asr.nix
   ];
