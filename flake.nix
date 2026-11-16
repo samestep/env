@@ -37,6 +37,7 @@
       };
       nixosConfigurations = {
         "nixos" = nixpkgs-stable.lib.nixosSystem {
+          specialArgs.nixpkgsUnstable = nixpkgs;
           modules = [
             ./nixos/nixos/configuration.nix
             ./home-assistant
