@@ -1,4 +1,4 @@
-{ ... }:
+{ config, ... }:
 
 {
   imports = [
@@ -19,8 +19,17 @@
       "radio_browser"
       "wyoming"
     ];
-    config.default_config = { };
+    config = {
+      default_config = { };
+      automation = "!include automations.yaml";
+    };
   };
+  # The UI owns this file; create it only if it does not already exist.
+  systemd.services.home-assistant.preStart = ''
+    if [ ! -e "${config.services.home-assistant.configDir}/automations.yaml" ]; then
+      echo '[]' > "${config.services.home-assistant.configDir}/automations.yaml"
+    fi
+  '';
   services.wyoming.faster-whisper.servers.assist = {
     enable = true;
     sttLibrary = "sherpa";
