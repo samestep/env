@@ -5,6 +5,7 @@
     ./kokoro.nix
     ./ollama.nix
     ./qwen-asr.nix
+    ./tplink.nix
     ./zigbee.nix
   ];
 

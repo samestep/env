@@ -1,0 +1,17 @@
+--- a/kasa/iot/iotdevice.py
++++ b/kasa/iot/iotdevice.py
+@@ -412,6 +412,14 @@
+             req = merge(req, q)
+         request_list.append(req)
+ 
++        if self.model.split("(", 1)[0] == "EP10":
++            request_list = [
++                {module: {command: params}}
++                for request in request_list
++                for module, commands in request.items()
++                for command, params in commands.items()
++            ]
++
+         responses = [
+             await self.protocol.query(request) for request in request_list if request
+         ]
