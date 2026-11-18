@@ -18,6 +18,7 @@
 
     packages = [
       pkgs.gh
+      pkgs.tailscale
 
       (pkgs.writers.writePython3Bin "tart" {
         makeWrapperArgs = [
@@ -56,6 +57,7 @@
               "/Applications/zoom.us.app"
               "${pkgs.obsidian}/Applications/Obsidian.app"
               "${pkgs.vscode}/Applications/Visual Studio Code.app"
+              "${pkgs.chatgpt}/Applications/ChatGPT.app"
             ]
           );
         in
